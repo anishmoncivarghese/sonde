@@ -181,6 +181,7 @@ Claims about token savings, correctness, speed, or impact coverage must come fro
 - Guaranteeing runtime call relationships from static analysis alone.
 - Providing a full security scanner or formal program verifier.
 - Replacing LSPs, compilers, IDEs, or source-control systems.
+- Activity, cost, session, or efficiency analytics of any kind — see §20.
 
 ---
 
@@ -1109,6 +1110,23 @@ Local anonymous counters may be available through `codegraph status`:
 
 Any future telemetry must be opt-in, documented, source-free, path-sanitized, and independently disableable.
 
+### 20.1 The activity ledger moved to AgentDock
+
+**Status: removed from CodeGraph scope on 2026-08-16.**
+
+An expanded draft of this section specified an opt-in activity ledger (tokens, lines, files, time, tool calls) with generated Markdown efficiency reports, together with FR-090–100, the `get_activity_report` MCP tool, the activity-event data model, the `codegraph activity *` CLI commands, and Risk 9.
+
+All of it is reassigned to AgentDock. Reasons:
+
+1. **Opposite durability classes.** A CodeGraph index is derived and disposable — delete it, rebuild from source, lose nothing. An activity ledger is authored and irreplaceable. They require opposite backup, retention, privacy, and commit policies, so any single decision is wrong for one of them.
+2. **AgentDock already owns the substrate.** It has an event ledger, and it already emits session-start events carrying the client-provided session ID, the agent name, and a timestamp.
+3. **The join key already exists there.** AgentDock records the same session identifier that names the coding client's own transcript file, so token and tool-call measurements can be read from an authoritative source rather than reconstructed.
+4. **This was the only section of this PRD** that never referenced a symbol, an edge, or a line of source.
+
+One design constraint travels with it: **measure with code, narrate with agents.** Tokens, tool calls, lines, and files are obtainable deterministically from client transcripts and version control. An agent cannot observe its own token usage or elapsed time, so an agent-written numeric ledger records invention rather than measurement. Agents may contribute task titles and outcome notes; nothing numeric.
+
+Section numbering below is preserved so that existing cross-references remain valid.
+
 ---
 
 ## 21. Delivery plan
@@ -1268,6 +1286,7 @@ Repository expectations:
 8. Freshness, uncertainty, provenance, and token budgeting are public product contracts.
 9. Evaluation is defined before feature expansion.
 10. Visualization is not required for MVP.
+11. Activity and efficiency analytics belong to AgentDock, not CodeGraph — see §20.
 
 ---
 

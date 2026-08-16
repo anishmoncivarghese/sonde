@@ -26,3 +26,72 @@ Replace `claude-or-codex` with the agent currently doing the work. Record only
 genuine choices a future reader would wonder about. Skip typos, formatting and
 renames. Do not ask permission.
 <!-- whyline:m0-probe-end -->
+
+## CodeGraph
+
+A local code-context engine for AI coding agents. It indexes a repository into a
+symbol-level graph in SQLite and exposes three MCP tools so an agent can ask
+structural questions text search cannot answer: who calls this, what breaks if I
+change it, which tests touch it. TypeScript first; Swift is the v0.2 wedge.
+
+**Authoritative documents — read before changing anything:**
+
+- `docs/superpowers/specs/2026-08-16-codegraph-design.md` — the design. Section
+  numbers cited in code comments (`spec §6.2`) refer to this file.
+- `docs/superpowers/plans/2026-08-16-codegraph-foundation.md` — the task-by-task
+  build plan.
+- `prd.md` — long-range vision. **Not** the build target; the spec scopes it down
+  deliberately.
+
+### Environment
+
+This machine's default `node` is **v20**, which cannot run this project.
+Run `nvm use` in every shell before any `node` or `npm` command.
+
+```
+nvm use && npm install     # setup
+npm test                   # vitest
+npm run typecheck          # tsc --noEmit
+npm run bench:oracle       # regenerate ORACLE.md accuracy report
+```
+
+### Invariants
+
+These are product contracts, not preferences. Violating one is a bug even if
+tests pass.
+
+1. **Never fabricate an edge.** An unresolved reference becomes `EXTERNAL` (target
+   outside the repo) or `UNRESOLVED` (with a reason). Never a guessed target,
+   never a silently dropped reference.
+2. **Member access is always `HEURISTIC`.** `x.foo()` needs type inference. A
+   single visible `foo` is not evidence the call reaches it. Only bare
+   identifiers resolved through lexical scope or an import binding may be
+   `LEXICAL`.
+3. **Tier beats score, always.** Sort order is `COMPILER > LEXICAL > HEURISTIC`.
+   `confidence` only breaks ties *within* `HEURISTIC`. A high-confidence
+   heuristic edge must never outrank a resolved one.
+4. **Extraction is pure.** `LanguageAdapter.extract(path, bytes)` does no I/O, no
+   database access, no cross-file lookups. Cross-file work belongs in `link/` and
+   `resolve/`. This is what keeps a second language adapter tractable.
+5. **Never execute repository code** (SEC-008). Use the bundled `typescript`;
+   never `require` one from the target repo.
+6. **All repository reads go through `src/repo/boundary.ts`** (SEC-001/002/003).
+   No other module calls `fs` with a caller-supplied path.
+7. **Structural test edges never prove coverage.** `TESTS` edges are always
+   `HEURISTIC`, and every surface exposing them must say so.
+8. **Degrade with a warning; never fail silently.** A missing toolchain, a parse
+   failure, or drift over the refresh limit produces a warning in the envelope
+   and a visible state — never a quietly wrong answer. The predecessor tool this
+   project replaces failed precisely here: its refresh hook exited 127 for months
+   and nothing surfaced it.
+9. **Stable keys are never line-based.** `{lang}:{relpath}#{scope_chain}`.
+   Line numbers move on every edit; identity must not.
+
+### Conventions
+
+- TDD: failing test first, then the minimal implementation. The plan's steps are
+  ordered this way deliberately.
+- Conventional commits (`feat:`, `test:`, `fix:`, `chore:`). Commit per task.
+- Cite the spec section in comments when implementing a non-obvious rule, e.g.
+  `// spec §4.3: member access is never LEXICAL`.
+- Prefer small, focused files with one responsibility.
