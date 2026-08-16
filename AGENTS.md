@@ -34,6 +34,23 @@ symbol-level graph in SQLite and exposes three MCP tools so an agent can ask
 structural questions text search cannot answer: who calls this, what breaks if I
 change it, which tests touch it. TypeScript first; Swift is the v0.2 wedge.
 
+### Picking up this project (any agent, any vendor)
+
+This file carries **stable rules only**. Current state is deliberately not copied
+here, because a hand-maintained status section goes stale and then lies. Read it
+from these instead:
+
+1. `git log --oneline -15` and `git branch --show-current` — what has landed.
+2. `.superpowers/sdd/<plan-name>/progress.md` — the execution ledger, if one
+   exists. Task lines marked `complete` are done; resume at the first without one.
+   Git-ignored, so it is local to whoever is driving.
+3. `.whyline/decisions.md` — why past choices were made, append-only.
+
+**Update this file when the stable rules change** — a new invariant, a changed
+command, a new authoritative document. Do that as part of the same change, not
+later, and do not ask permission. Do not record progress or decision history
+here; those belong in the ledger and in whyline respectively.
+
 **Authoritative documents — read before changing anything:**
 
 - `docs/superpowers/specs/2026-08-16-codegraph-design.md` — the design. Section

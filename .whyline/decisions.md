@@ -52,3 +52,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** prd.md
 
 <!-- whyline-event: 19a783052780465a85caa71d697df521 -->
+
+## 2026-08-16 — Keep only stable rules in AGENTS.md and point to the ledger and whyline for current state
+
+**Because:** a hand-maintained status section in a handover file goes stale and then actively misleads the next agent, which is the same failure mode as the stale index this project replaces; stable rules change rarely and can be verified, progress cannot
+
+**Rejected:**
+
+- copy current task/branch state into AGENTS.md — goes stale the moment work continues
+- leave AGENTS.md rules-free and rely on whyline alone — whyline is append-only history, not current instructions, so a fresh agent gets no invariants
+
+**Files:** AGENTS.md
+
+<!-- whyline-event: 488a3e1fea054ce6a45041352038f3e9 -->
