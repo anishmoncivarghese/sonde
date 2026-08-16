@@ -163,7 +163,16 @@ Expected: FAIL — cannot resolve `../src/version.js`
 `vitest.config.ts`:
 ```ts
 import { defineConfig } from "vitest/config";
-export default defineConfig({ test: { include: ["tests/**/*.test.ts"] } });
+
+export default defineConfig({
+  test: {
+    include: ["tests/**/*.test.ts"],
+    // Oracle fixture repos contain real .test.ts files that are INPUT DATA for
+    // the tsc oracle (Task 11), not tests of this project. Without this exclude
+    // vitest collects and runs them, and they fail.
+    exclude: ["**/node_modules/**", "tests/fixtures/**"],
+  },
+});
 ```
 
 `.gitignore`:
@@ -2731,9 +2740,10 @@ describe("index pipeline", () => {
     writeFileSync(join(root, "src", "util.ts"), "export function somethingElse() { return 1; }");
     await updateRepo(root, dbPath);
 
-    const store = new Store((() => { const d = openDb(dbPath); migrate(d); return d; })());
-    const unresolved = store["db"].prepare("SELECT name, reason FROM unresolved_ref").all() as any[];
+    const db = openDb(dbPath); migrate(db);
+    const unresolved = db.prepare("SELECT name, reason FROM unresolved_ref").all() as any[];
     expect(unresolved.some(u => u.name === "validate" && u.reason === "target_removed")).toBe(true);
+    db.close();
   });
 
   it("re-attempts unresolved refs when a matching symbol appears", async () => {
