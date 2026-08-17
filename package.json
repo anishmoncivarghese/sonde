@@ -5,7 +5,7 @@
   "engines": { "node": ">=22" },
   "bin": { "codegraph": "./dist/cli/main.js" },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && cp src/store/schema.sql dist/store/schema.sql",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

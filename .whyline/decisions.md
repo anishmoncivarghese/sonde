@@ -114,3 +114,27 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/repo/boundary.ts, src/repo/ignore.ts, src/repo/discover.ts
 
 <!-- whyline-event: 3ef956d492e945d8b3c08672715f9608 -->
+
+## 2026-08-17 — Check schema compatibility before applying idempotent DDL
+
+**Because:** refusing an unsupported index version must not partially mutate that database before reporting the mismatch
+
+**Rejected:**
+
+- execute schema.sql before reading schema_version — can alter a future-version database even though migration is refused
+
+**Files:** src/store/migrate.ts
+
+<!-- whyline-event: 5c38d377b29544229a06628bf7cf210c -->
+
+## 2026-08-17 — Make each store batch insert atomic
+
+**Because:** a duplicate or invalid row must not leave an earlier subset of the same symbol, edge, external, or unresolved batch persisted
+
+**Rejected:**
+
+- execute batch rows individually without a transaction — failures leave partial graph state
+
+**Files:** src/store/repos.ts
+
+<!-- whyline-event: 478dfee6c63e44989332d6e12e2b5847 -->
