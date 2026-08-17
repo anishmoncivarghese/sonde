@@ -138,3 +138,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/store/repos.ts
 
 <!-- whyline-event: 478dfee6c63e44989332d6e12e2b5847 -->
+
+## 2026-08-17 — bump web-tree-sitter 0.24 -> 0.25 for Task 5 parser plumbing
+
+**Because:** 0.24.x exports Parser as a single CJS 'export =' class with Language nested under Parser.Language, set only after Parser.init() runs; the brief's code (and the Task 6 Swift-spike contract) needs the 0.25+ API with Parser and Language as separate named exports and Language.load() as a static
+
+**Rejected:**
+
+- keep 0.24.0 and rewrite parser.ts to the old API — brief's exact code wouldn't match, and future adapter work would target a soon-superseded API
+
+**Files:** src/adapters/typescript/parser.ts
+
+<!-- whyline-event: 7e3b6f7b423c442fafa8eee51f0494c4 -->
