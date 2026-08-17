@@ -174,3 +174,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** docs/superpowers/specs/2026-08-16-swift-spike-findings.md
 
 <!-- whyline-event: 44911ec964c04f3b99fe098aca225aa1 -->
+
+## 2026-08-17 — Assign stable keys after grouping declarations by named scope
+
+**Because:** every overload must receive a normalized signature hash, while non-overloaded symbols keep readable bare keys and identical signatures need deterministic source-order suffixes
+
+**Rejected:**
+
+- suffix only later collisions as in the plan snippet — leaves the first overload bare and violates spec section 6.2
+
+**Files:** src/adapters/typescript/symbols.ts
+
+<!-- whyline-event: 27b7739d541f49e0ae41d8adbaf5e05e -->
