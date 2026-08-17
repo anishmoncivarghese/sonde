@@ -5,7 +5,7 @@
   "engines": { "node": ">=22" },
   "bin": { "codegraph": "./dist/cli/main.js" },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

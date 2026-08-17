@@ -15,6 +15,7 @@
 - **Node 22+**; ESM only (`"type": "module"`). TypeScript `strict: true`, `noUncheckedIndexedAccess: true`.
   - ⚠️ This machine's default `node` is **v20.20.2**. Run `nvm use` (an `.nvmrc` pinning v24 is created in Task 1) in **every** shell before any `npm` or `node` command. Node 20 is past EOL and `better-sqlite3@13` requires `>=22`.
 - **Zero native compilation.** `web-tree-sitter` is WASM. `better-sqlite3` must resolve to a prebuilt binary — never a source build.
+  - **The version floor is `^13.0.0`, and it is load-bearing.** `better-sqlite3@11.x` has no `prebuilds/` directory and compiles from source via `node-gyp` — verified during Task 1. Only 13.x ships the N-API prebuilds this constraint depends on. Do not lower this pin.
   - **Verified 2026-08-16:** `better-sqlite3@13.0.3` ships N-API prebuilds (`prebuilds/darwin-arm64.node`, linux/musl/win32, x64 + arm64), installs in 2 packages / ~2s with no `node-gyp`, and FTS5 + WAL both work on SQLite 3.53.4. Task 1 Step 5 re-confirms this in the real project; it is a regression check, not an open question.
 - **SEC-008:** never execute repository code. The bundled `typescript` is used; **never** `require` `typescript` from the target repo (spec §5.3).
 - **SEC-001/002/003:** all filesystem reads go through `repo/boundary.ts`. No other module calls `fs` with a caller-supplied path.
@@ -129,7 +130,7 @@ Expected: FAIL — cannot resolve `../src/version.js`
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "^13.0.0",
     "commander": "^12.0.0",
     "web-tree-sitter": "^0.24.0",
     "typescript": "^5.6.0"

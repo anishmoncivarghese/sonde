@@ -65,3 +65,28 @@ Append-only. Written by whyline; readable without it.
 **Files:** AGENTS.md
 
 <!-- whyline-event: 488a3e1fea054ce6a45041352038f3e9 -->
+
+## 2026-08-16 — Pin better-sqlite3 to ^13.0.0, not ^11.0.0
+
+**Because:** 13.0.3 ships N-API prebuilds (prebuilds/<platform>.node) satisfying the zero-native-compilation constraint; verified 11.10.0 (the version ^11.0.0 resolves to) has no prebuilds dir and compiles from source via node-gyp on this machine
+
+**Rejected:**
+
+- better-sqlite3@^11.0.0 — originally in the brief from a controller memory error; resolves to 11.10.0 which lacks the N-API prebuild layout and triggers a real node-gyp/clang source build, violating the zero-install Global Constraint
+
+**Files:** package.json
+
+<!-- whyline-event: f5a9294b0d284c9ea3eaf301100eb9a0 -->
+
+## 2026-08-17 — Split tsconfig into tsconfig.json (typecheck, includes src+tests+bench) and tsconfig.build.json (build, src-only with rootDir/outDir)
+
+**Because:** tsc --noEmit via 'npm run typecheck' used the build tsconfig, whose include was src/**/* only — tests/ and bench/ were never typechecked despite CI running typecheck on every push. rootDir:src can't coexist with including tests/ in the same config without breaking build's output layout, so the configs had to split.
+
+**Rejected:**
+
+- add tests/**/* to the single existing tsconfig — breaks 'npm run build' because rootDir=src rejects files outside src/
+- leave as-is and typecheck only via vitest — vitest strips types instead of checking them, so this wouldn't have caught the escalation at all
+
+**Files:** tsconfig.json, tsconfig.build.json, package.json
+
+<!-- whyline-event: 13bde69cc2a44330bca6dcdcdda8762f -->
