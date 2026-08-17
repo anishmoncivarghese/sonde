@@ -33,7 +33,7 @@ export interface ImportRecord {
 
 export interface ExportRecord {
   exportedName: string;       // "default" for default exports
-  localName: string | null;   // null for pure re-exports
+  localName: string | null;   // local/source name; null only when no name exists (e.g. `export *`)
   reExportFrom: string | null;// specifier for `export ... from`
   isStar: boolean;            // `export * from`
   siteLine: number;

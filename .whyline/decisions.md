@@ -186,3 +186,27 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/typescript/symbols.ts
 
 <!-- whyline-event: 27b7739d541f49e0ae41d8adbaf5e05e -->
+
+## 2026-08-17 — Preserve the source name in aliased re-export records
+
+**Because:** the export-map fixpoint must distinguish export { foo as bar } from a source that exports bar; exportedName alone loses that mapping
+
+**Rejected:**
+
+- set localName to null for every pure re-export as in the plan snippet — aliases cannot be linked to their source symbol
+
+**Files:** src/adapters/types.ts, src/adapters/typescript/modules.ts
+
+<!-- whyline-event: dd5868edd61c490eaeabe6a7ceeafb78 -->
+
+## 2026-08-17 — Resolve bundled grammars relative to the parser module
+
+**Because:** CodeGraph runs with the indexed repository as the process working directory, so cwd-relative lookup searches the target repo for CodeGraph's WASM asset
+
+**Rejected:**
+
+- resolve vendor from process.cwd() — works only when CodeGraph indexes its own checkout
+
+**Files:** src/adapters/typescript/parser.ts
+
+<!-- whyline-event: 31cd34cb0b4744f7996167d7a1c7fa2d -->
