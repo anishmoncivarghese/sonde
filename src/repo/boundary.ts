@@ -1,4 +1,11 @@
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import {
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  statSync,
+  type Dirent,
+  type Stats,
+} from "node:fs";
 import { isAbsolute, resolve, sep } from "node:path";
 
 export class PathEscapeError extends Error {
@@ -54,5 +61,13 @@ export class RepoBoundary {
       throw new PathEscapeError(relativePath);
     }
     return readFileSync(absolute);
+  }
+
+  readDirectory(relativePath: string): Dirent[] {
+    return readdirSync(this.resolve(relativePath), { withFileTypes: true });
+  }
+
+  stat(relativePath: string): Stats {
+    return statSync(this.resolve(relativePath));
   }
 }

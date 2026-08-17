@@ -102,3 +102,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/repo/boundary.ts
 
 <!-- whyline-event: bffdee0f5707429eaa23e5870c282e75 -->
+
+## 2026-08-17 — Extend RepoBoundary with directory and metadata reads for discovery
+
+**Because:** the stable SEC-001/002/003 invariant requires every repository read, including ignore files and directory walks, to pass through one canonical containment check
+
+**Rejected:**
+
+- use fs directly in ignore and discovery modules as shown in the plan — violates the repository-wide read boundary
+
+**Files:** src/repo/boundary.ts, src/repo/ignore.ts, src/repo/discover.ts
+
+<!-- whyline-event: 3ef956d492e945d8b3c08672715f9608 -->
