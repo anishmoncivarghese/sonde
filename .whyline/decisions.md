@@ -90,3 +90,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** tsconfig.json, tsconfig.build.json, package.json
 
 <!-- whyline-event: 13bde69cc2a44330bca6dcdcdda8762f -->
+
+## 2026-08-17 — Canonicalize repository roots and re-check existing targets after symlink resolution
+
+**Because:** lexical containment alone cannot prevent an in-root symlink from exposing files outside the repository
+
+**Rejected:**
+
+- lexical path checks only — traversal is blocked but symlink escapes remain readable
+
+**Files:** src/repo/boundary.ts
+
+<!-- whyline-event: bffdee0f5707429eaa23e5870c282e75 -->
