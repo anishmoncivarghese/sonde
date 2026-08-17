@@ -210,3 +210,27 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/typescript/parser.ts
 
 <!-- whyline-event: 31cd34cb0b4744f7996167d7a1c7fa2d -->
+
+## 2026-08-17 — Route tsconfig loading and resolution probes through RepoBoundary
+
+**Because:** config inheritance, path aliases, and package metadata all derive from caller-selected repository paths and must receive the same canonical containment and symlink checks as source reads
+
+**Rejected:**
+
+- call fs directly from tsconfig modules as in the plan snippet — creates a second unchecked repository read surface
+
+**Files:** src/tsconfig/load.ts, src/tsconfig/resolve.ts
+
+<!-- whyline-event: d8312bb312df47d48341829eaf192fe6 -->
+
+## 2026-08-17 — Treat only canonical in-repo workspace package exports as internal
+
+**Because:** node_modules must be readable for resolution but never indexed; following a workspace symlink to packages/ preserves that distinction while regular installed packages remain EXTERNAL
+
+**Rejected:**
+
+- classify any resolvable node_modules target as internal — indexes third-party declarations and violates FR-005
+
+**Files:** src/tsconfig/resolve.ts
+
+<!-- whyline-event: fd5ad90b69374fa3b41665fa66e33194 -->
