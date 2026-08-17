@@ -18,6 +18,8 @@ export interface ReferenceRecord {
   fromSymbolKey: string;   // enclosing NAMED symbol (spec §6.2)
   name: string;            // the identifier as written
   receiver: string | null; // for `x.foo()`, "x"; null for a bare `foo()`
+  /** Optional language-specific module/target/access scope for candidate narrowing. */
+  scopeHint?: string | null;
   kind: "CALLS" | "REFERENCES" | "IMPLEMENTS" | "INHERITS";
   siteLine: number;
 }

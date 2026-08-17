@@ -150,3 +150,27 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/typescript/parser.ts
 
 <!-- whyline-event: 7e3b6f7b423c442fafa8eee51f0494c4 -->
+
+## 2026-08-17 — Add optional scopeHint to adapter references after the Swift spike
+
+**Because:** 75% of the stratified sample remained high-fanout heuristic without module or access-control scope, crossing the design's 60% amendment threshold
+
+**Rejected:**
+
+- keep resolution import-only — Swift same-module internal references receive no narrowing signal
+
+**Files:** src/adapters/types.ts, docs/superpowers/specs/2026-08-16-swift-spike-findings.md
+
+<!-- whyline-event: df5af169e6f7497895af22f2c2f5cd78 -->
+
+## 2026-08-17 — Require a Swift grammar/runtime fix before the v0.2 adapter
+
+**Because:** the pinned grammar marked 47 of 200 Duet files as erroneous, a 23.5% rate against the 5% gate, and Node 24 needed baseline WASM compilation to avoid optimizer OOM
+
+**Rejected:**
+
+- treat named extensions and detected SwiftUI constructs as sufficient — symbol boundaries do not compensate for the failed parse-reliability gate
+
+**Files:** docs/superpowers/specs/2026-08-16-swift-spike-findings.md
+
+<!-- whyline-event: 44911ec964c04f3b99fe098aca225aa1 -->
