@@ -258,3 +258,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** tsconfig.json
 
 <!-- whyline-event: 141acebc87bf44b488fdb474c17694a1 -->
+
+## 2026-08-18 — Treat unverified internal import bindings as unresolved
+
+**Because:** an imported name absent from the linked export map has no proven owning declaration; preserving that state prevents a same-named global symbol from becoming a fabricated LEXICAL edge
+
+**Rejected:**
+
+- Fall back to the resolved module path — makes an unverified import look exact and can silently target an unrelated candidate
+
+**Files:** src/link/imports.ts, src/resolve/resolver.ts
+
+<!-- whyline-event: 4c6247c3e74242dea7816e7a2e150f36 -->
