@@ -7,5 +7,6 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "tests/**/*", "bench/**/*"]
+  "include": ["src/**/*", "tests/**/*", "bench/**/*"],
+  "exclude": ["tests/fixtures/**/*"]
 }

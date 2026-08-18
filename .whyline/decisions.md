@@ -234,3 +234,27 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/tsconfig/resolve.ts
 
 <!-- whyline-event: fd5ad90b69374fa3b41665fa66e33194 -->
+
+## 2026-08-18 — Resolve oracle targets through tsc aliases and retain module-scope sources
+
+**Because:** TypeScript reports imported identifiers as alias symbols, while CodeGraph intentionally does not mint symbols for anonymous callbacks; following aliases reaches owning declarations and a <module> source preserves otherwise valid fixture edges
+
+**Rejected:**
+
+- Use the plan snippet literally — barrel imports point at import declarations and anonymous-callback references are silently dropped
+
+**Files:** bench/oracle/extract.ts, tests/fixtures/repos/small/src/auth/session.test.ts
+
+<!-- whyline-event: 9015b4edd5bc44fa861af91766bfdb80 -->
+
+## 2026-08-18 — Exclude fixture repositories from the host TypeScript project
+
+**Because:** fixtures are compiler input with pinned nested tsconfigs, so checking them under CodeGraph's NodeNext config changes their semantics and produces irrelevant host-project errors
+
+**Rejected:**
+
+- Typecheck fixtures with the root project — ignores each fixture's own compiler configuration
+
+**Files:** tsconfig.json
+
+<!-- whyline-event: 141acebc87bf44b488fdb474c17694a1 -->
