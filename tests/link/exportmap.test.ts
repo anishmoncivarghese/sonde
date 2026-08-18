@@ -26,6 +26,17 @@ describe("buildExportMap", () => {
     expect(m.get("index.ts")!.get("foo")).toBe("a.ts");
   });
 
+  it("follows a named re-export transitively regardless of file order", () => {
+    const files = new Map([
+      ["d.ts", mk([{ exportedName: "foo", localName: null, reExportFrom: "./c", isStar: false, siteLine: 1 }])],
+      ["c.ts", mk([{ exportedName: "foo", localName: null, reExportFrom: "./b", isStar: false, siteLine: 1 }])],
+      ["b.ts", mk([{ exportedName: "foo", localName: null, reExportFrom: "./a", isStar: false, siteLine: 1 }])],
+      ["a.ts", mk([{ exportedName: "foo", localName: "foo", reExportFrom: null, isStar: false, siteLine: 1 }])],
+    ]);
+    const m = buildExportMap(files, cfg, boundary, stubResolve as any);
+    expect(m.get("d.ts")!.get("foo")).toBe("a.ts");
+  });
+
   it("expands `export * from` transitively through a barrel chain", () => {
     const files = new Map([
       ["a.ts", mk([{ exportedName: "foo", localName: "foo", reExportFrom: null, isStar: false, siteLine: 1 }])],

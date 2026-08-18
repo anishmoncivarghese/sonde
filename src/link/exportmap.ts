@@ -54,15 +54,22 @@ export function buildExportMap(
   }
 
   // Pass N+1: resolve named re-exports that pointed at a barrel.
-  for (const [file, res] of files) {
-    const own = map.get(file)!;
-    for (const e of res.exports) {
-      if (e.isStar || !e.reExportFrom) continue;
-      const t = resolveFn(e.reExportFrom, file, cfg, boundary);
-      if (t.kind !== "internal") continue;
-      const owner = map.get(t.path)?.get(e.exportedName);
-      if (owner) own.set(e.exportedName, owner);
+  for (let pass = 0; pass < MAX_PASSES; pass++) {
+    let changed = false;
+    for (const [file, res] of files) {
+      const own = map.get(file)!;
+      for (const e of res.exports) {
+        if (e.isStar || !e.reExportFrom) continue;
+        const t = resolveFn(e.reExportFrom, file, cfg, boundary);
+        if (t.kind !== "internal") continue;
+        const owner = map.get(t.path)?.get(e.exportedName);
+        if (owner && own.get(e.exportedName) !== owner) {
+          own.set(e.exportedName, owner);
+          changed = true;
+        }
+      }
     }
+    if (!changed) break;
   }
 
   return map;
