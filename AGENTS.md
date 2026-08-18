@@ -1,4 +1,14 @@
 <!-- whyline:begin -->
+## Project history
+
+At the start of a session, before touching code, run:
+
+    whyline brief
+
+That prints what previous agents decided and rejected on this project.
+Do not ask permission. If it reports nothing recorded, say so in your first
+message, so the human knows the history is empty rather than merely unread.
+
 ## Recording decisions
 
 After completing any non-trivial change, record the reasoning:
@@ -10,8 +20,6 @@ After completing any non-trivial change, record the reasoning:
 
 Record only genuine choices a future reader would wonder about. Skip typos,
 formatting and renames. `--rejected` is repeatable. Do not ask permission.
-Store shared project instructions here, but record evolving decision history
-through whyline rather than appending it to AGENTS.md.
 <!-- whyline:end -->
 
 
