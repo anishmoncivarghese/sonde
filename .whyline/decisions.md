@@ -294,3 +294,27 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/index/pipeline.ts, src/resolve/resolver.ts, src/store/repos.ts
 
 <!-- whyline-event: ae3a3aaf46f940c0b4d73d09dfdf4c1f -->
+
+## 2026-08-18 — Add metadata-only discovery for stat-first drift checks
+
+**Because:** reusing normal discovery would hash every source file on every tool call, while a metadata-only overload preserves ignore rules and repository-boundary enforcement without content reads; drift then hashes only stored mtime/size mismatches
+
+**Rejected:**
+
+- Call fs directly from drift.ts as in the plan snippet — violates the repository read boundary and duplicates discovery rules
+
+**Files:** src/repo/discover.ts, src/index/drift.ts
+
+<!-- whyline-event: 699da1fa613342d2bb1b0bd37ad2200f -->
+
+## 2026-08-18 — Keep freshness partial while parse failures remain indexed
+
+**Because:** zero filesystem drift does not make an index structurally complete when a file's symbols were dropped after parsing failed
+
+**Rejected:**
+
+- Report fresh whenever driftCount is zero — hides the persisted parse-failure state
+
+**Files:** src/index/drift.ts, src/store/repos.ts
+
+<!-- whyline-event: 535507717b1b47aab9893b97cc9a7003 -->

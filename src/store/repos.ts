@@ -139,6 +139,15 @@ export class Store {
       .all() as Array<Omit<FileDbRow, "id">>;
   }
 
+  hasParseFailures(): boolean {
+    const row = this.db
+      .prepare(
+        "SELECT 1 AS present FROM file WHERE parse_state = 'failed' LIMIT 1",
+      )
+      .get() as { present: number } | undefined;
+    return row !== undefined;
+  }
+
   allSymbolLocations(): Array<{ shortName: string; filePath: string }> {
     return this.db
       .prepare(
