@@ -89,19 +89,34 @@ export class Store {
     return this.db.transaction(fn)();
   }
 
-  upsertFile(file: FileRecord & { language?: string }): void {
+  upsertFile(
+    file: FileRecord & {
+      language?: string;
+      parseState?: "ok" | "failed";
+      diagnostics?: unknown[];
+    },
+  ): void {
     this.db
       .prepare(
-        `INSERT INTO file (path, language, content_hash, mtime_ms, size)
-         VALUES (@path, @language, @contentHash, @mtimeMs, @size)
+        `INSERT INTO file
+           (path, language, content_hash, mtime_ms, size, parse_state, diagnostics)
+         VALUES
+           (@path, @language, @contentHash, @mtimeMs, @size, @parseState, @diagnostics)
          ON CONFLICT(path) DO UPDATE SET
            language = excluded.language,
            content_hash = excluded.content_hash,
            mtime_ms = excluded.mtime_ms,
            size = excluded.size,
+           parse_state = excluded.parse_state,
+           diagnostics = excluded.diagnostics,
            indexed_at = datetime('now')`,
       )
-      .run({ ...file, language: file.language ?? "typescript" });
+      .run({
+        ...file,
+        language: file.language ?? "typescript",
+        parseState: file.parseState ?? "ok",
+        diagnostics: JSON.stringify(file.diagnostics ?? []),
+      });
   }
 
   getFile(path: string): Omit<FileDbRow, "path"> | undefined {
@@ -122,6 +137,15 @@ export class Store {
          FROM file ORDER BY path`,
       )
       .all() as Array<Omit<FileDbRow, "id">>;
+  }
+
+  allSymbolLocations(): Array<{ shortName: string; filePath: string }> {
+    return this.db
+      .prepare(
+        `SELECT s.short_name AS shortName, f.path AS filePath
+         FROM symbol s JOIN file f ON f.id = s.file_id`,
+      )
+      .all() as Array<{ shortName: string; filePath: string }>;
   }
 
   deleteFile(path: string): void {

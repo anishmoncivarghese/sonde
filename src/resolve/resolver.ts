@@ -29,6 +29,12 @@ export interface ResolveOutput {
   unresolved: UnresolvedRow[];
 }
 
+export interface ResolutionHistory {
+  previousNames: ReadonlySet<string>;
+  parseFailedNames?: ReadonlySet<string>;
+  deletedNames?: ReadonlySet<string>;
+}
+
 function bindingForReference(
   ref: ReferenceRecord,
   bindings: Map<string, Binding>,
@@ -43,6 +49,7 @@ export function resolveAll(
   exportMap: ExportMap,
   cfg: TsConfig,
   boundary: RepoBoundary,
+  history?: ResolutionHistory,
 ): ResolveOutput {
   const table = new SymbolTable();
   for (const [file, result] of files) {
@@ -82,7 +89,11 @@ export function resolveAll(
         } else if (binding.name === "*") {
           candidateFile = exportMap.get(binding.file)?.get(ref.name) ?? null;
           if (candidateFile === null) {
-            binding = { unresolved: "unexported_import" };
+            binding = {
+              unresolved: "unexported_import",
+              targetFile: binding.file,
+              targetName: ref.name,
+            };
           }
         } else {
           candidateFile = binding.file;
@@ -99,27 +110,49 @@ export function resolveAll(
       // EXTERNAL is separate from genuinely unplaceable references so the
       // unresolved count remains a meaningful completeness signal (spec §4.4).
       if (tier === "EXTERNAL") {
+        const externalBinding = binding as { external: string; name: string };
+        const historicalName = externalBinding.name === "*"
+          ? ref.name
+          : externalBinding.name;
+        if (history?.deletedNames?.has(historicalName)) {
+          out.unresolved.push({
+            srcKey: ref.fromSymbolKey,
+            name: ref.name,
+            kind: ref.kind,
+            siteLine: ref.siteLine,
+            candidateCount: 0,
+            reason: "target_removed",
+          });
+          continue;
+        }
         out.external.push({
           srcKey: ref.fromSymbolKey,
           name: ref.name,
-          packageOrLib: (binding as { external: string }).external,
+          packageOrLib: externalBinding.external,
           siteLine: ref.siteLine,
         });
         continue;
       }
 
       if (tier === "UNRESOLVED") {
+        const historicalName = binding && "unresolved" in binding
+          ? binding.targetName
+          : ref.name;
         out.unresolved.push({
           srcKey: ref.fromSymbolKey,
           name: ref.name,
           kind: ref.kind,
           siteLine: ref.siteLine,
           candidateCount: candidates.length,
-          reason: binding && "unresolved" in binding
-            ? binding.unresolved
-            : binding && "file" in binding
-              ? "binding_target_missing"
-              : "no_candidate",
+          reason: history?.parseFailedNames?.has(historicalName)
+            ? "parse_failed"
+            : history?.previousNames.has(historicalName)
+              ? "target_removed"
+              : binding && "unresolved" in binding
+                ? binding.unresolved
+                : binding && "file" in binding
+                  ? "binding_target_missing"
+                  : "no_candidate",
         });
         continue;
       }

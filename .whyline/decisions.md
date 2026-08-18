@@ -270,3 +270,27 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/link/imports.ts, src/resolve/resolver.ts
 
 <!-- whyline-event: 4c6247c3e74242dea7816e7a2e150f36 -->
+
+## 2026-08-18 — Rebuild the global graph atomically while accounting updates by content hash
+
+**Because:** LINK and RESOLVE require every file's imports, exports, references, and symbols, but the current index schema does not persist reusable extraction results; re-extracting the corpus and replacing rows in one transaction preserves correctness while filesIndexed/filesSkipped still report actual content changes
+
+**Rejected:**
+
+- Extract and resolve only changed files — loses unchanged cross-file inputs and cannot re-attempt unresolved references soundly
+
+**Files:** src/index/pipeline.ts
+
+<!-- whyline-event: f9d67c8648da43e8a2b256d2696fad4b -->
+
+## 2026-08-18 — Persist parse failures and distinguish lost-target lifecycle reasons
+
+**Because:** failed files must remain visible with diagnostics but no symbols, and prior symbol locations let inbound references distinguish parse_failed, target_removed, and genuinely external targets
+
+**Rejected:**
+
+- Count parse warnings only and rely on cascade deletion — silently marks failed files healthy and erases inbound evidence
+
+**Files:** src/index/pipeline.ts, src/resolve/resolver.ts, src/store/repos.ts
+
+<!-- whyline-event: ae3a3aaf46f940c0b4d73d09dfdf4c1f -->

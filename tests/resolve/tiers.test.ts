@@ -43,7 +43,7 @@ describe("assignTier", () => {
   });
 
   it("assigns EXTERNAL when the binding points outside the repo", () => {
-    expect(assignTier(ref(), [], { external: "react" }).tier).toBe("EXTERNAL");
+    expect(assignTier(ref(), [], { external: "react", name: "foo" }).tier).toBe("EXTERNAL");
   });
 
   it("assigns UNRESOLVED when there are no candidates and no binding", () => {
