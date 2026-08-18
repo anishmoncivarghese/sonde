@@ -11,23 +11,22 @@ message, so the human knows the history is empty rather than merely unread.
 
 ## Recording decisions
 
-After completing any non-trivial change, record the reasoning:
+After completing any non-trivial change, or after reviewing someone else's,
+record the reasoning:
 
     whyline note "<one-line decision>" \
       --because "<why this choice>" \
       --rejected "<option>: <why not>" \
       --file <path>
 
+Reviewing counts as deciding. Ruling a defect worth fixing now, accepting a
+deviation from the plan, or judging a risk acceptable are all decisions.
+Record them even though someone else wrote the code, and even if you also
+logged them in a tracker of your own.
+
 Record only genuine choices a future reader would wonder about. Skip typos,
 formatting and renames. `--rejected` is repeatable. Do not ask permission.
 <!-- whyline:end -->
-
-
-<!-- whyline:m0-probe-begin -->
-Replace `claude-or-codex` with the agent currently doing the work. Record only
-genuine choices a future reader would wonder about. Skip typos, formatting and
-renames. Do not ask permission.
-<!-- whyline:m0-probe-end -->
 
 ## CodeGraph
 
