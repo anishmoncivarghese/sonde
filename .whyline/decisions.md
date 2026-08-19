@@ -546,3 +546,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/query/impact.ts, src/repo/git.ts
 
 <!-- whyline-event: 4cf9b852c6874cc294b2886d188fe344 -->
+
+## 2026-08-19 — Require indexed body hashes for source verification and recheck drift after inline refresh
+
+**Because:** readability alone cannot prove returned bytes match the indexed symbol, and an update can introduce a parse failure or race with another source change after the pre-refresh drift scan
+
+**Rejected:**
+
+- Treat a missing expected hash as verified — conflates reading current bytes with proving they are the indexed body
+- Return refreshed immediately after updateRepo — can label a newly parse-failed or concurrently changed index complete
+
+**Files:** src/pack/verify.ts, src/pack/refresh.ts, tests/pack/verify.test.ts, tests/pack/refresh.test.ts
+
+<!-- whyline-event: b8d9769c5a44451fb34e0604138a63bf -->
