@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && cp src/store/schema.sql dist/store/schema.sql",
+    "bench:oracle": "node --import tsx bench/report.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/fetch-grammars.mjs"
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^22.0.0",
+    "tsx": "^4.23.12",
     "vitest": "^2.0.0"
   }
 }

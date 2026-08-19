@@ -318,3 +318,41 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/index/drift.ts, src/store/repos.ts
 
 <!-- whyline-event: 535507717b1b47aab9893b97cc9a7003 -->
+
+## 2026-08-19 — Keep CLI indexes in a canonical-root-keyed user cache and expose every resolution outcome in status
+
+**Because:** the index is disposable derived data, and including EXTERNAL and UNRESOLVED alongside edge tiers makes degradation visible
+
+**Rejected:**
+
+- Store indexes in the target repository — violates the cache-location contract and risks polluting commits
+- Report only tiers present in the edge table — hides external and unresolved references
+
+**Files:** src/cli/main.ts
+
+<!-- whyline-event: 066cda15a69645e7baf47d18b7a376a4 -->
+
+## 2026-08-19 — Publish the oracle baseline by edge kind and evidence tier with reproducible fixture metadata
+
+**Because:** spec section 10 requires tier-split accuracy and fixture config identification, while temporary benchmark databases keep generated index data out of fixture repositories
+
+**Rejected:**
+
+- Use the plan's kind-only report table — omits the authoritative spec's tier split
+- Write .bench-index.sqlite inside each fixture — pollutes repository fixtures with disposable derived state
+
+**Files:** bench/report.ts, ORACLE.md
+
+<!-- whyline-event: ba61bc186dc0497698712815e011ab88 -->
+
+## 2026-08-19 — Task 15 CLI and oracle report reviewed and committed
+
+**Because:** all five subcommands (index/update/status/doctor/clean) match the brief's interfaces, status exposes EXTERNAL/UNRESOLVED alongside edge tiers per the prior whyline decision, bench:oracle produces a tier-split ORACLE.md from a temp-dir index rather than polluting the fixture repo, 106/106 tests pass, typecheck and build are clean
+
+**Rejected:**
+
+- Request further changes before commit — no correctness, security, or spec deviations found; test isolation (HOME override) and WAL-file cleanup in 'clean' are self-evident hygiene improvements over the plan's literal snippet, not risks
+
+**Files:** src/cli/main.ts, bench/report.ts, tests/cli/cli.test.ts
+
+<!-- whyline-event: c82e8ddfe3954dd197513be2b77f05f8 -->
