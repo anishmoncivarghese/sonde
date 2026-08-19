@@ -521,3 +521,28 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/query/impact.ts, tests/query/impact.test.ts
 
 <!-- whyline-event: df95773d08a0476bbc25d9dbb1ec38f3 -->
+
+## 2026-08-19 — Rank impact.ts's reverse-traversal neighbors by tier then score(), batched per BFS level, not alphabetically per edge
+
+**Because:** code review of the already-committed Task 8 found the truncation order was tier-then-stable_key, so MAX_NODES/MAX_DEPTH cutoffs could silently drop a high fan-in/exported neighbor in favor of an alphabetically-earlier low-value one, violating invariant 3's tier-then-score sort guarantee that traverse.ts (Task 7) already honors; batching the per-frontier-node queries into one query per BFS level was needed to sort a whole level together and also cuts the DB round trips the 2s wall-clock budget has to cover
+
+**Rejected:**
+
+- Keep the per-id query loop and only add a JS sort inside it — cannot rank across an entire BFS level, since candidates from different frontier nodes never appear in the same array to sort together
+- Move the MAX_DEPTH check back to the top of the while loop — reintroduces false truncation on an exact-depth-fit traversal whose last level has no further unvisited neighbors, contradicting the decision already recorded for this file
+
+**Files:** src/query/impact.ts, src/query/rank.ts, src/query/traverse.ts, tests/query/impact.test.ts
+
+<!-- whyline-event: 0d425b8b8af2451988ecc094ab1e6676 -->
+
+## 2026-08-19 — Defer three Task 8 review findings as accepted, out-of-scope risks rather than fixing them now
+
+**Because:** each is a real but narrow gap that would expand this review beyond Task 8's own files or duplicate low-risk code for marginal benefit: (1) the wall-clock budget starts after seed resolution, so a from_git_diff call touching hundreds of files is not itself time-boxed — narrow because the traversal loop's own comment only ever claimed the BFS is bounded, and seed counts are implicitly capped by realistic diff sizes; (2) changedFiles() (git diff --name-only HEAD) omits untracked new files from from_git_diff seeding — that gap lives in git.ts, already reviewed and committed separately in Task 3, and the plan itself already discloses the coarse, file-level (not line-precise) nature of git-diff seeding; (3) impact.ts's resolveSymbol/uniqueStableKey duplicate traverse.ts's resolveSymbolId/uniqueId almost line-for-line but return different shapes because ImpactResult carries warnings and TraverseResult does not — extracting a shared resolver now would mean re-touching Task 7's already-reviewed file for a non-correctness reason
+
+**Rejected:**
+
+- Fix all seven findings before committing — several require editing already-reviewed files (traverse.ts's resolver, git.ts's changedFiles) for reasons unrelated to Task 8's own correctness, well beyond what this review was scoped to touch
+
+**Files:** src/query/impact.ts, src/repo/git.ts
+
+<!-- whyline-event: 4cf9b852c6874cc294b2886d188fe344 -->

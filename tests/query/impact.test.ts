@@ -274,6 +274,43 @@ describe("getImpactRadius", () => {
     expect(result.warnings).toContainEqual(expect.stringMatching(/node/i));
   });
 
+  it("keeps the higher fan-in candidate when a same-tier node is truncated away", () => {
+    const symbols: SymbolRow[] = [
+      symbol("ts:src/top.ts#high", "src/top.ts", "high"),
+      symbol("ts:src/top.ts#zzzLow", "src/top.ts", "zzzLow"),
+    ];
+    const edges: EdgeRow[] = [
+      edge("ts:src/top.ts#high", "ts:src/base.ts#Base"),
+      edge("ts:src/top.ts#zzzLow", "ts:src/base.ts#Base"),
+    ];
+    // Give "high" extra inbound usage edges so its fan-in — and therefore its
+    // score() within the tied LEXICAL tier — strictly exceeds every filler
+    // and "zzzLow", which all keep fan-in 0.
+    for (let index = 0; index < 50; index += 1) {
+      const key = `ts:src/top.ts#booster${index}`;
+      symbols.push(symbol(key, "src/top.ts", `booster${index}`));
+      edges.push(edge(key, "ts:src/top.ts#high"));
+    }
+    // Fill every remaining slot with fan-in-0 callers of Base that sort
+    // alphabetically ahead of "zzzLow", so it is the one node omitted.
+    for (let index = 0; index < MAX_NODES - 1; index += 1) {
+      const key = `ts:src/top.ts#caller${index}`;
+      symbols.push(symbol(key, "src/top.ts", `caller${index}`));
+      edges.push(edge(key, "ts:src/base.ts#Base"));
+    }
+    store.insertSymbols(symbols);
+    store.insertEdges(edges);
+
+    const result = getImpactRadius(db, boundary, {
+      symbols: ["ts:src/base.ts#Base"],
+    });
+
+    const affectedKeys = result.affected.map((row) => row.stableKey);
+    expect(affectedKeys).toContain("ts:src/top.ts#high");
+    expect(affectedKeys).not.toContain("ts:src/top.ts#zzzLow");
+    expect(result.truncated).toBe(true);
+  });
+
   it("marks the wall-clock bound before traversing over budget", () => {
     vi.spyOn(Date, "now")
       .mockReturnValueOnce(0)

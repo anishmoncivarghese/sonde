@@ -1,4 +1,4 @@
-import { fanInP95, score, USAGE_KINDS } from "./rank.js";
+import { fanInP95, score, TIER_RANK_SQL, USAGE_KINDS } from "./rank.js";
 import type { Db } from "../store/db.js";
 import type { EdgeKind } from "../store/repos.js";
 
@@ -68,13 +68,6 @@ const PATTERNS: Record<TraversePattern, PatternSpec> = {
   contained_by: { kinds: ["CONTAINS"], direction: "reverse" },
   contains: { kinds: ["CONTAINS"], direction: "forward" },
 };
-
-const TIER_RANK_SQL = `CASE e.tier
-  WHEN 'COMPILER' THEN 0
-  WHEN 'LEXICAL' THEN 1
-  WHEN 'HEURISTIC' THEN 2
-  ELSE 3
-END`;
 
 function emptyResult(): TraverseResult {
   return {

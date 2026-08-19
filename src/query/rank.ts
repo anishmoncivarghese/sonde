@@ -9,6 +9,16 @@ export interface RankInput {
 
 export const USAGE_KINDS = ["CALLS", "REFERENCES", "IMPLEMENTS", "INHERITS"];
 
+// spec §7.4 / invariant 3: tier beats score, always — COMPILER > LEXICAL >
+// HEURISTIC. Shared by traverse.ts and impact.ts so both traversal engines
+// order candidates by the same tier priority before any within-tier score.
+export const TIER_RANK_SQL = `CASE e.tier
+  WHEN 'COMPILER' THEN 0
+  WHEN 'LEXICAL' THEN 1
+  WHEN 'HEURISTIC' THEN 2
+  ELSE 3
+END`;
+
 /** Per-repository p95 of inbound usage-edge fan-in, computed live. */
 export function fanInP95(db: Db): number {
   const rows = db

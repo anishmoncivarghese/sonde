@@ -1,3 +1,4 @@
+import { fanInP95, score, TIER_RANK_SQL, USAGE_KINDS } from "./rank.js";
 import type { RepoBoundary } from "../repo/boundary.js";
 import { changedFiles } from "../repo/git.js";
 import type { Db } from "../store/db.js";
@@ -46,13 +47,16 @@ interface SeedRow {
   stableKey: string;
 }
 
-interface IncomingRow {
+interface CandidateRow {
   id: number;
   stableKey: string;
   path: string;
   qualifiedName: string;
   kind: string;
   viaKind: string;
+  tierRank: number;
+  exported: number;
+  fanIn: number;
 }
 
 function uniqueStableKey(db: Db, column: string, value: string): SeedResolution {
@@ -124,6 +128,10 @@ function stop(result: ImpactResult, warning: string): ImpactResult {
   return result;
 }
 
+function budgetExceeded(startedAt: number): boolean {
+  return Date.now() - startedAt > MAX_WALL_CLOCK_MS;
+}
+
 export function getImpactRadius(
   db: Db,
   boundary: RepoBoundary,
@@ -150,24 +158,7 @@ export function getImpactRadius(
     )
     .all(...result.seeds) as SeedRow[];
 
-  const incoming = db.prepare(
-    `SELECT source.id AS id, source.stable_key AS stableKey, f.path AS path,
-            source.qualified_name AS qualifiedName, source.kind AS kind,
-            e.kind AS viaKind
-     FROM edge e
-       JOIN symbol source ON source.id = e.src_symbol_id
-       JOIN file f ON f.id = source.file_id
-     WHERE e.dst_symbol_id = ?
-       AND e.kind IN (${IMPACT_KINDS.map(() => "?").join(",")})
-     ORDER BY CASE e.tier
-                WHEN 'COMPILER' THEN 0
-                WHEN 'LEXICAL' THEN 1
-                WHEN 'HEURISTIC' THEN 2
-                ELSE 3
-              END,
-              source.stable_key, e.kind, e.id`,
-  );
-
+  const p95 = fanInP95(db);
   const visited = new Set(seedRows.map(({ id }) => id));
   let frontier = seedRows.map(({ id }) => id);
   let depth = 1;
@@ -175,52 +166,92 @@ export function getImpactRadius(
 
   // spec §7.3 / SEC-012: reverse impact traversal is breadth-first,
   // cycle-safe, and independently bounded by depth, nodes, and wall clock.
+  // Each level is fetched in one batched query (not one per frontier node)
+  // so the wall-clock budget bounds DB round trips, not just JS work.
   while (frontier.length > 0) {
-    if (Date.now() - startedAt > MAX_WALL_CLOCK_MS) {
+    if (budgetExceeded(startedAt)) {
       return stop(
         result,
         `stopped after ${MAX_WALL_CLOCK_MS}ms wall-clock budget`,
       );
     }
 
+    const frontierPlaceholders = frontier.map(() => "?").join(",");
+    const candidates = db
+      .prepare(
+        `SELECT source.id AS id, source.stable_key AS stableKey, f.path AS path,
+                source.qualified_name AS qualifiedName, source.kind AS kind,
+                source.exported AS exported, e.kind AS viaKind,
+                ${TIER_RANK_SQL} AS tierRank,
+                (SELECT COUNT(*) FROM edge inbound
+                 WHERE inbound.dst_symbol_id = source.id
+                   AND inbound.kind IN
+                     (${USAGE_KINDS.map(() => "?").join(",")})) AS fanIn
+         FROM edge e
+           JOIN symbol source ON source.id = e.src_symbol_id
+           JOIN file f ON f.id = source.file_id
+         WHERE e.dst_symbol_id IN (${frontierPlaceholders})
+           AND e.kind IN (${IMPACT_KINDS.map(() => "?").join(",")})`,
+      )
+      .all(
+        ...USAGE_KINDS,
+        ...frontier,
+        ...IMPACT_KINDS,
+      ) as CandidateRow[];
+
+    // spec §7.4 / invariant 3: tier beats score, always — score() breaks
+    // ties only within a tier, so truncation drops the least-useful
+    // candidates first instead of an arbitrary alphabetical cut.
+    candidates.sort((left, right) => {
+      if (left.tierRank !== right.tierRank) {
+        return left.tierRank - right.tierRank;
+      }
+      const leftScore = score(
+        {
+          distance: depth,
+          fanIn: left.fanIn,
+          exported: left.exported !== 0,
+          pathFocusMatch: false,
+        },
+        p95,
+      );
+      const rightScore = score(
+        {
+          distance: depth,
+          fanIn: right.fanIn,
+          exported: right.exported !== 0,
+          pathFocusMatch: false,
+        },
+        p95,
+      );
+      return rightScore - leftScore || left.stableKey.localeCompare(right.stableKey);
+    });
+
     const next: number[] = [];
-    for (const id of frontier) {
-      if (Date.now() - startedAt > MAX_WALL_CLOCK_MS) {
+    for (const row of candidates) {
+      if (visited.has(row.id)) continue;
+      // Deferred until a real omission exists: an exact-fit traversal whose
+      // last level has no further unvisited neighbors never reaches here.
+      if (depth > MAX_DEPTH) {
         return stop(
           result,
-          `stopped after ${MAX_WALL_CLOCK_MS}ms wall-clock budget`,
+          `stopped after ${MAX_DEPTH} levels of traversal depth`,
         );
       }
-      const rows = incoming.all(id, ...IMPACT_KINDS) as IncomingRow[];
-      for (const row of rows) {
-        if (Date.now() - startedAt > MAX_WALL_CLOCK_MS) {
-          return stop(
-            result,
-            `stopped after ${MAX_WALL_CLOCK_MS}ms wall-clock budget`,
-          );
-        }
-        if (visited.has(row.id)) continue;
-        if (depth > MAX_DEPTH) {
-          return stop(
-            result,
-            `stopped after ${MAX_DEPTH} levels of traversal depth`,
-          );
-        }
-        if (result.affected.length >= MAX_NODES) {
-          return stop(result, `stopped after ${MAX_NODES} affected nodes`);
-        }
-
-        visited.add(row.id);
-        result.affected.push({
-          stableKey: row.stableKey,
-          path: row.path,
-          qualifiedName: row.qualifiedName,
-          kind: row.kind,
-          depth,
-          viaKind: row.viaKind,
-        });
-        next.push(row.id);
+      if (result.affected.length >= MAX_NODES) {
+        return stop(result, `stopped after ${MAX_NODES} affected nodes`);
       }
+
+      visited.add(row.id);
+      result.affected.push({
+        stableKey: row.stableKey,
+        path: row.path,
+        qualifiedName: row.qualifiedName,
+        kind: row.kind,
+        depth,
+        viaKind: row.viaKind,
+      });
+      next.push(row.id);
     }
     frontier = next;
     depth += 1;
