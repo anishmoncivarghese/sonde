@@ -586,3 +586,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/pack/tokens.ts, src/pack/envelope.ts, src/pack/impactpack.ts, tests/pack/tokens.test.ts, tests/pack/envelope.test.ts, tests/pack/impactpack.test.ts
 
 <!-- whyline-event: cda3283d64fc46288ad849e2ebd61086 -->
+
+## 2026-08-19 — Keep MCP handlers thin while preserving query_graph's top-level evidence buckets
+
+**Because:** all freshness, querying, and budgeting stays in existing library functions, but spec section 7.2 requires compiler/lexical/heuristic buckets at the tool response top level; shared envelope metadata still supplies nullable git provenance and downgrade warnings
+
+**Rejected:**
+
+- Nest query_graph under a generic results field — breaks the documented evidence-bucket response shape and existing client expectations
+- Reimplement freshness or query SQL in MCP handlers — duplicates the tested pack and query layers and lets CLI/MCP behavior drift
+
+**Files:** src/mcp/schemas.ts, src/mcp/server.ts, tests/mcp/server.test.ts
+
+<!-- whyline-event: 39d52a9856c642aca66fcc41dcbad75c -->
