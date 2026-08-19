@@ -473,3 +473,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/report.ts
 
 <!-- whyline-event: 4969c4b362bd4a7e8ad1bbbb404dab41 -->
+
+## 2026-08-19 — Compute FAN_IN_P95 live from inbound usage edges only
+
+**Because:** one grouped query is cheap at current scale, always reflects the current graph, and keeps CONTAINS/IMPORTS structure from distorting usage popularity
+
+**Rejected:**
+
+- Persist FAN_IN_P95 during indexing — adds schema and refresh bookkeeping for a value that is inexpensive to compute
+- Count all edge kinds — file containment and imports measure structure rather than symbol usage and would flatten ranking signal
+
+**Files:** src/query/rank.ts, tests/query/rank.test.ts
+
+<!-- whyline-event: 7e2ee9e38a0247fdbb35b087a89e9f7c -->
