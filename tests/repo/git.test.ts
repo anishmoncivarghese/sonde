@@ -38,17 +38,41 @@ describe("gitState", () => {
     expect(gitState(boundary).dirty).toBe(true);
   });
 
-  it("degrades outside a git repository", () => {
+  it("reports unknown dirtiness outside a git repository, never clean", () => {
+    // This asserted `dirty: false` until 2026-08-19. Invariant 8 requires
+    // degrading visibly; claiming a clean worktree when git could not be
+    // consulted is the unsafe direction, because freshness consumes it and a
+    // stale index would present itself as current. `null` is the only honest
+    // answer, and strictNullChecks stops a consumer reading it as clean.
     const bare = mkdtempSync(join(tmpdir(), "cg-nogit-"));
     try {
       const bareBoundary = new RepoBoundary(bare);
       expect(gitState(bareBoundary)).toEqual({
         revision: null,
-        dirty: false,
+        dirty: null,
       });
-      expect(changedFiles(bareBoundary)).toEqual([]);
+      // Same defect class: `[]` would claim "nothing changed", so a caller
+      // deciding what to re-index would skip every file.
+      expect(changedFiles(bareBoundary)).toBeNull();
     } finally {
       rmSync(bare, { recursive: true, force: true });
+    }
+  });
+
+  it("reports unknown dirtiness in a repository with no commits", () => {
+    // `rev-parse HEAD` fails here while `status` succeeds, so this is a real
+    // repository whose revision is genuinely unknowable — the case that most
+    // easily reached the old `dirty: false` and reported a freshly initialised
+    // repo full of untracked files as a clean tree.
+    const fresh = mkdtempSync(join(tmpdir(), "cg-nocommit-"));
+    try {
+      execFileSync("git", ["init", "-q"], { cwd: fresh });
+      writeFileSync(join(fresh, "a.ts"), "export const a = 1;\n");
+      const state = gitState(new RepoBoundary(fresh));
+      expect(state.revision).toBeNull();
+      expect(state.dirty).toBeNull();
+    } finally {
+      rmSync(fresh, { recursive: true, force: true });
     }
   });
 });

@@ -61,6 +61,25 @@ const lines: string[] = [
   "Tier rows compare that tier alone with the complete oracle, making each tier's",
   "independent contribution visible; `ALL` is the combined result.",
   "",
+  "## Why precision below 1.000 is expected here",
+  "",
+  "Two of these divergences are structural, so reading a precision figure as",
+  "\"how often CodeGraph is wrong\" overstates the error rate:",
+  "",
+  "1. **Ambiguous member calls emit every candidate.** For `x.foo()` with two",
+  "   visible `foo` declarations, CodeGraph emits both as confidence-weighted",
+  "   `HEURISTIC` edges. At most one matches the compiler, so the other counts",
+  "   as a false positive by construction. The alternative is guessing a single",
+  "   target, which invariant 1 forbids — a wrong resolved-looking edge is worse",
+  "   than two honestly heuristic ones. Precision is therefore capped below",
+  "   1.000 wherever the fixture contains an ambiguous call.",
+  "2. **Constructor calls are ours alone.** CodeGraph emits `CALLS` for",
+  "   `new Foo()`; the oracle does not model them, so each one is a false",
+  "   positive against ground truth that omits it.",
+  "",
+  "Counts are absolute, not percentages of a large corpus. Fixture edge totals",
+  "appear below so a single edge's effect on each figure is visible.",
+  "",
 ];
 
 for (const fixture of FIXTURES) {
@@ -75,10 +94,20 @@ for (const fixture of FIXTURES) {
     const expected = buildOracle(root);
     const combined = compare(actual, expected);
 
+    // Stated as data rather than as a "small fixture" caveat in prose: with
+    // totals this size each figure moves in large steps, and a reader can only
+    // judge that from the counts.
+    const step = expected.length === 0
+      ? "n/a"
+      : `${(100 / expected.length).toFixed(1)}%`;
+
     lines.push(
       `## ${fixture}`,
       "",
       `Fixture config SHA-256: \`${configHash(boundary)}\``,
+      "",
+      `Oracle edges: ${expected.length} · CodeGraph edges: ${actual.length} · ` +
+        `one oracle edge moves recall by ${step}`,
       "",
       "| Edge kind | Tier | Precision | Recall | TP | FP | FN |",
       "|---|---|---:|---:|---:|---:|---:|",
