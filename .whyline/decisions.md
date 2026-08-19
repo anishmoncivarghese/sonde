@@ -612,3 +612,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/cli/main.ts, tests/cli/cli.test.ts
 
 <!-- whyline-event: 0aa519224e0a429d91caf970964b8095 -->
+
+## 2026-08-19 — Publish the generated oracle report verbatim and qualify README guarantees to implemented behavior
+
+**Because:** the README must expose current unflattering accuracy numbers without hand-copied drift, while source freshness is absolute only for bytes actually returned and TESTS edges are not yet produced
+
+**Rejected:**
+
+- Summarize or round the oracle table — hides per-tier false positives and breaks the spec requirement to publish the report
+- Claim current test coverage relationships — tests_for is intentionally empty until TESTS-edge production lands
+
+**Files:** README.md, ORACLE.md
+
+<!-- whyline-event: 528ecc9aa9084fe28f400075ba32d778 -->

@@ -1,6 +1,6 @@
 # CodeGraph edge accuracy vs the TypeScript compiler
 
-Generated: 2026-08-19T09:35:23.675Z
+Generated: 2026-08-19T21:11:47.823Z
 TypeScript: 5.9.3 (bundled; repository TypeScript is never loaded)
 
 The oracle is filtered to in-repo targets; `node_modules` and `.d.ts`
