@@ -7,7 +7,7 @@ export interface RankInput {
   pathFocusMatch: boolean;
 }
 
-const USAGE_KINDS = ["CALLS", "REFERENCES", "IMPLEMENTS", "INHERITS"];
+export const USAGE_KINDS = ["CALLS", "REFERENCES", "IMPLEMENTS", "INHERITS"];
 
 /** Per-repository p95 of inbound usage-edge fan-in, computed live. */
 export function fanInP95(db: Db): number {

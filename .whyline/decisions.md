@@ -486,3 +486,24 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/query/rank.ts, tests/query/rank.test.ts
 
 <!-- whyline-event: 7e2ee9e38a0247fdbb35b087a89e9f7c -->
+
+## 2026-08-19 — Resolve graph seeds only when unambiguous and deduplicate neighbors before tier-first ranking
+
+**Because:** choosing an arbitrary same-named symbol fabricates query intent, CALLS plus REFERENCES can describe the same neighbor, and the product contract requires COMPILER then LEXICAL then HEURISTIC before any within-tier score or global limit
+
+**Rejected:**
+
+- Use OR predicates with LIMIT 1 from the plan snippet — silently selects an arbitrary symbol when qualified or short names collide
+- Order tiers alphabetically and limit raw edges — HEURISTIC sorts before LEXICAL and duplicate sites can consume the result budget
+
+**Files:** src/query/traverse.ts, tests/query/traverse.test.ts
+
+<!-- whyline-event: c004b7bcd3e24cfd961dfbd0b0108486 -->
+
+## 2026-08-19 — Reuse rank.ts's USAGE_KINDS constant and cite spec §7.4/invariant 3 in traverse.ts's tier-priority sort
+
+**Because:** code review of Task 7 found the fan-in subquery duplicated rank.ts's edge-kind list as a raw SQL literal, risking silent drift from fanInP95's baseline if USAGE_KINDS ever changes, and the tier-before-score sort lacked the inline citation AGENTS.md requires for non-obvious rules
+
+**Files:** src/query/traverse.ts, src/query/rank.ts
+
+<!-- whyline-event: 3c33e3b630064883acda27818769aa3d -->
