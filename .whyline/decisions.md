@@ -394,3 +394,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/oracle/extract.ts, ORACLE.md
 
 <!-- whyline-event: fc108dfa2bbb474bbe930e4ddd049cd9 -->
+
+## 2026-08-19 — Use an external-content trigram FTS5 index synchronized by symbol triggers
+
+**Because:** external content avoids duplicating symbol text, triggers keep cascade deletion atomic, and trigram tokenization lets human queries such as 'refresh session' match camelCase identifiers such as refreshSession
+
+**Rejected:**
+
+- Use FTS5's default unicode tokenizer from the plan snippet — treats refreshSession as one token, so the next task's documented human-word query returns no result
+- Write FTS rows from Store methods — creates a second synchronization path and can drift on cascades or direct updates
+
+**Files:** src/store/schema.sql, tests/store/store.test.ts
+
+<!-- whyline-event: 39ba349e5b42495bb8e883ef93f651e1 -->

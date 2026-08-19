@@ -233,4 +233,56 @@ describe("Store", () => {
       rmSync(directory, { recursive: true, force: true });
     }
   });
+
+  it("keeps symbol_fts in sync with inserted and deleted symbols", () => {
+    store.upsertFile({
+      path: "src/auth.ts",
+      contentHash: "h1",
+      mtimeMs: 1,
+      size: 10,
+    });
+    store.insertSymbols([
+      {
+        stableKey: "ts:src/auth.ts#refreshSession",
+        filePath: "src/auth.ts",
+        qualifiedName: "refreshSession",
+        shortName: "refreshSession",
+        kind: "function",
+        signature: "function refreshSession(): void",
+        startByte: 0,
+        endByte: 1,
+        startLine: 1,
+        endLine: 1,
+        bodyHash: null,
+        exported: true,
+        isTest: false,
+      },
+    ]);
+
+    const hit = db
+      .prepare(
+        `SELECT s.qualified_name AS qualifiedName FROM symbol_fts f
+         JOIN symbol s ON s.id = f.rowid
+         WHERE symbol_fts MATCH ?`,
+      )
+      .all("refresh") as Array<{ qualifiedName: string }>;
+    expect(hit).toContainEqual({ qualifiedName: "refreshSession" });
+
+    const humanQuery = db
+      .prepare(
+        `SELECT s.qualified_name AS qualifiedName FROM symbol_fts f
+         JOIN symbol s ON s.id = f.rowid
+         WHERE symbol_fts MATCH ?`,
+      )
+      .all("refresh session") as Array<{ qualifiedName: string }>;
+    expect(humanQuery).toContainEqual({ qualifiedName: "refreshSession" });
+
+    store.deleteFile("src/auth.ts");
+    const afterDelete = db
+      .prepare(
+        "SELECT COUNT(*) AS count FROM symbol_fts WHERE symbol_fts MATCH ?",
+      )
+      .get("refresh") as { count: number };
+    expect(afterDelete.count).toBe(0);
+  });
 });

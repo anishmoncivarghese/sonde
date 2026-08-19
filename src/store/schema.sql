@@ -67,3 +67,31 @@ CREATE INDEX IF NOT EXISTS idx_edge_src     ON edge(src_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_edge_dst     ON edge(dst_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_edge_kind    ON edge(kind);
 CREATE INDEX IF NOT EXISTS idx_unres_name   ON unresolved_ref(name);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS symbol_fts USING fts5(
+  short_name, qualified_name, signature,
+  content='symbol', content_rowid='id', tokenize='trigram'
+);
+
+CREATE TRIGGER IF NOT EXISTS symbol_fts_ai AFTER INSERT ON symbol BEGIN
+  INSERT INTO symbol_fts(rowid, short_name, qualified_name, signature)
+  VALUES (new.id, new.short_name, new.qualified_name, new.signature);
+END;
+
+CREATE TRIGGER IF NOT EXISTS symbol_fts_ad AFTER DELETE ON symbol BEGIN
+  INSERT INTO symbol_fts(
+    symbol_fts, rowid, short_name, qualified_name, signature
+  ) VALUES (
+    'delete', old.id, old.short_name, old.qualified_name, old.signature
+  );
+END;
+
+CREATE TRIGGER IF NOT EXISTS symbol_fts_au AFTER UPDATE ON symbol BEGIN
+  INSERT INTO symbol_fts(
+    symbol_fts, rowid, short_name, qualified_name, signature
+  ) VALUES (
+    'delete', old.id, old.short_name, old.qualified_name, old.signature
+  );
+  INSERT INTO symbol_fts(rowid, short_name, qualified_name, signature)
+  VALUES (new.id, new.short_name, new.qualified_name, new.signature);
+END;

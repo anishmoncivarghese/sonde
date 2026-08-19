@@ -16,7 +16,7 @@ export class SchemaVersionError extends Error {
   constructor(found: number) {
     super(
       `index schema version ${found} != supported ${SCHEMA_VERSION}; ` +
-        'run "codegraph index --rebuild"',
+        'run "codegraph clean" then "codegraph index"',
     );
     this.name = "SchemaVersionError";
   }
