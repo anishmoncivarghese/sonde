@@ -507,3 +507,17 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/query/traverse.ts, src/query/rank.ts
 
 <!-- whyline-event: 3c33e3b630064883acda27818769aa3d -->
+
+## 2026-08-19 — Resolve impact seeds unambiguously and report only real traversal omissions as truncation
+
+**Because:** impact analysis must not fabricate user intent from colliding names, unknown git state must remain visible, and exact depth or node boundary fits are complete results rather than silent or false cutoffs
+
+**Rejected:**
+
+- Bulk-match every qualified or short name — an ambiguous short name expands an arbitrary user target into multiple seeds
+- Treat changedFiles null as an empty diff — hides git failure as no changes
+- Mark truncation whenever a counter equals its limit — reports complete exact-fit traversals as partial without an omitted node
+
+**Files:** src/query/impact.ts, tests/query/impact.test.ts
+
+<!-- whyline-event: df95773d08a0476bbc25d9dbb1ec38f3 -->
