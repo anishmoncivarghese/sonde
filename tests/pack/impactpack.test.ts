@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { indexRepo } from "../../src/index/pipeline.js";
 import { packImpactResponse } from "../../src/pack/impactpack.js";
+import { estimateTokens } from "../../src/pack/tokens.js";
 import { migrate, openDb } from "../../src/store/index.js";
 
 let root: string;
@@ -85,6 +86,24 @@ describe("packImpactResponse", () => {
     expect(envelope.results).toEqual([]);
     expect(envelope.warnings).toContainEqual(
       expect.stringMatching(/schema version/i),
+    );
+  });
+
+  it("estimates tokens from the indent:2 payload actually transmitted", async () => {
+    await indexRepo(root, dbPath);
+
+    const envelope = await packImpactResponse(
+      root,
+      dbPath,
+      { symbols: ["base"] },
+      4000,
+    );
+
+    // A compact-JSON estimate would understate what jsonContent/emit
+    // actually send (JSON.stringify(..., null, 2)) — the bug this guards.
+    const compactEstimate = estimateTokens(JSON.stringify(envelope.results));
+    expect(envelope.diagnostics.estimatedTokens).toBeGreaterThan(
+      compactEstimate,
     );
   });
 

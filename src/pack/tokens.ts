@@ -11,6 +11,16 @@ export function estimateTokens(text: string): number {
   return encoding.encode(text).length;
 }
 
+/**
+ * Every MCP/CLI surface transmits JSON.stringify(value, null, 2) (see
+ * jsonContent in mcp/server.ts and emit in cli/main.ts) — estimating from a
+ * compact stringify instead understates the real payload by roughly a third
+ * for representative results, well past the ±10% tolerance above.
+ */
+export function estimateJsonTokens(value: unknown): number {
+  return estimateTokens(JSON.stringify(value, null, 2));
+}
+
 export interface BudgetSection {
   id: string;
   priority: number;

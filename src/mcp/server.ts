@@ -4,7 +4,7 @@ import { indexPathFor } from "../index/cache.js";
 import { buildEnvelope } from "../pack/envelope.js";
 import { packImpactResponse } from "../pack/impactpack.js";
 import { ensureFresh, NoIndexError } from "../pack/refresh.js";
-import { estimateTokens } from "../pack/tokens.js";
+import { estimateJsonTokens } from "../pack/tokens.js";
 import { findSymbols } from "../query/find.js";
 import { queryGraph, type TraverseResult } from "../query/traverse.js";
 import { RepoBoundary } from "../repo/boundary.js";
@@ -68,7 +68,7 @@ function graphResponse(
     warnings,
     truncated: result.truncated,
     omittedCount: 0,
-    estimatedTokens: estimateTokens(JSON.stringify(result)),
+    estimatedTokens: estimateJsonTokens(result),
   });
   const { results: _results, ...metadata } = envelope;
   return { ...metadata, ...result };
@@ -103,7 +103,7 @@ export function createServer(root: string): McpServer {
             warnings: state.warnings,
             truncated: false,
             omittedCount: 0,
-            estimatedTokens: estimateTokens(JSON.stringify(results)),
+            estimatedTokens: estimateJsonTokens(results),
           }));
         } finally {
           state.db.close();

@@ -70,7 +70,11 @@ export async function packImpactResponse(
       // bodies are not fetched yet because ImpactRow has no byte ranges; when
       // that contract expands, verifySymbolBody is the required read seam.
       priority: index === 0 ? 0 : 1,
-      text: JSON.stringify(row),
+      // The client receives this row pretty-printed at indent:2 inside the
+      // full envelope (mcp/server.ts's jsonContent, cli/main.ts's emit), not
+      // as compact JSON — a compact estimate here would understate what the
+      // token_budget this packing enforces actually has to cover.
+      text: JSON.stringify(row, null, 2),
     }));
     const packed = packToBudget(sections, budgetTokens);
     const included = new Set(packed.included);

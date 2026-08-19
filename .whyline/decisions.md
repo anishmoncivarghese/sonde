@@ -625,3 +625,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** README.md, ORACLE.md
 
 <!-- whyline-event: 528ecc9aa9084fe28f400075ba32d778 -->
+
+## 2026-08-19 — Estimate MCP/CLI response token counts from the indent:2 JSON actually transmitted, not a compact stringify
+
+**Because:** review of the already-committed Tasks 10-13 found diagnostics.estimatedTokens for find_symbols and query_graph, and impactpack.ts's own per-row packing budget for get_impact_radius, were all measured against JSON.stringify(value) while jsonContent (mcp/server.ts) and emit (cli/main.ts) both transmit JSON.stringify(value, null, 2) — measured directly at ~50% understatement for representative payloads, far past the documented ±10% client-tokenizer tolerance (spec §7.5); for get_impact_radius this wasn't just a diagnostics inaccuracy but an actual budget-enforcement gap, since packToBudget's greedy inclusion decision is driven by that same understated text
+
+**Rejected:**
+
+- Leave diagnostics.estimatedTokens as a compact-JSON estimate — the ±10% tolerance spec §7.5 documents is meant to cover estimator-vs-client-tokenizer drift, not an avoidable serialization-format mismatch entirely under CodeGraph's own control
+- Measure the full transmitted envelope including its own estimatedTokens field — self-referential (the field would have to describe its own size) and not what either flagged finding required to close the ~50% gap
+
+**Files:** src/pack/tokens.ts, src/pack/impactpack.ts, src/mcp/server.ts, src/cli/main.ts, tests/pack/tokens.test.ts, tests/pack/impactpack.test.ts
+
+<!-- whyline-event: 3520da9c173f43168353cedd4044f427 -->

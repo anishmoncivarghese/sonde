@@ -13,7 +13,7 @@ import { createServer } from "../mcp/server.js";
 import { buildEnvelope } from "../pack/envelope.js";
 import { packImpactResponse } from "../pack/impactpack.js";
 import { ensureFresh, NoIndexError } from "../pack/refresh.js";
-import { estimateTokens } from "../pack/tokens.js";
+import { estimateJsonTokens } from "../pack/tokens.js";
 import { findSymbols } from "../query/find.js";
 import { queryGraph, type TraversePattern } from "../query/traverse.js";
 import { RepoBoundary } from "../repo/boundary.js";
@@ -242,7 +242,7 @@ program
           warnings: state.warnings,
           truncated: false,
           omittedCount: 0,
-          estimatedTokens: estimateTokens(JSON.stringify(results)),
+          estimatedTokens: estimateJsonTokens(results),
         });
         emit(
           options.json === true,
@@ -304,7 +304,7 @@ program
             : state.warnings,
           truncated: result.truncated,
           omittedCount: 0,
-          estimatedTokens: estimateTokens(JSON.stringify(result)),
+          estimatedTokens: estimateJsonTokens(result),
         });
         const { results: _results, ...envelopeMetadata } = metadata;
         const response = { ...envelopeMetadata, ...result };

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  estimateJsonTokens,
   estimateTokens,
   packToBudget,
 } from "../../src/pack/tokens.js";
@@ -12,6 +13,29 @@ describe("estimateTokens", () => {
 
   it("returns zero for empty text", () => {
     expect(estimateTokens("")).toBe(0);
+  });
+});
+
+describe("estimateJsonTokens", () => {
+  it("matches the indent:2 wire format every MCP/CLI surface actually sends", () => {
+    const value = { stableKey: "ts:src/a.ts#run", path: "src/a.ts" };
+    expect(estimateJsonTokens(value)).toBe(
+      estimateTokens(JSON.stringify(value, null, 2)),
+    );
+  });
+
+  it("is not understated by a compact-JSON estimate for a representative payload", () => {
+    const rows = Array.from({ length: 20 }, (_, index) => ({
+      stableKey: `ts:src/a.ts#fn${index}`,
+      path: "src/a.ts",
+      qualifiedName: `fn${index}`,
+      kind: "function",
+      depth: 1,
+      viaKind: "CALLS",
+    }));
+
+    expect(estimateJsonTokens(rows))
+      .toBeGreaterThan(estimateTokens(JSON.stringify(rows)));
   });
 });
 
