@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 
-import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { existsSync, rmSync } from "node:fs";
 import { Command } from "commander";
 import ts from "typescript";
 import { getTsParser } from "../adapters/typescript/parser.js";
+import { indexPathFor } from "../index/cache.js";
 import { checkDrift } from "../index/drift.js";
 import { indexRepo, updateRepo } from "../index/pipeline.js";
 import { RepoBoundary } from "../repo/boundary.js";
@@ -28,18 +26,6 @@ interface CountRow {
 interface TierRow {
   tier: string;
   count: number;
-}
-
-/** Indexes are disposable cache data keyed by canonical root (spec §3). */
-function indexPathFor(root: string): string {
-  const boundary = new RepoBoundary(root);
-  const hash = createHash("sha256")
-    .update(boundary.root)
-    .digest("hex")
-    .slice(0, 16);
-  const directory = join(homedir(), ".cache", "codegraph", hash);
-  mkdirSync(directory, { recursive: true });
-  return join(directory, "index.sqlite");
 }
 
 function emit(json: boolean, value: unknown, human: string): void {

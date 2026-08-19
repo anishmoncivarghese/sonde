@@ -420,3 +420,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/repo/git.ts
 
 <!-- whyline-event: d385946b79694669b55555f65017c51a -->
+
+## 2026-08-19 — Centralize canonical-root cache path resolution for CLI and MCP consumers
+
+**Because:** a single indexPathFor implementation guarantees every surface hashes the same canonical repository root into the same disposable cache location
+
+**Rejected:**
+
+- Duplicate the hash logic in the future MCP server — small implementations can drift and create two indexes for one repository
+
+**Files:** src/index/cache.ts, src/cli/main.ts
+
+<!-- whyline-event: 4d471231853e464f85e81540ef09b30e -->
