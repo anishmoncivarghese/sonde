@@ -407,3 +407,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/store/schema.sql, tests/store/store.test.ts
 
 <!-- whyline-event: 39ba349e5b42495bb8e883ef93f651e1 -->
+
+## 2026-08-19 — Read git state through argument-array git subprocesses pinned to the canonical repository root
+
+**Because:** git provides revision and diff semantics without executing repository code, while converting subprocess failures to neutral values preserves the degrade-with-warning architecture for non-git directories and missing tooling
+
+**Rejected:**
+
+- Use shell command strings — permits shell interpretation of repository or revision inputs
+- Add a git library dependency — duplicates installed git behavior and expands the dependency surface for two small read-only queries
+
+**Files:** src/repo/git.ts
+
+<!-- whyline-event: d385946b79694669b55555f65017c51a -->
