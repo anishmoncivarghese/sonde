@@ -356,3 +356,41 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/cli/main.ts, bench/report.ts, tests/cli/cli.test.ts
 
 <!-- whyline-event: c82e8ddfe3954dd197513be2b77f05f8 -->
+
+## 2026-08-19 — Wrote Plan 2 of 3 (MCP surface) covering query/pack/mcp modules, CLI additions, and README
+
+**Because:** spec DoD items 1-4 (npx index, 3 MCP tools, drift reporting, published oracle report) need the query/pack/mcp layers Plan 1 never built; splitting the 12-task benchmark into a separate Plan 3 keeps this plan to one coherent subsystem, confirmed with the human before writing
+
+**Rejected:**
+
+- One combined plan for MCP tools and the benchmark — benchmark needs fixture-repo selection (an open spec question) resolved first, and would bloat one document past useful review size
+- Scope query_graph's imports_of/imported_by around the missing IMPORTS edge instead of fixing it — diverges from the spec's stated data model (§6) where IMPORTS is a stored edge like any other, and leaves file-level containment permanently unanswerable
+
+**Files:** docs/superpowers/plans/2026-08-19-codegraph-mcp-surface.md
+
+<!-- whyline-event: 2d10334fdeb74a1cb52b20dbe93a47f5 -->
+
+## 2026-08-19 — Model each TypeScript file as an empty-scope symbol and derive file graph edges only from resolved bindings
+
+**Because:** the file symbol gives top-level declarations and references a stable owner, while verified import bindings provide internal or external outcomes without guessing targets
+
+**Rejected:**
+
+- Special-case top-level references inside reference extraction — duplicates containment logic and leaves file-level graph queries without a node
+- Create IMPORTS edges directly from raw specifier text — bypasses module resolution and risks fabricated internal targets
+
+**Files:** src/adapters/typescript/index.ts, src/resolve/resolver.ts
+
+<!-- whyline-event: 856f2101202d4a8caf347f80631a3e65 -->
+
+## 2026-08-19 — Aligned the oracle's module-level sentinel with CodeGraph's new file symbol during Task 1 review
+
+**Because:** regenerating ORACLE.md after Task 1 showed CALLS precision drop from 1.000 to 0.250 (3 new FPs, 0 new FNs); tracing it found the oracle's independent ancestry mapper used a literal '<module>' string for top-level references while CodeGraph's file symbol now uses the file's own repo-relative path as qualifiedName, so every newly-captured top-level CALLS/REFERENCES edge could never string-match oracle truth regardless of whether its target was correct — a measurement artifact, not a fabricated edge, confirmed by CALLS recall reaching 1.000 (was 0.500) once the sentinel matched
+
+**Rejected:**
+
+- Leave the oracle harness untouched and defer to Task 13 (README publishing) — would let a misleading precision regression sit in ORACLE.md with no diagnosis attached, undermining the project's 'publish honest numbers' differentiator for no benefit — the fix is one line and independently verifiable from tsc's own AST (rel(sf.fileName) was already computed on the same line for srcFile), so it does not reuse CodeGraph's resolution logic and doesn't compromise oracle independence (spec §10 Layer 2)
+
+**Files:** bench/oracle/extract.ts, ORACLE.md
+
+<!-- whyline-event: fc108dfa2bbb474bbe930e4ddd049cd9 -->

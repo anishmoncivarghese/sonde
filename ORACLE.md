@@ -1,6 +1,6 @@
 # CodeGraph edge accuracy vs the TypeScript compiler
 
-Generated: 2026-08-19T03:53:28.111Z
+Generated: 2026-08-19T04:30:42.511Z
 TypeScript: 5.9.3 (bundled; repository TypeScript is never loaded)
 
 The oracle is filtered to in-repo targets; `node_modules` and `.d.ts`
@@ -15,10 +15,10 @@ Fixture config SHA-256: `e02e2d5003f96d1ad22519f04e10d687fe689cf9298e7fcbc588eab
 
 | Edge kind | Tier | Precision | Recall | TP | FP | FN |
 |---|---|---:|---:|---:|---:|---:|
-| CALLS | ALL | 1.000 | 0.500 | 1 | 0 | 1 |
+| CALLS | ALL | 0.500 | 1.000 | 2 | 2 | 0 |
 | CALLS | COMPILER | 1.000 | 0.000 | 0 | 0 | 2 |
-| CALLS | LEXICAL | 1.000 | 0.500 | 1 | 0 | 1 |
-| CALLS | HEURISTIC | 1.000 | 0.000 | 0 | 0 | 2 |
+| CALLS | LEXICAL | 0.500 | 0.500 | 1 | 1 | 1 |
+| CALLS | HEURISTIC | 0.500 | 0.500 | 1 | 1 | 1 |
 | IMPLEMENTS | ALL | 1.000 | 1.000 | 1 | 0 | 0 |
 | IMPLEMENTS | COMPILER | 1.000 | 0.000 | 0 | 0 | 1 |
 | IMPLEMENTS | LEXICAL | 1.000 | 1.000 | 1 | 0 | 0 |
@@ -32,4 +32,4 @@ Fixture config SHA-256: `e02e2d5003f96d1ad22519f04e10d687fe689cf9298e7fcbc588eab
 | REFERENCES | LEXICAL | 1.000 | 0.000 | 0 | 0 | 5 |
 | REFERENCES | HEURISTIC | 1.000 | 0.000 | 0 | 0 | 5 |
 
-**Overall:** precision 1.000, recall 0.333
+**Overall:** precision 0.667, recall 0.444

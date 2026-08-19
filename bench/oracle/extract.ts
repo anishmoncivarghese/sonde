@@ -42,7 +42,12 @@ export function buildOracle(fixtureRoot: string): OracleEdge[] {
       const dstFile = decl.getSourceFile().fileName;
       if (!inRepo(dstFile)) return;
 
-      const srcSymbol = enclosingSymbolName(node) ?? "<module>";
+      // CodeGraph now mints a file-level symbol whose qualifiedName is the
+      // file's own repo-relative path (spec §6.2's empty scope chain); a
+      // top-level reference with no enclosing declaration attributes there,
+      // so the independently-built oracle must use the same identity for a
+      // module-level source to stay comparable, not an arbitrary sentinel.
+      const srcSymbol = enclosingSymbolName(node) ?? rel(sf.fileName);
       const dstSymbol = enclosingSymbolName(decl);
       if (!dstSymbol) return;
 

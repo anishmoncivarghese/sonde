@@ -61,10 +61,53 @@ export function resolveAll(
   for (const [file, result] of files) {
     const bindings = bindImports(file, result.imports, exportMap, cfg, boundary);
 
+    const fileSymbolRow = table.qualifiedInFile(file, file);
+    if (fileSymbolRow) {
+      const importTargets = new Map<string, number>();
+      const importPackages = new Map<string, number>();
+      for (const imported of result.imports) {
+        const binding = bindings.get(imported.localName);
+        if (!binding) continue;
+        if ("file" in binding && !importTargets.has(binding.file)) {
+          importTargets.set(binding.file, imported.siteLine);
+        } else if (
+          "external" in binding &&
+          !importPackages.has(binding.external)
+        ) {
+          importPackages.set(binding.external, imported.siteLine);
+        }
+      }
+
+      for (const [targetFile, siteLine] of importTargets) {
+        if (targetFile === file) continue;
+        const target = table.qualifiedInFile(targetFile, targetFile);
+        if (!target) continue;
+        out.edges.push({
+          srcKey: fileSymbolRow.stableKey,
+          dstKey: target.stableKey,
+          kind: "IMPORTS",
+          tier: "LEXICAL",
+          confidence: 1,
+          siteLine,
+        });
+      }
+
+      for (const [packageOrLib, siteLine] of importPackages) {
+        out.external.push({
+          srcKey: fileSymbolRow.stableKey,
+          name: packageOrLib,
+          packageOrLib,
+          siteLine,
+        });
+      }
+    }
+
     for (const symbol of result.symbols) {
+      if (symbol.kind === "file") continue;
       const separator = symbol.qualifiedName.lastIndexOf(".");
-      if (separator < 0) continue;
-      const parentName = symbol.qualifiedName.slice(0, separator);
+      const parentName = separator < 0
+        ? file
+        : symbol.qualifiedName.slice(0, separator);
       const parent = table.qualifiedInFile(file, parentName);
       if (!parent) continue;
       out.edges.push({

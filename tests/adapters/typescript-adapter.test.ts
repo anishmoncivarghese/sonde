@@ -37,4 +37,34 @@ describe("typescriptAdapter", () => {
       { severity: "warning", message: "parse errors present", line: 1 },
     ]);
   });
+
+  it("mints a file symbol covering the whole extracted file", () => {
+    const source = "export function run() {}";
+    const result = typescriptAdapter.extract("src/a.ts", Buffer.from(source));
+    const files = result.symbols.filter((symbol) => symbol.kind === "file");
+    expect(files).toHaveLength(1);
+    expect(files[0]).toMatchObject({
+      stableKey: "ts:src/a.ts#",
+      qualifiedName: "src/a.ts",
+      shortName: "a.ts",
+      startByte: 0,
+      endByte: Buffer.byteLength(source),
+      startLine: 1,
+      endLine: 1,
+    });
+  });
+
+  it("attributes a top-level reference to the file symbol instead of dropping it", () => {
+    const result = typescriptAdapter.extract(
+      "src/a.ts",
+      Buffer.from('import { setup } from "./b";\nsetup();'),
+    );
+    const file = result.symbols.find((symbol) => symbol.kind === "file");
+    expect(result.references).toContainEqual(
+      expect.objectContaining({
+        name: "setup",
+        fromSymbolKey: file?.stableKey,
+      }),
+    );
+  });
 });

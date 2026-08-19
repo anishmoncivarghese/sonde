@@ -56,6 +56,23 @@ function symbol(
   };
 }
 
+function fileSymbol(file: string): SymbolRecord {
+  return {
+    stableKey: `ts:${file}#`,
+    qualifiedName: file,
+    shortName: file.split("/").at(-1) ?? file,
+    kind: "file",
+    signature: null,
+    startByte: 0,
+    endByte: 1,
+    startLine: 1,
+    endLine: 1,
+    bodyHash: null,
+    exported: false,
+    isTest: false,
+  };
+}
+
 function reference(
   name: string,
   overrides: Partial<ReferenceRecord> = {},
@@ -196,5 +213,76 @@ describe("resolveAll", () => {
       confidence: 1,
       siteLine: 1,
     });
+  });
+
+  it("attaches a top-level symbol to its file via CONTAINS", () => {
+    const file = fileSymbol("src/lib.ts");
+    const top = symbol("src/lib.ts", "run");
+    const files = new Map<string, ExtractResult>([
+      ["src/lib.ts", extracted([file, top])],
+    ]);
+
+    const result = resolveAll(files, new Map(), cfg, boundary);
+
+    expect(result.edges).toContainEqual({
+      srcKey: file.stableKey,
+      dstKey: top.stableKey,
+      kind: "CONTAINS",
+      tier: "LEXICAL",
+      confidence: 1,
+      siteLine: top.startLine,
+    });
+  });
+
+  it("emits IMPORTS for an internal module and external_ref for a package", () => {
+    const caller = fileSymbol("src/caller.ts");
+    const lib = fileSymbol("src/lib.ts");
+    const files = new Map<string, ExtractResult>([
+      [
+        "src/caller.ts",
+        extracted(
+          [caller, symbol("src/caller.ts", "run")],
+          [],
+          [
+            {
+              localName: "helper",
+              importedName: "helper",
+              specifier: "./lib",
+              siteLine: 1,
+            },
+            {
+              localName: "React",
+              importedName: "*",
+              specifier: "react",
+              siteLine: 2,
+            },
+          ],
+        ),
+      ],
+      ["src/lib.ts", extracted([lib, symbol("src/lib.ts", "helper")])],
+    ]);
+
+    const result = resolveAll(
+      files,
+      exportsFor([["src/lib.ts", [["helper", "src/lib.ts"]]]]),
+      cfg,
+      boundary,
+    );
+
+    expect(result.edges).toContainEqual(
+      expect.objectContaining({
+        srcKey: caller.stableKey,
+        dstKey: lib.stableKey,
+        kind: "IMPORTS",
+        tier: "LEXICAL",
+      }),
+    );
+    expect(result.external).toContainEqual(
+      expect.objectContaining({
+        srcKey: caller.stableKey,
+        name: "react",
+        packageOrLib: "react",
+      }),
+    );
   });
 });
