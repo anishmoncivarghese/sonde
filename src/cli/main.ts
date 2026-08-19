@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { createHash } from "node:crypto";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { existsSync, rmSync } from "node:fs";
 import { Command } from "commander";
 import ts from "typescript";
@@ -7,7 +9,15 @@ import { getTsParser } from "../adapters/typescript/parser.js";
 import { indexPathFor } from "../index/cache.js";
 import { checkDrift } from "../index/drift.js";
 import { indexRepo, updateRepo } from "../index/pipeline.js";
+import { createServer } from "../mcp/server.js";
+import { buildEnvelope } from "../pack/envelope.js";
+import { packImpactResponse } from "../pack/impactpack.js";
+import { ensureFresh, NoIndexError } from "../pack/refresh.js";
+import { estimateTokens } from "../pack/tokens.js";
+import { findSymbols } from "../query/find.js";
+import { queryGraph, type TraversePattern } from "../query/traverse.js";
 import { RepoBoundary } from "../repo/boundary.js";
+import { gitState } from "../repo/git.js";
 import {
   migrate,
   openDb,
@@ -30,6 +40,28 @@ interface TierRow {
 
 function emit(json: boolean, value: unknown, human: string): void {
   console.log(json ? JSON.stringify(value, null, 2) : human);
+}
+
+function rootHash(boundary: RepoBoundary): string {
+  return createHash("sha256")
+    .update(boundary.root)
+    .digest("hex")
+    .slice(0, 16);
+}
+
+function unknownEnvelope(path: string, message: string) {
+  const boundary = new RepoBoundary(path);
+  return buildEnvelope({
+    rootHash: rootHash(boundary),
+    gitState: gitState(boundary),
+    freshness: { state: "unknown", driftCount: 0, verified: [] },
+    summary: message,
+    results: [],
+    warnings: [message],
+    truncated: false,
+    omittedCount: 0,
+    estimatedTokens: 0,
+  });
 }
 
 const program = new Command();
@@ -184,6 +216,162 @@ program
       { removed, indexPath: dbPath },
       removed ? `removed ${dbPath}` : `no index at ${dbPath}`,
     );
+  });
+
+program
+  .command("search")
+  .argument("<query>", "search text")
+  .argument("[path]", "repository root", ".")
+  .option("--json", "structured output")
+  .action(async (
+    query: string,
+    path: string,
+    options: { json?: boolean },
+  ) => {
+    const boundary = new RepoBoundary(path);
+    try {
+      const state = await ensureFresh(path, indexPathFor(path));
+      try {
+        const results = findSymbols(state.db, { query });
+        const envelope = buildEnvelope({
+          rootHash: rootHash(boundary),
+          gitState: gitState(boundary),
+          freshness: state.freshness,
+          summary: `${results.length} match(es)`,
+          results,
+          warnings: state.warnings,
+          truncated: false,
+          omittedCount: 0,
+          estimatedTokens: estimateTokens(JSON.stringify(results)),
+        });
+        emit(
+          options.json === true,
+          envelope,
+          results.map((result) =>
+            `${result.stableKey}  (${result.reason})`
+          ).join("\n") || "no matches",
+        );
+      } finally {
+        state.db.close();
+      }
+    } catch (error) {
+      if (!(error instanceof NoIndexError || error instanceof SchemaVersionError)) {
+        throw error;
+      }
+      const envelope = unknownEnvelope(path, error.message);
+      emit(options.json === true, envelope, error.message);
+    }
+  });
+
+program
+  .command("query")
+  .argument(
+    "<pattern>",
+    "callers_of|callees_of|references_to|imports_of|imported_by|" +
+      "implementations_of|inheritors_of|inherits_from|tests_for|" +
+      "contained_by|contains",
+  )
+  .argument("<symbol>", "stable_key, qualified name, or short name")
+  .argument("[path]", "repository root", ".")
+  .option("--json", "structured output")
+  .action(async (
+    pattern: string,
+    symbol: string,
+    path: string,
+    options: { json?: boolean },
+  ) => {
+    const boundary = new RepoBoundary(path);
+    try {
+      const state = await ensureFresh(path, indexPathFor(path));
+      try {
+        const result = queryGraph(state.db, {
+          pattern: pattern as TraversePattern,
+          symbol,
+        });
+        const metadata = buildEnvelope({
+          rootHash: rootHash(boundary),
+          gitState: gitState(boundary),
+          freshness: state.freshness,
+          summary: `${result.compiler.length + result.lexical.length + result.heuristic.length} ` +
+            "graph result(s)",
+          results: [],
+          warnings: pattern === "tests_for"
+            ? [
+                ...state.warnings,
+                "structural TESTS edges indicate relatedness only and do not " +
+                  "prove coverage",
+              ]
+            : state.warnings,
+          truncated: result.truncated,
+          omittedCount: 0,
+          estimatedTokens: estimateTokens(JSON.stringify(result)),
+        });
+        const { results: _results, ...envelopeMetadata } = metadata;
+        const response = { ...envelopeMetadata, ...result };
+        emit(
+          options.json === true,
+          response,
+          `compiler=${result.compiler.length} lexical=${result.lexical.length} ` +
+            `heuristic=${result.heuristic.length} ` +
+            `external=${result.external.count} ` +
+            `unresolved=${result.unresolved.count}`,
+        );
+      } finally {
+        state.db.close();
+      }
+    } catch (error) {
+      if (!(error instanceof NoIndexError || error instanceof SchemaVersionError)) {
+        throw error;
+      }
+      const envelope = unknownEnvelope(path, error.message);
+      emit(options.json === true, envelope, error.message);
+    }
+  });
+
+program
+  .command("impact")
+  .argument("[path]", "repository root", ".")
+  .option(
+    "--symbol <name>",
+    "seed symbol (repeatable)",
+    (value: string, previous: string[]) => [...previous, value],
+    [] as string[],
+  )
+  .option("--from-git-diff", "seed from the current working-tree diff")
+  .option("--token-budget <n>", "token budget", (value: string) => Number(value))
+  .option("--json", "structured output")
+  .action(async (
+    path: string,
+    options: {
+      symbol: string[];
+      fromGitDiff?: boolean;
+      tokenBudget?: number;
+      json?: boolean;
+    },
+  ) => {
+    const envelope = await packImpactResponse(
+      path,
+      indexPathFor(path),
+      {
+        symbols: options.symbol.length > 0 ? options.symbol : undefined,
+        fromGitDiff: options.fromGitDiff,
+      },
+      options.tokenBudget ?? 8000,
+    );
+    emit(
+      options.json === true,
+      envelope,
+      `${envelope.summary} (${envelope.freshness.state})`,
+    );
+  });
+
+const mcp = program.command("mcp");
+mcp
+  .command("serve")
+  .argument("[path]", "repository root", ".")
+  .action(async (path: string) => {
+    const server = createServer(path);
+    await server.connect(new StdioServerTransport());
   });
 
 await program.parseAsync(process.argv);

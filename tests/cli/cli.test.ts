@@ -92,4 +92,77 @@ describe("cli", () => {
     };
     expect(status.freshness.state).toBe("unknown");
   });
+
+  it("search finds a symbol by name", () => {
+    cli("index", root, "--json");
+
+    const out = JSON.parse(cli("search", "a", root, "--json")) as {
+      freshness: { state: string };
+      results: Array<{ stableKey: string }>;
+    };
+
+    expect(out.freshness.state).toBe("fresh");
+    expect(out.results.some(({ stableKey }) => stableKey.endsWith("#a")))
+      .toBe(true);
+  });
+
+  it("search refreshes a small source change before answering", () => {
+    cli("index", root, "--json");
+    writeFileSync(
+      join(root, "src", "a.ts"),
+      "export function a() {}\nexport function added() {}\n",
+    );
+
+    const out = JSON.parse(cli("search", "added", root, "--json")) as {
+      freshness: { state: string };
+      results: Array<{ stableKey: string }>;
+    };
+
+    expect(out.freshness.state).toBe("refreshed");
+    expect(out.results.some(({ stableKey }) => stableKey.endsWith("#added")))
+      .toBe(true);
+  });
+
+  it("query answers callees_of", () => {
+    writeFileSync(
+      join(root, "src", "a.ts"),
+      "export function a() { b(); }\nexport function b() {}\n",
+    );
+    cli("index", root, "--json");
+
+    const out = JSON.parse(
+      cli("query", "callees_of", "a", root, "--json"),
+    ) as {
+      freshness: { state: string };
+      lexical: Array<{ qualifiedName: string }>;
+    };
+
+    expect(out.freshness.state).toBe("fresh");
+    expect(out.lexical.some(({ qualifiedName }) => qualifiedName === "b"))
+      .toBe(true);
+  });
+
+  it("impact reports affected symbols for a seed", () => {
+    writeFileSync(
+      join(root, "src", "a.ts"),
+      "export function a() {}\nexport function caller() { a(); }\n",
+    );
+    cli("index", root, "--json");
+
+    const out = JSON.parse(
+      cli("impact", root, "--symbol", "a", "--json"),
+    ) as {
+      freshness: { state: string };
+      results: Array<{ qualifiedName: string }>;
+    };
+
+    expect(out.freshness.state).toBe("fresh");
+    expect(out.results.some(({ qualifiedName }) => qualifiedName === "caller"))
+      .toBe(true);
+  });
+
+  it("registers the long-lived mcp serve command", () => {
+    const help = cli("mcp", "serve", "--help");
+    expect(help).toContain("Usage: codegraph mcp serve");
+  });
 });

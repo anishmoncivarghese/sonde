@@ -599,3 +599,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/mcp/schemas.ts, src/mcp/server.ts, tests/mcp/server.test.ts
 
 <!-- whyline-event: 39d52a9856c642aca66fcc41dcbad75c -->
+
+## 2026-08-19 — Route CLI graph reads through the same freshness and packing contracts as MCP
+
+**Because:** terminal users need the same drift detection, inline refresh, nullable provenance, and downgrade warnings as MCP clients; impact can delegate directly to packImpactResponse and search/query wrap the same pure query engines after ensureFresh
+
+**Rejected:**
+
+- Open the SQLite index directly as in the plan snippet — bypasses Guarantee B and lets CLI report stale structure while MCP refreshes it
+- Test search with path before query — contradicts the documented search <query> [path] command signature
+
+**Files:** src/cli/main.ts, tests/cli/cli.test.ts
+
+<!-- whyline-event: 0aa519224e0a429d91caf970964b8095 -->
