@@ -93,13 +93,10 @@ export async function ensureFresh(
   db.close();
   await updateRepo(root, dbPath);
   db = openCompatibleDb(dbPath);
+  const refreshedStore = new Store(db);
   let afterRefresh;
   try {
-    afterRefresh = checkDrift(
-      boundary,
-      new Store(db),
-      AUTO_REFRESH_LIMIT,
-    );
+    afterRefresh = checkDrift(boundary, refreshedStore, AUTO_REFRESH_LIMIT);
   } catch (error) {
     db.close();
     throw error;
@@ -122,12 +119,19 @@ export async function ensureFresh(
     };
   }
 
+  // A driftedPaths entry that no longer has a file row was a deletion, not
+  // a re-indexed file — updateRepo correctly removed it, so it has nothing
+  // left to verify and must not be reported as a verified source of truth.
+  const verified = drift.driftedPaths.filter(
+    (path) => refreshedStore.getFile(path) !== undefined,
+  );
+
   return {
     db,
     freshness: {
       state: "refreshed",
       driftCount: drift.driftCount,
-      verified: drift.driftedPaths,
+      verified,
     },
     warnings: [INLINE_REFRESH_WARNING],
   };

@@ -79,4 +79,18 @@ describe("verifySymbolBody", () => {
     expect(result.verified).toBe(false);
     expect(result.bytes).toHaveLength(0);
   });
+
+  it("degrades a deleted or unreadable file to unverified instead of throwing", () => {
+    rmSync(join(root, "src", "a.ts"));
+
+    const result = verifySymbolBody(boundary, {
+      path: "src/a.ts",
+      startByte: 0,
+      endByte: Buffer.byteLength(original),
+      bodyHash: hash(Buffer.from(original)),
+    });
+
+    expect(result.verified).toBe(false);
+    expect(result.bytes).toHaveLength(0);
+  });
 });

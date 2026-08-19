@@ -19,14 +19,24 @@ export function verifySymbolBody(
   boundary: RepoBoundary,
   target: VerifyTarget,
 ): VerifyResult {
-  const full = boundary.readFile(target.path);
-  const validRange = Number.isInteger(target.startByte) &&
+  // The repo-wide drift scan that preceded this call cannot guarantee a file
+  // untouched by it still exists or is readable right now (TOCTOU); a
+  // deleted or unreadable file must degrade this one symbol, not throw and
+  // abort every other symbol a caller is verifying (invariant 8).
+  let full: Buffer | null;
+  try {
+    full = boundary.readFile(target.path);
+  } catch {
+    full = null;
+  }
+  const validRange = full !== null &&
+    Number.isInteger(target.startByte) &&
     Number.isInteger(target.endByte) &&
     target.startByte >= 0 &&
     target.endByte >= target.startByte &&
     target.endByte <= full.length;
   const bytes = validRange
-    ? full.subarray(target.startByte, target.endByte)
+    ? full!.subarray(target.startByte, target.endByte)
     : Buffer.alloc(0);
   const hash = createHash("sha256").update(bytes).digest("hex");
 

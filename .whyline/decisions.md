@@ -559,3 +559,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/pack/verify.ts, src/pack/refresh.ts, tests/pack/verify.test.ts, tests/pack/refresh.test.ts
 
 <!-- whyline-event: b8d9769c5a44451fb34e0604138a63bf -->
+
+## 2026-08-19 — Degrade verifySymbolBody on a TOCTOU read failure and exclude deleted paths from ensureFresh's verified list
+
+**Because:** review of the already-committed Task 9 found two invariant-8 gaps: verifySymbolBody called boundary.readFile with no try/catch, so a file deleted or made unreadable between the repo-wide drift scan and a later per-symbol verify call would throw and abort every other symbol a caller was verifying in the same batch, instead of degrading just that one symbol; and ensureFresh's successful-refresh branch reported freshness.verified as the raw pre-refresh drift.driftedPaths list, which includes paths deleted during that same refresh — updateRepo correctly removes their file row, so nothing was verified there and listing them as verified would mislead a caller into treating a nonexistent file as a current source of truth
+
+**Rejected:**
+
+- Leave verifySymbolBody uncaught — matches the plan's literal snippet, but the plan's snippet also never validated byte ranges, which this file's own committed implementation had already correctly hardened past
+- Report driftCount instead of a path list for verified — loses the per-file detail §7.6's envelope shape calls for; filtering by post-refresh file-row existence keeps the list but drops entries that are wrong instead of removing the whole field
+
+**Files:** src/pack/verify.ts, src/pack/refresh.ts, tests/pack/verify.test.ts, tests/pack/refresh.test.ts
+
+<!-- whyline-event: 125be6d7a4de4b7aaaf6134dad9b88c5 -->

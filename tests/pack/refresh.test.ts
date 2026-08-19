@@ -90,6 +90,24 @@ describe("ensureFresh", () => {
     }
   });
 
+  it("does not list a deleted file as verified after refreshing its removal", async () => {
+    await indexRepo(root, dbPath);
+    rmSync(join(root, "src", "a.ts"));
+
+    const state = await ensureFresh(root, dbPath);
+    try {
+      expect(state.freshness.state).toBe("refreshed");
+      expect(state.freshness.verified).not.toContain("src/a.ts");
+      expect(
+        state.db
+          .prepare("SELECT COUNT(*) AS count FROM file WHERE path = ?")
+          .get("src/a.ts"),
+      ).toEqual({ count: 0 });
+    } finally {
+      state.db.close();
+    }
+  });
+
   it("returns partial without refreshing drift over the automatic limit", async () => {
     await indexRepo(root, dbPath);
     for (let index = 0; index <= AUTO_REFRESH_LIMIT; index += 1) {
