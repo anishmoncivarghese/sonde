@@ -572,3 +572,17 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/pack/verify.ts, src/pack/refresh.ts, tests/pack/verify.test.ts, tests/pack/refresh.test.ts
 
 <!-- whyline-event: 125be6d7a4de4b7aaaf6134dad9b88c5 -->
+
+## 2026-08-19 — Preserve unknown provenance and budget rendered structural impact responses honestly
+
+**Because:** git failures must remain nullable and warned, tokenizer accounting must include rendered separators, impact responses must disclose unresolved and structural-test caveats, and ImpactRow has no byte range or body hash contract for safe source packing yet
+
+**Rejected:**
+
+- Coerce unknown git dirtiness to false — presents an unobserved worktree as clean
+- Sum each section token count independently — omits separator tokenization and underreports the rendered payload
+- Attach seed source bodies by ad hoc database queries — invents an output contract absent from ImpactRow and bypasses the planned verifySymbolBody seam
+
+**Files:** src/pack/tokens.ts, src/pack/envelope.ts, src/pack/impactpack.ts, tests/pack/tokens.test.ts, tests/pack/envelope.test.ts, tests/pack/impactpack.test.ts
+
+<!-- whyline-event: cda3283d64fc46288ad849e2ebd61086 -->
