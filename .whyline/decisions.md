@@ -650,3 +650,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/query/impact.ts, tests/query/impact.test.ts
 
 <!-- whyline-event: 465cf589b1924e4a8d4898ef025a1bcc -->
+
+## 2026-08-20 — Use a purpose-built medium fixture with five hand-verifiable Notifier implementations
+
+**Because:** the fixed benchmark categories need a wide interface, deep calls, synonym gaps, and real tests whose stable keys and ground truth remain deterministic without network access
+
+**Rejected:**
+
+- Clone an external repository — exact evidence and symbol identities would depend on network state and could not be hand-verified in the committed harness
+- Use CodeGraph itself as the fixture — it has no interface with five implementations, so wide-interface tasks would be fabricated
+
+**Files:** tests/fixtures/repos/medium/tsconfig.json, tests/harness/fixtures.test.ts
+
+<!-- whyline-event: e7675a1c334b496f945f3e8d1badea29 -->
