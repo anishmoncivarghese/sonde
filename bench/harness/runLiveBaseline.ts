@@ -3,10 +3,50 @@ import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 
 import { RepoBoundary } from "../../src/repo/boundary.js";
+import { estimateTokens } from "../../src/pack/tokens.js";
 import type { AgentTrace, BenchmarkTask, ToolCallRecord } from "./types.js";
 
 const MODEL = "claude-opus-5";
 const MAX_ITERATIONS = 30;
+
+export interface ContextBudget {
+  limitTokens: number;
+  usedTokens: number;
+}
+
+export function createContextBudget(limitTokens: number): ContextBudget {
+  return {
+    limitTokens: Number.isFinite(limitTokens)
+      ? Math.max(0, Math.floor(limitTokens))
+      : 0,
+    usedTokens: 0,
+  };
+}
+
+export function takeContextResult(budget: ContextBudget, result: string): string {
+  const remaining = budget.limitTokens - budget.usedTokens;
+  if (remaining <= 0) return "";
+  const fullTokens = estimateTokens(result);
+  if (fullTokens <= remaining) {
+    budget.usedTokens += fullTokens;
+    return result;
+  }
+
+  const characters = Array.from(result);
+  let low = 0;
+  let high = characters.length;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if (estimateTokens(characters.slice(0, middle).join("")) <= remaining) {
+      low = middle;
+    } else {
+      high = middle - 1;
+    }
+  }
+  const truncated = characters.slice(0, low).join("");
+  budget.usedTokens += estimateTokens(truncated);
+  return truncated;
+}
 
 function typescriptFiles(boundary: RepoBoundary): string[] {
   const matches: string[] = [];
@@ -63,13 +103,17 @@ function resultSummary(result: string): string {
   return `${Buffer.byteLength(result, "utf8")} result bytes`;
 }
 
-function buildTools(boundary: RepoBoundary, calls: ToolCallRecord[]) {
+function buildTools(
+  boundary: RepoBoundary,
+  calls: ToolCallRecord[],
+  budget: ContextBudget,
+) {
   const record = async (
     tool: string,
     input: unknown,
     run: () => Promise<string>,
   ): Promise<string> => {
-    const result = await run();
+    const result = takeContextResult(budget, await run());
     calls.push({ tool, input, resultSummary: resultSummary(result) });
     return result;
   };
@@ -108,6 +152,9 @@ export async function runAgenticBaseline(
   const boundary = new RepoBoundary(fixtureRoot);
   const startedAt = Date.now();
   const toolCalls: ToolCallRecord[] = [];
+  const contextBudget = createContextBudget(
+    task.groundTruth.maxContextBudgetTokens,
+  );
   let inputTokens = 0;
   let outputTokens = 0;
   let finalAnswerText = "";
@@ -116,7 +163,7 @@ export async function runAgenticBaseline(
     model: MODEL,
     max_tokens: 16_000,
     max_iterations: MAX_ITERATIONS,
-    tools: buildTools(boundary, toolCalls),
+    tools: buildTools(boundary, toolCalls, contextBudget),
     messages: [{ role: "user", content: task.prompt }],
   });
 
@@ -136,6 +183,7 @@ export async function runAgenticBaseline(
     finalAnswerText,
     inputTokens,
     outputTokens,
+    contextTokens: contextBudget.usedTokens,
     wallClockMs: Date.now() - startedAt,
   };
 }

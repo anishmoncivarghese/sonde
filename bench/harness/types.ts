@@ -57,7 +57,16 @@ export interface AgentTrace {
   finalAnswerText: string;
   inputTokens: number;
   outputTokens: number;
+  /** Cumulative tool-result tokens exposed to the live agent. */
+  contextTokens: number;
   wallClockMs: number;
+}
+
+export interface TierHitCounts {
+  compiler: number;
+  lexical: number;
+  heuristic: number;
+  unranked: number;
 }
 
 export interface TaskResult {
@@ -69,11 +78,18 @@ export interface TaskResult {
   toolCalls: number;
   inputTokens: number;
   outputTokens: number;
+  /** Evidence context admitted by the task's token budget. */
+  contextTokens: number;
   wallClockMs: number;
+  helpfulHits: number;
+  distractorHits: number;
+  /** Deterministic proxy pending a validated end-to-end success judge. */
+  preliminarySuccess: boolean;
   /**
-   * Fraction of matched required evidence reached through LEXICAL/HEURISTIC
-   * edges rather than a trivial/COMPILER result. Agentic search has no tier
-   * concept and therefore reports null.
+   * Marginal required-evidence recall contributed by HEURISTIC graph edges.
+   * Find-only and agentic-search results have no graph tier and report null.
    */
   tierUtility: number | null;
+  /** Required-evidence hits by their retrieval tier. */
+  tierHits: TierHitCounts | null;
 }

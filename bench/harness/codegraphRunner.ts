@@ -1,4 +1,4 @@
-import { estimateJsonTokens } from "../../src/pack/tokens.js";
+import { estimateJsonTokens, packToBudget } from "../../src/pack/tokens.js";
 import { findSymbols } from "../../src/query/find.js";
 import { getImpactRadius } from "../../src/query/impact.js";
 import { queryGraph } from "../../src/query/traverse.js";
@@ -8,13 +8,15 @@ import type {
   BenchmarkTask,
   EvidenceSymbol,
   TaskResult,
+  TierHitCounts,
 } from "./types.js";
 
 type EvidenceTier = "COMPILER" | "LEXICAL" | "HEURISTIC";
 
-interface MatchedEvidence {
-  matchedKeys: Set<string>;
-  tiers: Map<string, EvidenceTier>;
+interface RetrievedEvidence {
+  stableKey: string;
+  payload: unknown;
+  tier?: EvidenceTier;
 }
 
 function recall(required: EvidenceSymbol[], matched: Set<string>): number {
@@ -23,27 +25,51 @@ function recall(required: EvidenceSymbol[], matched: Set<string>): number {
   return hits / required.length;
 }
 
-function tierUtility(
+function tierHits(
   required: EvidenceSymbol[],
-  evidence: MatchedEvidence,
-): number | null {
-  const tieredRequired = required
-    .filter((item) => evidence.matchedKeys.has(item.stableKey))
-    .map((item) => evidence.tiers.get(item.stableKey))
-    .filter((tier): tier is EvidenceTier => tier !== undefined);
-  if (tieredRequired.length === 0) return null;
-  const useful = tieredRequired.filter((tier) =>
-    tier === "LEXICAL" || tier === "HEURISTIC"
-  ).length;
-  return useful / tieredRequired.length;
+  matched: Set<string>,
+  tiers: Map<string, EvidenceTier>,
+): TierHitCounts {
+  const counts: TierHitCounts = {
+    compiler: 0,
+    lexical: 0,
+    heuristic: 0,
+    unranked: 0,
+  };
+  for (const item of required) {
+    if (!matched.has(item.stableKey)) continue;
+    const tier = tiers.get(item.stableKey);
+    if (tier === "COMPILER") counts.compiler += 1;
+    else if (tier === "LEXICAL") counts.lexical += 1;
+    else if (tier === "HEURISTIC") counts.heuristic += 1;
+    else counts.unranked += 1;
+  }
+  return counts;
 }
 
 export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
   const startedAt = Date.now();
-  const payloads: unknown[] = [];
-  const evidence: MatchedEvidence = {
-    matchedKeys: new Set(),
-    tiers: new Map(),
+  const retrieved: RetrievedEvidence[] = [];
+  const indexByKey = new Map<string, number>();
+  const tierRank: Record<EvidenceTier, number> = {
+    COMPILER: 0,
+    LEXICAL: 1,
+    HEURISTIC: 2,
+  };
+  const add = (item: RetrievedEvidence): void => {
+    const existingIndex = indexByKey.get(item.stableKey);
+    if (existingIndex === undefined) {
+      indexByKey.set(item.stableKey, retrieved.length);
+      retrieved.push(item);
+      return;
+    }
+    const existing = retrieved[existingIndex]!;
+    if (
+      item.tier !== undefined &&
+      (existing.tier === undefined || tierRank[item.tier] < tierRank[existing.tier])
+    ) {
+      retrieved[existingIndex] = item;
+    }
   };
 
   for (const seed of task.seeds) {
@@ -52,15 +78,13 @@ export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
         pattern: seed.pattern,
         symbol: seed.symbol,
       });
-      payloads.push(result);
       for (const [tier, rows] of [
         ["COMPILER", result.compiler],
         ["LEXICAL", result.lexical],
         ["HEURISTIC", result.heuristic],
       ] as const) {
         for (const row of rows) {
-          evidence.matchedKeys.add(row.stableKey);
-          evidence.tiers.set(row.stableKey, tier);
+          add({ stableKey: row.stableKey, payload: { ...row, tier }, tier });
         }
       }
     } else if (seed.kind === "impact") {
@@ -69,31 +93,53 @@ export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
         new RepoBoundary(task.fixture),
         { symbols: seed.symbols },
       );
-      payloads.push(result);
       for (const row of result.affected) {
-        evidence.matchedKeys.add(row.stableKey);
-        evidence.tiers.set(row.stableKey, row.tier);
+        add({ stableKey: row.stableKey, payload: row, tier: row.tier });
       }
     } else {
       const results = findSymbols(db, { query: seed.query });
-      payloads.push(results);
-      for (const row of results) evidence.matchedKeys.add(row.stableKey);
-      // find_symbols has exact/FTS reasons, not graph evidence tiers.
+      for (const row of results) add({ stableKey: row.stableKey, payload: row });
     }
   }
+
+  const packed = packToBudget(
+    retrieved.map((item) => ({
+      id: item.stableKey,
+      priority: 1,
+      text: JSON.stringify(item.payload, null, 2),
+    })),
+    task.groundTruth.maxContextBudgetTokens,
+  );
+  const matchedKeys = new Set(packed.included);
+  const tiers = new Map(
+    retrieved
+      .filter((item) => matchedKeys.has(item.stableKey) && item.tier !== undefined)
+      .map((item) => [item.stableKey, item.tier!] as const),
+  );
+  const recallAtK = recall(task.groundTruth.requiredEvidence, matchedKeys);
+  const helpfulHits = task.groundTruth.helpfulEvidence
+    .filter((item) => matchedKeys.has(item.stableKey)).length;
+  const distractorHits = task.groundTruth.distractors
+    .filter((item) => matchedKeys.has(item.stableKey)).length;
+  const hitsByTier = tierHits(task.groundTruth.requiredEvidence, matchedKeys, tiers);
+  const hasTieredSeed = task.seeds.some((seed) => seed.kind !== "find");
 
   return {
     taskId: task.id,
     category: task.category,
     baseline: "codegraph",
-    recallAtK: recall(
-      task.groundTruth.requiredEvidence,
-      evidence.matchedKeys,
-    ),
+    recallAtK,
     toolCalls: task.seeds.length,
     inputTokens: estimateJsonTokens(task.prompt),
-    outputTokens: estimateJsonTokens(payloads),
+    outputTokens: packed.estimatedTokens,
+    contextTokens: packed.estimatedTokens,
     wallClockMs: Date.now() - startedAt,
-    tierUtility: tierUtility(task.groundTruth.requiredEvidence, evidence),
+    helpfulHits,
+    distractorHits,
+    preliminarySuccess: recallAtK === 1 && distractorHits === 0,
+    tierUtility: hasTieredSeed
+      ? hitsByTier.heuristic / task.groundTruth.requiredEvidence.length
+      : null,
+    tierHits: hitsByTier,
   };
 }

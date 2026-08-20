@@ -7,7 +7,11 @@ export interface AggregatedMetrics {
   meanToolCalls: number;
   meanInputTokens: number;
   meanOutputTokens: number;
+  meanContextTokens: number;
   meanWallClockMs: number;
+  meanHelpfulHits: number;
+  meanDistractorHits: number;
+  preliminarySuccessRate: number;
   meanTierUtility: number | null;
 }
 
@@ -35,7 +39,13 @@ export function aggregateResults(results: TaskResult[]): AggregatedMetrics {
     meanToolCalls: mean(results.map((result) => result.toolCalls)),
     meanInputTokens: mean(results.map((result) => result.inputTokens)),
     meanOutputTokens: mean(results.map((result) => result.outputTokens)),
+    meanContextTokens: mean(results.map((result) => result.contextTokens)),
     meanWallClockMs: mean(results.map((result) => result.wallClockMs)),
+    meanHelpfulHits: mean(results.map((result) => result.helpfulHits)),
+    meanDistractorHits: mean(results.map((result) => result.distractorHits)),
+    preliminarySuccessRate: mean(
+      results.map((result) => result.preliminarySuccess ? 1 : 0),
+    ),
     meanTierUtility: tierUtilities.length > 0 ? mean(tierUtilities) : null,
   };
 }

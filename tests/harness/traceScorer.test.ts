@@ -17,6 +17,7 @@ function traceFor(task: BenchmarkTask, finalAnswerText: string): AgentTrace {
     finalAnswerText,
     inputTokens: 100,
     outputTokens: 10,
+    contextTokens: 20,
     wallClockMs: 500,
   };
 }
@@ -40,6 +41,8 @@ describe("scoreTrace", () => {
     expect(result.baseline).toBe("agentic_search");
     expect(result.toolCalls).toBe(1);
     expect(result.tierUtility).toBeNull();
+    expect(result.tierHits).toBeNull();
+    expect(result.preliminarySuccess).toBe(true);
   });
 
   it("scores partial recall case-insensitively", () => {
@@ -68,5 +71,46 @@ describe("scoreTrace", () => {
     trace.taskId = "different-task";
 
     expect(() => scoreTrace(task, trace)).toThrow(/different-task/);
+  });
+
+  it("matches identifiers at boundaries rather than inside unrelated words", () => {
+    const task = taskById("impact-dispatch-two-hop");
+
+    expect(scoreTrace(task, traceFor(task, "Restart the service.")).recallAtK)
+      .toBe(0);
+    expect(scoreTrace(task, traceFor(task, "start and run are affected.")).recallAtK)
+      .toBe(1);
+  });
+
+  it("counts helpful and distractor mentions in preliminary success", () => {
+    const source = taskById("implementations-of-notifier");
+    const [required, distractor, helpful] = source.groundTruth.requiredEvidence;
+    const task: BenchmarkTask = {
+      ...source,
+      id: "trace-distractors",
+      groundTruth: {
+        ...source.groundTruth,
+        requiredEvidence: [required!],
+        helpfulEvidence: [helpful!],
+        distractors: [distractor!],
+      },
+    };
+    const trace = traceFor(
+      task,
+      `${required!.qualifiedName}, ${helpful!.qualifiedName}, ${distractor!.qualifiedName}`,
+    );
+
+    const result = scoreTrace(task, trace);
+    expect(result.helpfulHits).toBe(1);
+    expect(result.distractorHits).toBe(1);
+    expect(result.preliminarySuccess).toBe(false);
+  });
+
+  it("rejects traces that exceed the task context budget", () => {
+    const task = taskById("semantic-alerting-synonym");
+    const trace = traceFor(task, "Notifier");
+    trace.contextTokens = task.groundTruth.maxContextBudgetTokens + 1;
+
+    expect(() => scoreTrace(task, trace)).toThrow(/context budget/i);
   });
 });

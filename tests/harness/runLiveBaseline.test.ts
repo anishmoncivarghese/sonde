@@ -10,10 +10,13 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  createContextBudget,
   globTool,
   grepTool,
   readFileTool,
+  takeContextResult,
 } from "../../bench/harness/runLiveBaseline.js";
+import { estimateTokens } from "../../src/pack/tokens.js";
 import { RepoBoundary } from "../../src/repo/boundary.js";
 
 let base: string;
@@ -65,5 +68,17 @@ describe("live baseline tool handlers", () => {
     expect(await readFileTool(boundary, { path: "src/missing.ts" })).toMatch(/error/i);
     expect(await readFileTool(boundary, { path: "../secret.ts" })).toMatch(/error/i);
     expect(await readFileTool(boundary, { path: "src/escape.ts" })).not.toContain("SECRET");
+  });
+
+  it("keeps cumulative tool results within the context budget", () => {
+    const budget = createContextBudget(5);
+    const first = takeContextResult(budget, "alpha beta gamma delta");
+    const second = takeContextResult(budget, "epsilon zeta eta theta");
+
+    expect(estimateTokens(first) + estimateTokens(second)).toBeLessThanOrEqual(5);
+    expect(budget.usedTokens).toBeLessThanOrEqual(5);
+    expect(budget.usedTokens).toBe(
+      estimateTokens(first) + estimateTokens(second),
+    );
   });
 });

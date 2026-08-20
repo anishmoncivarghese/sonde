@@ -19,8 +19,15 @@ function result(
     toolCalls: 1,
     inputTokens: 10,
     outputTokens: 5,
+    contextTokens: 5,
     wallClockMs: 20,
+    helpfulHits: 0,
+    distractorHits: 0,
+    preliminarySuccess: recallAtK === 1,
     tierUtility: baseline === "codegraph" ? 0.5 : null,
+    tierHits: baseline === "codegraph"
+      ? { compiler: 0, lexical: 1, heuristic: 0, unranked: 0 }
+      : null,
   };
 }
 

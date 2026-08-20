@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runCodegraphTask } from "../../bench/harness/codegraphRunner.js";
 import { BENCHMARK_TASKS } from "../../bench/harness/tasks.js";
+import type { BenchmarkTask } from "../../bench/harness/types.js";
 import { indexRepo } from "../../src/index/pipeline.js";
 import { migrate, openDb, type Db } from "../../src/store/index.js";
 
@@ -39,6 +40,16 @@ describe("runCodegraphTask", () => {
     expect(result.baseline).toBe("codegraph");
     expect(result.inputTokens).toBeGreaterThan(0);
     expect(result.outputTokens).toBeGreaterThan(0);
+    expect(result.contextTokens).toBe(result.outputTokens);
+    expect(result.preliminarySuccess).toBe(true);
+    expect(result.distractorHits).toBe(0);
+    expect(result.tierHits).toEqual({
+      compiler: 0,
+      lexical: 5,
+      heuristic: 0,
+      unranked: 0,
+    });
+    expect(result.tierUtility).toBe(0);
   });
 
   it("reports tier utility for matched required impact evidence", () => {
@@ -66,5 +77,42 @@ describe("runCodegraphTask", () => {
     const result = runCodegraphTask(db, task("completeness-queue-callers"));
     expect(result.recallAtK).toBe(1);
     expect(result.toolCalls).toBe(2);
+    expect(result.tierUtility).toBe(1);
+    expect(result.tierHits?.heuristic).toBe(2);
+  });
+
+  it("scores only evidence that fits the task context budget", () => {
+    const source = task("implementations-of-notifier");
+    const budgeted: BenchmarkTask = {
+      ...source,
+      id: "budgeted-implementations",
+      groundTruth: { ...source.groundTruth, maxContextBudgetTokens: 1 },
+    };
+
+    const result = runCodegraphTask(db, budgeted);
+    expect(result.recallAtK).toBe(0);
+    expect(result.contextTokens).toBeLessThanOrEqual(1);
+    expect(result.preliminarySuccess).toBe(false);
+  });
+
+  it("counts helpful and distractor evidence and fails preliminary success", () => {
+    const source = task("implementations-of-notifier");
+    const [required, distractor, helpful] = source.groundTruth.requiredEvidence;
+    const adversarial: BenchmarkTask = {
+      ...source,
+      id: "adversarial-implementations",
+      groundTruth: {
+        ...source.groundTruth,
+        requiredEvidence: [required!],
+        helpfulEvidence: [helpful!],
+        distractors: [distractor!],
+      },
+    };
+
+    const result = runCodegraphTask(db, adversarial);
+    expect(result.recallAtK).toBe(1);
+    expect(result.helpfulHits).toBe(1);
+    expect(result.distractorHits).toBe(1);
+    expect(result.preliminarySuccess).toBe(false);
   });
 });

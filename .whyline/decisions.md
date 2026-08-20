@@ -827,3 +827,29 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/types.ts, bench/harness/tasks.ts, tests/harness/tasks.test.ts
 
 <!-- whyline-event: 29f6a638441c4442b4596a250152ef63 -->
+
+## 2026-08-20 — Score only budget-admitted evidence and define heuristic utility as marginal required recall
+
+**Because:** Recall@k needs a real context bound, distractors and helpful evidence must affect auditable outputs, and the tier metric must vary with HEURISTIC evidence rather than count every non-compiler hit as automatically useful
+
+**Rejected:**
+
+- Keep unrestricted result scoring — maxContextBudgetTokens would remain dead data and large responses could buy recall
+- Weight LEXICAL and HEURISTIC identically — with no COMPILER producer that makes tier utility tautologically one
+
+**Files:** bench/harness/codegraphRunner.ts, bench/harness/metrics.ts, bench/harness/types.ts
+
+<!-- whyline-event: 48d8ef2329cd40f7b0cea587cd3a3dad -->
+
+## 2026-08-20 — Use identifier/path boundaries and a cumulative tool-result budget for agent traces
+
+**Because:** Deterministic transcript scoring should not count start inside restart, and the live baseline must not exceed the same per-task evidence budget CodeGraph is scored under
+
+**Rejected:**
+
+- Retain case-insensitive substring matching — it produced a demonstrated false positive
+- Limit only final answer tokens — unrestricted read_file results would still give the live agent unbounded repository context
+
+**Files:** bench/harness/traceScorer.ts, bench/harness/runLiveBaseline.ts
+
+<!-- whyline-event: a5d32495f17040b1af1913fe231bf03c -->

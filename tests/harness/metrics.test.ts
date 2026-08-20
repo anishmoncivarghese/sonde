@@ -11,8 +11,13 @@ function result(overrides: Partial<TaskResult> = {}): TaskResult {
     toolCalls: 1,
     inputTokens: 10,
     outputTokens: 10,
+    contextTokens: 10,
     wallClockMs: 5,
+    helpfulHits: 0,
+    distractorHits: 0,
+    preliminarySuccess: true,
     tierUtility: null,
+    tierHits: null,
     ...overrides,
   };
 }
@@ -25,14 +30,22 @@ describe("aggregateResults", () => {
         toolCalls: 1,
         inputTokens: 100,
         outputTokens: 20,
+        contextTokens: 30,
         wallClockMs: 10,
+        helpfulHits: 2,
+        distractorHits: 0,
+        preliminarySuccess: true,
       }),
       result({
         recallAtK: 0.5,
         toolCalls: 3,
         inputTokens: 200,
         outputTokens: 40,
+        contextTokens: 50,
         wallClockMs: 20,
+        helpfulHits: 0,
+        distractorHits: 2,
+        preliminarySuccess: false,
       }),
     ]);
 
@@ -42,7 +55,11 @@ describe("aggregateResults", () => {
       meanToolCalls: 2,
       meanInputTokens: 150,
       meanOutputTokens: 30,
+      meanContextTokens: 40,
       meanWallClockMs: 15,
+      meanHelpfulHits: 1,
+      meanDistractorHits: 1,
+      preliminarySuccessRate: 0.5,
     });
   });
 
