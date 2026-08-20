@@ -713,3 +713,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/metrics.ts, tests/harness/metrics.test.ts
 
 <!-- whyline-event: 9d2cfb3b0dc04d269b64dcc99cc8fa1e -->
+
+## 2026-08-20 — Score agent traces by deterministic qualified-name containment and reject task-ID mismatches
+
+**Because:** The published answer text remains directly auditable, while an explicit ID check prevents silently applying a trace to unrelated ground truth
+
+**Rejected:**
+
+- LLM judge — it would add nondeterminism, cost, and an unvalidated second model decision
+- Semantic fuzzy matching — it would make benchmark scores harder to reproduce and audit
+
+**Files:** bench/harness/traceScorer.ts
+
+<!-- whyline-event: 50dd2e3cdf2c4e3f8a5f8874b1c33494 -->
