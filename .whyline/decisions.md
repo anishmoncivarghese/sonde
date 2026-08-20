@@ -739,3 +739,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/report.ts
 
 <!-- whyline-event: 66a37620c996499ca843e4e4e2075f5c -->
+
+## 2026-08-20 — Require the freshness eval to prove inline refresh and verified paths, not merely a non-fresh state
+
+**Because:** The DoD promises zero stale bytes and zero unreported drift; an ambiguous partial state would disclose drift but would not prove the eval mutation was successfully refreshed
+
+**Rejected:**
+
+- Assert only state is not fresh — that allows partial failures to pass without demonstrating refreshed data
+
+**Files:** tests/harness/driftEval.test.ts
+
+<!-- whyline-event: ed2cb3d78b6443ea841f3ac28f2a7dbe -->
