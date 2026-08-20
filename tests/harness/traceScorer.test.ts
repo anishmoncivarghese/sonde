@@ -113,4 +113,17 @@ describe("scoreTrace", () => {
 
     expect(() => scoreTrace(task, trace)).toThrow(/context budget/i);
   });
+
+  it("rejects malformed and non-finite trace fields", () => {
+    const task = taskById("semantic-alerting-synonym");
+    const nonFinite = traceFor(task, "Notifier");
+    nonFinite.inputTokens = Number.NaN;
+    expect(() => scoreTrace(task, nonFinite)).toThrow(/inputTokens/i);
+
+    const malformed = {
+      ...traceFor(task, "Notifier"),
+      finalAnswerText: undefined,
+    } as unknown as AgentTrace;
+    expect(() => scoreTrace(task, malformed)).toThrow(/finalAnswerText/i);
+  });
 });

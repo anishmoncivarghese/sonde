@@ -853,3 +853,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/traceScorer.ts, bench/harness/runLiveBaseline.ts
 
 <!-- whyline-event: a5d32495f17040b1af1913fe231bf03c -->
+
+## 2026-08-20 — Validate every result and trace before publishing expanded benchmark methodology and outcomes
+
+**Because:** A generated report must reject duplicate, missing, wrong-baseline, malformed, non-finite, inconsistent, or over-budget inputs before presenting means, and it must expose success, context, distractors, helpful hits, and tier contribution definitions beside the numbers
+
+**Rejected:**
+
+- Trust TypeScript types at the JSON boundary — trace files are runtime data and can bypass compile-time contracts
+- Keep the compact legacy table — it hid the scoring proxy and made the tautological tier result hard to detect
+
+**Files:** bench/harness/report.ts, bench/harness/traceScorer.ts, BENCHMARK.md
+
+<!-- whyline-event: 961b38224cbe4eb1a84522e7273c10fe -->

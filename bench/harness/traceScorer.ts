@@ -1,5 +1,38 @@
 import type { AgentTrace, BenchmarkTask, TaskResult } from "./types.js";
 
+function assertNonNegativeFinite(value: unknown, field: string): asserts value is number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new Error(`AgentTrace.${field} must be a non-negative finite number`);
+  }
+}
+
+function validateTrace(trace: AgentTrace): void {
+  if (typeof trace !== "object" || trace === null) {
+    throw new Error("AgentTrace must be an object");
+  }
+  if (typeof trace.taskId !== "string") {
+    throw new Error("AgentTrace.taskId must be a string");
+  }
+  if (!Array.isArray(trace.toolCalls)) {
+    throw new Error("AgentTrace.toolCalls must be an array");
+  }
+  for (const [index, call] of trace.toolCalls.entries()) {
+    if (
+      typeof call !== "object" || call === null ||
+      typeof call.tool !== "string" || typeof call.resultSummary !== "string"
+    ) {
+      throw new Error(`AgentTrace.toolCalls[${index}] is malformed`);
+    }
+  }
+  if (typeof trace.finalAnswerText !== "string") {
+    throw new Error("AgentTrace.finalAnswerText must be a string");
+  }
+  assertNonNegativeFinite(trace.inputTokens, "inputTokens");
+  assertNonNegativeFinite(trace.outputTokens, "outputTokens");
+  assertNonNegativeFinite(trace.contextTokens, "contextTokens");
+  assertNonNegativeFinite(trace.wallClockMs, "wallClockMs");
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -21,6 +54,7 @@ function evidenceAppears(
 }
 
 export function scoreTrace(task: BenchmarkTask, trace: AgentTrace): TaskResult {
+  validateTrace(trace);
   if (trace.taskId !== task.id) {
     throw new Error(
       `Trace task ID ${trace.taskId} does not match benchmark task ${task.id}`,

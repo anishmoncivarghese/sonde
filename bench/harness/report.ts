@@ -17,18 +17,125 @@ function summaryRow(label: string, aggregate: AggregatedMetrics): string {
     ? "n/a"
     : aggregate.meanTierUtility.toFixed(3);
   return `| ${label} | ${aggregate.meanRecallAtK.toFixed(3)} | ` +
+    `${aggregate.preliminarySuccessRate.toFixed(3)} | ` +
+    `${aggregate.meanDistractorHits.toFixed(2)} | ` +
+    `${aggregate.meanHelpfulHits.toFixed(2)} | ` +
     `${aggregate.meanToolCalls.toFixed(1)} | ${aggregate.meanInputTokens.toFixed(0)} | ` +
-    `${aggregate.meanOutputTokens.toFixed(0)} | ${aggregate.meanWallClockMs.toFixed(0)} | ` +
-    `${tier} |`;
+    `${aggregate.meanOutputTokens.toFixed(0)} | ` +
+    `${aggregate.meanContextTokens.toFixed(0)} | ` +
+    `${aggregate.meanWallClockMs.toFixed(0)} | ${tier} |`;
 }
 
 function agenticSummaryRow(results: TaskResult[]): string {
   if (results.length !== BENCHMARK_TASKS.length) {
     const state = results.length === 0 ? "not yet run" : "incomplete";
     return `| Agentic search | PENDING — live baseline ${state} ` +
-      `(${results.length}/${BENCHMARK_TASKS.length} traces) | | | | | |`;
+      `(${results.length}/${BENCHMARK_TASKS.length} traces) | | | | | | | | | |`;
   }
   return summaryRow("Agentic search", aggregateResults(results));
+}
+
+function assertMetric(
+  result: TaskResult,
+  field: keyof TaskResult,
+  options: { maximum?: number; integer?: boolean } = {},
+): void {
+  const value = result[field];
+  if (
+    typeof value !== "number" || !Number.isFinite(value) || value < 0 ||
+    (options.maximum !== undefined && value > options.maximum) ||
+    (options.integer === true && !Number.isInteger(value))
+  ) {
+    throw new Error(`Invalid ${String(field)} for task ${result.taskId}`);
+  }
+}
+
+function validateResult(
+  result: TaskResult,
+  baseline: TaskResult["baseline"],
+): void {
+  const task = BENCHMARK_TASKS.find((candidate) => candidate.id === result.taskId);
+  if (!task) throw new Error(`Unknown benchmark task ${result.taskId}`);
+  if (result.baseline !== baseline) {
+    throw new Error(`Wrong baseline for ${result.taskId}: ${result.baseline}`);
+  }
+  if (result.category !== task.category) {
+    throw new Error(`Wrong category for ${result.taskId}: ${result.category}`);
+  }
+  assertMetric(result, "recallAtK", { maximum: 1 });
+  assertMetric(result, "toolCalls", { integer: true });
+  assertMetric(result, "inputTokens");
+  assertMetric(result, "outputTokens");
+  assertMetric(result, "contextTokens");
+  assertMetric(result, "wallClockMs");
+  assertMetric(result, "helpfulHits", { integer: true });
+  assertMetric(result, "distractorHits", { integer: true });
+  if (result.contextTokens > task.groundTruth.maxContextBudgetTokens) {
+    throw new Error(`Invalid contextTokens for task ${result.taskId}: over budget`);
+  }
+  if (
+    result.helpfulHits > task.groundTruth.helpfulEvidence.length ||
+    result.distractorHits > task.groundTruth.distractors.length
+  ) {
+    throw new Error(`Evidence hit count exceeds ground truth for ${result.taskId}`);
+  }
+  if (typeof result.preliminarySuccess !== "boolean") {
+    throw new Error(`Invalid preliminarySuccess for task ${result.taskId}`);
+  }
+  const expectedSuccess = result.recallAtK === 1 && result.distractorHits === 0;
+  if (result.preliminarySuccess !== expectedSuccess) {
+    throw new Error(`Inconsistent preliminarySuccess for task ${result.taskId}`);
+  }
+  if (result.tierUtility !== null) {
+    assertMetric(result, "tierUtility", { maximum: 1 });
+  }
+  if (baseline === "agentic_search" && result.tierUtility !== null) {
+    throw new Error(`Agentic result ${result.taskId} cannot report tierUtility`);
+  }
+  if (baseline === "agentic_search" && result.tierHits !== null) {
+    throw new Error(`Agentic result ${result.taskId} cannot report tierHits`);
+  }
+  if (baseline === "codegraph" && result.tierHits === null) {
+    throw new Error(`CodeGraph result ${result.taskId} must report tierHits`);
+  }
+  if (result.tierHits !== null) {
+    for (const tier of ["compiler", "lexical", "heuristic", "unranked"] as const) {
+      const count = result.tierHits[tier];
+      if (!Number.isInteger(count) || count < 0) {
+        throw new Error(`Invalid tierHits.${tier} for task ${result.taskId}`);
+      }
+    }
+  }
+}
+
+function resultMap(
+  results: TaskResult[],
+  baseline: TaskResult["baseline"],
+  complete: boolean,
+): Map<string, TaskResult> {
+  const mapped = new Map<string, TaskResult>();
+  for (const result of results) {
+    validateResult(result, baseline);
+    if (mapped.has(result.taskId)) {
+      throw new Error(`Duplicate result for task ${result.taskId}`);
+    }
+    mapped.set(result.taskId, result);
+  }
+  if (complete) {
+    for (const task of BENCHMARK_TASKS) {
+      if (!mapped.has(task.id)) throw new Error(`Missing result for task ${task.id}`);
+    }
+    if (mapped.size !== BENCHMARK_TASKS.length) {
+      throw new Error(`Expected ${BENCHMARK_TASKS.length} ${baseline} results`);
+    }
+  }
+  return mapped;
+}
+
+function tierHitsCell(result: TaskResult): string {
+  const hits = result.tierHits;
+  if (!hits) return "n/a";
+  return `${hits.compiler}/${hits.lexical}/${hits.heuristic}/${hits.unranked}`;
 }
 
 export function renderBenchmarkReport(
@@ -36,14 +143,17 @@ export function renderBenchmarkReport(
   agenticResults: TaskResult[],
   generatedAt = new Date(),
 ): string {
-  const codegraphByTask = new Map(codegraphResults.map((result) => [result.taskId, result]));
-  const agenticByTask = new Map(agenticResults.map((result) => [result.taskId, result]));
+  const codegraphByTask = resultMap(codegraphResults, "codegraph", true);
+  const agenticByTask = resultMap(agenticResults, "agentic_search", false);
   const rows = BENCHMARK_TASKS.map((task) => {
     const codegraph = codegraphByTask.get(task.id);
     if (!codegraph) throw new Error(`Missing CodeGraph result for ${task.id}`);
     const agentic = agenticByTask.get(task.id);
     return `| ${task.id} | ${task.category} | ${codegraph.recallAtK.toFixed(2)} | ` +
-      `${agentic ? agentic.recallAtK.toFixed(2) : "PENDING"} |`;
+      `${codegraph.preliminarySuccess ? "yes" : "no"} | ` +
+      `${tierHitsCell(codegraph)} | ` +
+      `${agentic ? agentic.recallAtK.toFixed(2) : "PENDING"} | ` +
+      `${agentic ? (agentic.preliminarySuccess ? "yes" : "no") : "PENDING"} |`;
   });
 
   return [
@@ -65,18 +175,29 @@ export function renderBenchmarkReport(
       "the classes v0.1's lexical+structural retrieval is *expected to lose*, " +
       "per spec §2.1's falsifiable deferral of semantic search.",
     "",
+    "## Methodology",
+    "",
+    "Recall@k scores only evidence admitted by each task's disclosed context-token " +
+      "budget. Preliminary success requires recall@k = 1 and zero distractor hits; " +
+      "it is a deterministic proxy, not a validated semantic success judge. " +
+      "Tier utility is the fraction of all required evidence contributed by " +
+      "HEURISTIC edges. C/L/H/U required hits report compiler, lexical, heuristic, " +
+      "and unranked matches respectively.",
+    "",
     "## Summary",
     "",
-    "| Baseline | Mean recall@k | Mean tool calls | Mean input tokens | " +
-      "Mean output tokens | Mean latency (ms) | Mean tier utility |",
-    "|---|---:|---:|---:|---:|---:|---:|",
+    "| Baseline | Mean recall@k | Preliminary success rate | Mean distractors | " +
+      "Mean helpful | Mean tool calls | Mean input tokens | Mean output tokens | " +
+      "Mean context tokens | Mean latency (ms) | Mean heuristic utility |",
+    "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     summaryRow("CodeGraph", aggregateResults(codegraphResults)),
     agenticSummaryRow(agenticResults),
     "",
     "## Per-task recall@k",
     "",
-    "| Task | Category | CodeGraph | Agentic search |",
-    "|---|---|---:|---:|",
+    "| Task | Category | CodeGraph recall | CodeGraph success | C/L/H/U required hits | " +
+      "Agentic recall | Agentic success |",
+    "|---|---|---:|:---:|---:|---:|:---:|",
     ...rows,
     "",
   ].join("\n");

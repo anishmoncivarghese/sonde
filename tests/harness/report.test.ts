@@ -41,13 +41,17 @@ describe("renderBenchmarkReport", () => {
     const report = renderBenchmarkReport(codegraphResults, [], generatedAt);
 
     expect(report).toContain("Generated: 2026-08-21T00:00:00.000Z");
-    expect(report).toContain("| CodeGraph | 1.000 | 1.0 | 10 | 5 | 20 | 0.500 |");
+    expect(report).toContain(
+      "| CodeGraph | 1.000 | 1.000 | 0.00 | 0.00 | 1.0 | 10 | 5 | 5 | 20 | 0.500 |",
+    );
     expect(report).toContain(
       "| Agentic search | PENDING — live baseline not yet run (0/12 traces) |",
     );
     expect(report).toContain("Adversarially selected per spec §10 Layer 3");
+    expect(report).toContain("Preliminary success requires recall@k = 1");
+    expect(report).toContain("C/L/H/U required hits");
     expect(report).toContain(
-      "| implementations-of-notifier | wide_interface | 1.00 | PENDING |",
+      "| implementations-of-notifier | wide_interface | 1.00 | yes | 0/1/0/0 | PENDING | PENDING |",
     );
   });
 
@@ -60,6 +64,41 @@ describe("renderBenchmarkReport", () => {
     );
 
     expect(report).toContain("PENDING — live baseline incomplete (1/12 traces)");
-    expect(report).toContain(`| ${first.id} | ${first.category} | 1.00 | 0.50 |`);
+    expect(report).toContain(
+      `| ${first.id} | ${first.category} | 1.00 | yes | 0/1/0/0 | 0.50 | no |`,
+    );
+  });
+
+  it("rejects duplicate, missing, and wrong-baseline result sets", () => {
+    const duplicated = [...codegraphResults.slice(0, -1), codegraphResults[0]!];
+    expect(() => renderBenchmarkReport(duplicated, [], generatedAt))
+      .toThrow(/duplicate|missing/i);
+
+    const wrongBaseline = [
+      { ...codegraphResults[0]!, baseline: "agentic_search" as const },
+      ...codegraphResults.slice(1),
+    ];
+    expect(() => renderBenchmarkReport(wrongBaseline, [], generatedAt))
+      .toThrow(/baseline/i);
+  });
+
+  it("rejects non-finite and out-of-range metrics", () => {
+    const invalid = [
+      { ...codegraphResults[0]!, recallAtK: Number.NaN },
+      ...codegraphResults.slice(1),
+    ];
+    expect(() => renderBenchmarkReport(invalid, [], generatedAt))
+      .toThrow(/recallAtK/i);
+
+    const overBudget = [
+      {
+        ...codegraphResults[0]!,
+        contextTokens:
+          BENCHMARK_TASKS[0]!.groundTruth.maxContextBudgetTokens + 1,
+      },
+      ...codegraphResults.slice(1),
+    ];
+    expect(() => renderBenchmarkReport(overBudget, [], generatedAt))
+      .toThrow(/contextTokens/i);
   });
 });
