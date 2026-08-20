@@ -11,6 +11,8 @@ export interface EvidenceSymbol {
   stableKey: string;
   qualifiedName: string;
   path: string;
+  /** Expected reverse-impact depth when this evidence verifies task depth. */
+  expectedDepth?: number;
 }
 
 export interface GroundTruth {
@@ -32,8 +34,8 @@ export interface BenchmarkTask {
   fixture: string;
   /** Natural-language task given to the agentic-search baseline. */
   prompt: string;
-  /** Deterministic CodeGraph query for the same task. */
-  seed: TaskSeed;
+  /** Deterministic CodeGraph queries for the same task. */
+  seeds: TaskSeed[];
   groundTruth: GroundTruth;
   /** Published to disclose the adversarial task-selection rationale. */
   rationale: string;

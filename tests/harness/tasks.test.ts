@@ -4,7 +4,17 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BENCHMARK_TASKS } from "../../bench/harness/tasks.js";
 import { indexRepo } from "../../src/index/pipeline.js";
+import { getImpactRadius } from "../../src/query/impact.js";
+import { RepoBoundary } from "../../src/repo/boundary.js";
 import { migrate, openDb } from "../../src/store/index.js";
+
+const FIXTURE = join(process.cwd(), "tests/fixtures/repos/medium");
+
+function taskById(id: string) {
+  const task = BENCHMARK_TASKS.find((candidate) => candidate.id === id);
+  if (!task) throw new Error(`Missing benchmark task: ${id}`);
+  return task;
+}
 
 describe("BENCHMARK_TASKS", () => {
   it("defines exactly 12 tasks in the spec category distribution", () => {
@@ -22,15 +32,64 @@ describe("BENCHMARK_TASKS", () => {
     });
   });
 
-  it("documents every task and only leaves the true-negative requirement empty", () => {
+  it("documents every task with required evidence", () => {
     for (const task of BENCHMARK_TASKS) {
       expect(task.rationale.length).toBeGreaterThan(0);
-      if (task.id === "impact-retry-policy") {
-        expect(task.groundTruth.requiredEvidence).toEqual([]);
-      } else {
-        expect(task.groundTruth.requiredEvidence.length).toBeGreaterThan(0);
-      }
+      expect(task.groundTruth.requiredEvidence.length).toBeGreaterThan(0);
     }
+  });
+
+  it("gives all four impact tasks verified required evidence at depth 2 or more", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "cg-task-depth-"));
+    const dbPath = join(tempDir, "index.sqlite");
+    try {
+      await indexRepo(FIXTURE, dbPath);
+      const db = openDb(dbPath);
+      try {
+        migrate(db);
+        for (const task of BENCHMARK_TASKS.filter(
+          (candidate) => candidate.category === "transitive_impact",
+        )) {
+          const impactSeeds = task.seeds.filter((seed) => seed.kind === "impact");
+          expect(impactSeeds, task.id).toHaveLength(1);
+          const result = getImpactRadius(
+            db,
+            new RepoBoundary(FIXTURE),
+            { symbols: impactSeeds[0]!.symbols },
+          );
+          const deepEvidence = task.groundTruth.requiredEvidence.filter(
+            (evidence) => (evidence.expectedDepth ?? 0) >= 2,
+          );
+          expect(deepEvidence.length, task.id).toBeGreaterThan(0);
+          for (const evidence of deepEvidence) {
+            expect(
+              result.affected.find((row) => row.stableKey === evidence.stableKey)?.depth,
+              `${task.id}: ${evidence.stableKey}`,
+            ).toBe(evidence.expectedDepth);
+          }
+        }
+      } finally {
+        db.close();
+      }
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("models queue completeness with both its writer and reader required", () => {
+    const task = taskById("completeness-queue-callers");
+    expect(task.seeds).toHaveLength(2);
+    expect(task.groundTruth.requiredEvidence.map((evidence) => evidence.qualifiedName))
+      .toEqual(["Dispatcher.dispatch", "summarizeActivity"]);
+  });
+
+  it("attributes Notifier type references to the actual containing symbols", () => {
+    const task = taskById("completeness-notifier-references");
+    expect(task.groundTruth.requiredEvidence.map((evidence) => evidence.stableKey))
+      .toEqual([
+        "ts:src/index.ts#",
+        "ts:src/scheduler/dispatcher.ts#Dispatcher",
+      ]);
   });
 
   it("has no duplicate task ids", () => {
@@ -42,8 +101,7 @@ describe("BENCHMARK_TASKS", () => {
     const tempDir = mkdtempSync(join(tmpdir(), "cg-task-truth-"));
     const dbPath = join(tempDir, "index.sqlite");
     try {
-      const fixture = join(process.cwd(), "tests/fixtures/repos/medium");
-      await indexRepo(fixture, dbPath);
+      await indexRepo(FIXTURE, dbPath);
       const db = openDb(dbPath);
       try {
         migrate(db);

@@ -6,6 +6,7 @@ import { SlackNotifier } from "./notifiers/slackNotifier.js";
 import { SmsNotifier } from "./notifiers/smsNotifier.js";
 import { WebhookNotifier } from "./notifiers/webhookNotifier.js";
 import { Dispatcher } from "./scheduler/dispatcher.js";
+import { handleFailure } from "./scheduler/failureHandler.js";
 import { TaskQueue } from "./scheduler/queue.js";
 
 const notifiers: Notifier[] = [
@@ -19,4 +20,12 @@ const dispatcher = new Dispatcher(notifiers, new TaskQueue());
 
 export function start(task: Task): void {
   dispatcher.dispatch({ task, kind: "created" });
+}
+
+export function run(task: Task): void {
+  start(task);
+}
+
+export function retryFailed(attempt: number): number {
+  return handleFailure(attempt);
 }

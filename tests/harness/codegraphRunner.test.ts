@@ -50,15 +50,21 @@ describe("runCodegraphTask", () => {
     expect(result.tierUtility).toBeLessThanOrEqual(1);
   });
 
-  it("scores the true-negative impact task as full recall", () => {
+  it("finds the complete production-and-test retry impact chain", () => {
     const result = runCodegraphTask(db, task("impact-retry-policy"));
 
     expect(result.recallAtK).toBe(1);
-    expect(result.tierUtility).toBeNull();
+    expect(result.tierUtility).not.toBeNull();
   });
 
   it("matches test-selection ground truth through canonical file keys", () => {
     const result = runCodegraphTask(db, task("tests-for-dispatcher-change"));
     expect(result.recallAtK).toBe(1);
+  });
+
+  it("combines both queries for the queue completeness task", () => {
+    const result = runCodegraphTask(db, task("completeness-queue-callers"));
+    expect(result.recallAtK).toBe(1);
+    expect(result.toolCalls).toBe(2);
   });
 });

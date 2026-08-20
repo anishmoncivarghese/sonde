@@ -53,10 +53,13 @@ describe("scoreTrace", () => {
     expect(result.recallAtK).toBeCloseTo(2 / 5);
   });
 
-  it("gives true-negative tasks full recall", () => {
+  it("scores the complete transitive retry impact chain", () => {
     const task = taskById("impact-retry-policy");
 
-    expect(scoreTrace(task, traceFor(task, "No callers were found.")).recallAtK).toBe(1);
+    const answer =
+      "scheduleRetry and handleFailure lead to retryFailed; also run " +
+      "src/scheduler/retryPolicy.test.ts.";
+    expect(scoreTrace(task, traceFor(task, answer)).recallAtK).toBe(1);
   });
 
   it("rejects a trace recorded for a different task", () => {

@@ -814,3 +814,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** docs/superpowers/plans/2026-08-21-codegraph-phase3-remediation.md
 
 <!-- whyline-event: 313caca5093d473693ea29829bfa40ce -->
+
+## 2026-08-20 — Model benchmark tasks as one or more explicit seeds and verify declared transitive depths against the indexed fixture
+
+**Because:** Completeness may require multiple graph queries, and category labels are only credible when required evidence at depth two or greater is asserted against the graph rather than inferred from prose
+
+**Rejected:**
+
+- Keep one seed per task — the queue prompt asks for both enqueue writers and pending readers, which one callers_of query cannot answer
+- Retain an empty true-negative — recall alone cannot distinguish a correct empty answer from an arbitrary wrong answer
+
+**Files:** bench/harness/types.ts, bench/harness/tasks.ts, tests/harness/tasks.test.ts
+
+<!-- whyline-event: 29f6a638441c4442b4596a250152ef63 -->

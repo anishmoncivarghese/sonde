@@ -40,44 +40,46 @@ function tierUtility(
 
 export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
   const startedAt = Date.now();
-  let payload: unknown;
+  const payloads: unknown[] = [];
   const evidence: MatchedEvidence = {
     matchedKeys: new Set(),
     tiers: new Map(),
   };
 
-  if (task.seed.kind === "traverse") {
-    const result = queryGraph(db, {
-      pattern: task.seed.pattern,
-      symbol: task.seed.symbol,
-    });
-    payload = result;
-    for (const [tier, rows] of [
-      ["COMPILER", result.compiler],
-      ["LEXICAL", result.lexical],
-      ["HEURISTIC", result.heuristic],
-    ] as const) {
-      for (const row of rows) {
-        evidence.matchedKeys.add(row.stableKey);
-        evidence.tiers.set(row.stableKey, tier);
+  for (const seed of task.seeds) {
+    if (seed.kind === "traverse") {
+      const result = queryGraph(db, {
+        pattern: seed.pattern,
+        symbol: seed.symbol,
+      });
+      payloads.push(result);
+      for (const [tier, rows] of [
+        ["COMPILER", result.compiler],
+        ["LEXICAL", result.lexical],
+        ["HEURISTIC", result.heuristic],
+      ] as const) {
+        for (const row of rows) {
+          evidence.matchedKeys.add(row.stableKey);
+          evidence.tiers.set(row.stableKey, tier);
+        }
       }
+    } else if (seed.kind === "impact") {
+      const result = getImpactRadius(
+        db,
+        new RepoBoundary(task.fixture),
+        { symbols: seed.symbols },
+      );
+      payloads.push(result);
+      for (const row of result.affected) {
+        evidence.matchedKeys.add(row.stableKey);
+        evidence.tiers.set(row.stableKey, row.tier);
+      }
+    } else {
+      const results = findSymbols(db, { query: seed.query });
+      payloads.push(results);
+      for (const row of results) evidence.matchedKeys.add(row.stableKey);
+      // find_symbols has exact/FTS reasons, not graph evidence tiers.
     }
-  } else if (task.seed.kind === "impact") {
-    const result = getImpactRadius(
-      db,
-      new RepoBoundary(task.fixture),
-      { symbols: task.seed.symbols },
-    );
-    payload = result;
-    for (const row of result.affected) {
-      evidence.matchedKeys.add(row.stableKey);
-      evidence.tiers.set(row.stableKey, row.tier);
-    }
-  } else {
-    const results = findSymbols(db, { query: task.seed.query });
-    payload = results;
-    for (const row of results) evidence.matchedKeys.add(row.stableKey);
-    // find_symbols has exact/FTS reasons, not graph evidence tiers.
   }
 
   return {
@@ -88,10 +90,9 @@ export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
       task.groundTruth.requiredEvidence,
       evidence.matchedKeys,
     ),
-    // One deterministic graph call answers each benchmark task.
-    toolCalls: 1,
+    toolCalls: task.seeds.length,
     inputTokens: estimateJsonTokens(task.prompt),
-    outputTokens: estimateJsonTokens(payload),
+    outputTokens: estimateJsonTokens(payloads),
     wallClockMs: Date.now() - startedAt,
     tierUtility: tierUtility(task.groundTruth.requiredEvidence, evidence),
   };
