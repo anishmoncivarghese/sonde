@@ -764,3 +764,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/runLiveBaseline.ts
 
 <!-- whyline-event: 1f9ca28ef90b4aefaa29e585936a7ee2 -->
+
+## 2026-08-20 — Make MCP client verification reproducible and leave external-client signoff explicitly manual
+
+**Because:** The checklist must index the target, pass its root explicitly, and validate the actual seven-field envelope without claiming client runs that were not performed
+
+**Rejected:**
+
+- Use the proposed checklist verbatim — it omits indexing, depends on launch cwd, and incorrectly says the envelope has six fields
+- Pre-fill client results from unit tests — the SDK in-memory transport is not Claude Code or MCP Inspector
+
+**Files:** docs/mcp-client-verification.md
+
+<!-- whyline-event: 3b3c4cbd95274547b6e967ff9aa5b8ed -->
