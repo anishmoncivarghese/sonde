@@ -751,3 +751,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** tests/harness/driftEval.test.ts
 
 <!-- whyline-event: ed2cb3d78b6443ea841f3ac28f2a7dbe -->
+
+## 2026-08-20 — Bound and sandbox the live baseline loop while keeping trace summaries source-free
+
+**Because:** A live comparison must expose the intended grep/glob/read tools without following symlinks, silently accepting unsupported patterns, leaking read contents into summaries, or allowing an unbounded paid loop
+
+**Rejected:**
+
+- Copy the plan handlers verbatim — they can throw on escaping symlinks and glob ignores its requested pattern
+- Record full tool results — read_file results would put fixture source into the trace summary
+
+**Files:** bench/harness/runLiveBaseline.ts
+
+<!-- whyline-event: 1f9ca28ef90b4aefaa29e585936a7ee2 -->
