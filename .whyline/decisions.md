@@ -701,3 +701,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/codegraphRunner.ts, tests/harness/codegraphRunner.test.ts
 
 <!-- whyline-event: f7e9a8fe33ca40a480989f9a1d53f3a6 -->
+
+## 2026-08-20 — Aggregate benchmark results per baseline and exclude unmeasured tier utility from its mean
+
+**Because:** agentic search and find-only CodeGraph tasks have no tier value, so treating null as zero would falsely depress utility; mixed baselines must also be rejected before publication
+
+**Rejected:**
+
+- Coerce null tier utility to zero — confuses unmeasured evidence with measured zero utility
+
+**Files:** bench/harness/metrics.ts, tests/harness/metrics.test.ts
+
+<!-- whyline-event: 9d2cfb3b0dc04d269b64dcc99cc8fa1e -->
