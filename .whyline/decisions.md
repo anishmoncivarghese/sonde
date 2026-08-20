@@ -688,3 +688,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/tasks.ts, tests/harness/tasks.test.ts
 
 <!-- whyline-event: f6950b56fafb4385b91ad4e657b9a87e -->
+
+## 2026-08-20 — Score deterministic CodeGraph retrieval with required-evidence recall and required-match tier utility
+
+**Because:** recall must treat the explicit true negative as complete, while tier utility must measure only required evidence that was actually matched rather than being diluted by helpful, distractor, or supplementary graph nodes
+
+**Rejected:**
+
+- Divide tier utility by every returned node — penalizes useful supplementary context and contradicts the TaskResult contract
+- Use process.cwd as the impact boundary — ignores each task's declared fixture and would make future fixture-specific reads unsafe or misleading
+
+**Files:** bench/harness/codegraphRunner.ts, tests/harness/codegraphRunner.test.ts
+
+<!-- whyline-event: f7e9a8fe33ca40a480989f9a1d53f3a6 -->
