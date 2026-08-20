@@ -663,3 +663,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** tests/fixtures/repos/medium/tsconfig.json, tests/harness/fixtures.test.ts
 
 <!-- whyline-event: e7675a1c334b496f945f3e8d1badea29 -->
+
+## 2026-08-20 — Separate deterministic task seeds, hand-verified ground truth, and live AgentTrace results in one benchmark contract
+
+**Because:** Tasks 4-10 need a stable seam where CodeGraph queries and live agent transcripts can be scored into the same TaskResult without putting model execution into deterministic tests
+
+**Rejected:**
+
+- Use one untyped JSON result shape — loses exhaustiveness for traverse, impact, and find seeds and lets benchmark producers drift from scorers
+
+**Files:** bench/harness/types.ts
+
+<!-- whyline-event: ba86e81fc8a14d7c841d7e7cbca36eef -->
