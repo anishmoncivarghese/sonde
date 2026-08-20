@@ -726,3 +726,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/traceScorer.ts
 
 <!-- whyline-event: 50dd2e3cdf2c4e3f8a5f8874b1c33494 -->
+
+## 2026-08-20 — Publish only complete baseline summaries and route trace reads through RepoBoundary
+
+**Because:** A partial trace set must not look like a comparable 12-task mean, and benchmark trace paths are still caller-derived repository reads covered by the security boundary
+
+**Rejected:**
+
+- Aggregate any traces found — an interrupted run could publish a misleading partial baseline
+- Read traces directly with node — fs: it violates the repository-read invariant
+
+**Files:** bench/harness/report.ts
+
+<!-- whyline-event: 66a37620c996499ca843e4e4e2075f5c -->
