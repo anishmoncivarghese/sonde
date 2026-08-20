@@ -777,3 +777,40 @@ Append-only. Written by whyline; readable without it.
 **Files:** docs/mcp-client-verification.md
 
 <!-- whyline-event: 3b3c4cbd95274547b6e967ff9aa5b8ed -->
+
+## 2026-08-20 — Do not accept the Phase 3 benchmark scores until ground truth and scoring semantics are corrected
+
+**Because:** The supposed nextDelay true negative has a real test caller, the four impact tasks do not score required depth-2 evidence, context budgets and distractors are unused, and substring matching produces demonstrated false-positive recall
+
+**Rejected:**
+
+- Accept the green harness tests — they validate task shape and evidence-symbol existence but not factual ground truth, depth, budget enforcement, or scorer precision
+
+**Files:** bench/harness/tasks.ts, bench/harness/codegraphRunner.ts, bench/harness/traceScorer.ts, BENCHMARK.md
+
+<!-- whyline-event: f9010e6d9b4944fc8f8e60d55db9b56f -->
+
+## 2026-08-20 — Keep v0.1 DoD items 2 and 5 open after Phase 3 Tasks 1-11
+
+**Because:** The committed report has no agentic baseline results and the MCP checklist explicitly says neither required external client run has been performed
+
+**Rejected:**
+
+- Count a PENDING report and an unsigned checklist as completed verification — neither satisfies the design's measured-baseline or two-client acceptance criteria
+
+**Files:** BENCHMARK.md, docs/mcp-client-verification.md
+
+<!-- whyline-event: de338c7229434f53bd9bde110d172bd4 -->
+
+## 2026-08-20 — Remediate Phase 3 validity before spending on external acceptance
+
+**Because:** Ground truth, depth selection, and scoring must be trustworthy before live model repetitions or client signoff can produce evidence worth publishing
+
+**Rejected:**
+
+- Run the live baseline first — it would spend budget against tasks already proven to score incorrect answers
+- Patch only the failing examples — dead budgets and tautological tier utility are methodology defects requiring shared scoring changes
+
+**Files:** docs/superpowers/plans/2026-08-21-codegraph-phase3-remediation.md
+
+<!-- whyline-event: 313caca5093d473693ea29829bfa40ce -->
