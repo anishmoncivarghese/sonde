@@ -675,3 +675,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/types.ts
 
 <!-- whyline-event: ba86e81fc8a14d7c841d7e7cbca36eef -->
+
+## 2026-08-20 — Validate every benchmark evidence key against the indexed fixture and model one explicit true negative
+
+**Because:** hand-written ground truth must never cite nonexistent symbols, file symbols use an empty scope-chain key, and impact-retry-policy intentionally measures correct empty impact with recall 1
+
+**Rejected:**
+
+- Require non-empty evidence for all 12 tasks — contradicts the deliberate true-negative task and later scorer semantics
+- Use ts — path#path for test files: violates the file-symbol stable-key contract ts:path# and would force false zero recall
+
+**Files:** bench/harness/tasks.ts, tests/harness/tasks.test.ts
+
+<!-- whyline-event: f6950b56fafb4385b91ad4e657b9a87e -->
