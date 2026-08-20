@@ -16,6 +16,7 @@ export interface ImpactRow {
   kind: string;
   depth: number;
   viaKind: string;
+  tier: "COMPILER" | "LEXICAL" | "HEURISTIC";
 }
 
 export interface ImpactResult {
@@ -54,6 +55,7 @@ interface CandidateRow {
   qualifiedName: string;
   kind: string;
   viaKind: string;
+  tier: "COMPILER" | "LEXICAL" | "HEURISTIC";
   tierRank: number;
   exported: number;
   fanIn: number;
@@ -181,7 +183,7 @@ export function getImpactRadius(
       .prepare(
         `SELECT source.id AS id, source.stable_key AS stableKey, f.path AS path,
                 source.qualified_name AS qualifiedName, source.kind AS kind,
-                source.exported AS exported, e.kind AS viaKind,
+                source.exported AS exported, e.kind AS viaKind, e.tier AS tier,
                 ${TIER_RANK_SQL} AS tierRank,
                 (SELECT COUNT(*) FROM edge inbound
                  WHERE inbound.dst_symbol_id = source.id
@@ -250,6 +252,7 @@ export function getImpactRadius(
         kind: row.kind,
         depth,
         viaKind: row.viaKind,
+        tier: row.tier,
       });
       next.push(row.id);
     }

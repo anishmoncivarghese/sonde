@@ -638,3 +638,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/pack/tokens.ts, src/pack/impactpack.ts, src/mcp/server.ts, src/cli/main.ts, tests/pack/tokens.test.ts, tests/pack/impactpack.test.ts
 
 <!-- whyline-event: 3520da9c173f43168353cedd4044f427 -->
+
+## 2026-08-20 — Expose the selected impact edge tier on every affected row
+
+**Because:** Phase 3 must score whether transitive impact evidence is compiler, lexical, or heuristic, and the traversal already selects and ranks that exact edge tier
+
+**Rejected:**
+
+- Infer tier later from viaKind or score — edge kind does not encode evidence quality and would fabricate benchmark utility
+
+**Files:** src/query/impact.ts, tests/query/impact.test.ts
+
+<!-- whyline-event: 465cf589b1924e4a8d4898ef025a1bcc -->

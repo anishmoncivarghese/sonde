@@ -99,6 +99,19 @@ afterEach(() => {
 });
 
 describe("getImpactRadius", () => {
+  it("reports the tier of the edge that reached each affected node", () => {
+    const result = getImpactRadius(db, boundary, {
+      symbols: ["ts:src/base.ts#Base"],
+    });
+
+    expect(result.affected).toContainEqual(
+      expect.objectContaining({
+        stableKey: "ts:src/mid.ts#Mid",
+        tier: "LEXICAL",
+      }),
+    );
+  });
+
   it("reverse-traverses INHERITS then CALLS transitively", () => {
     const result = getImpactRadius(db, boundary, {
       symbols: ["ts:src/base.ts#Base"],
