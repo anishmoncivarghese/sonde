@@ -878,3 +878,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/repo/git.ts
 
 <!-- whyline-event: 438175b5ac9847cbae2a140d2e0c0033 -->
+
+## 2026-08-21 — Accept the MCP surface after two independent-client passes
+
+**Because:** Claude Code and MCP Inspector each exercised all three built tools and confirmed the envelope, tier buckets, and impact diagnostics against the same synthetic target
+
+**Rejected:**
+
+- Treat the automated SDK test as sufficient — spec section 12 explicitly requires Claude Code and another client
+
+**Files:** docs/mcp-client-verification.md
+
+<!-- whyline-event: 95ef9f6b06494b35a41df0b2b9261dec -->

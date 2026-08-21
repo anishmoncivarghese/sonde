@@ -11,9 +11,9 @@ The repository test suite already connects through the MCP SDK client and checks
 tool discovery plus successful calls to all three tools. That is useful preflight
 coverage, but it does not replace the two independent-client checks below.
 
-On 2026-08-21, `npm run build` and
-`node dist/cli/main.js mcp serve --help` both completed successfully. The manual
-client runs have not yet been performed.
+On 2026-08-21, verification included the complete 242-test suite,
+`npm run typecheck`, `npm run build`, and
+`node dist/cli/main.js mcp serve --help`; all completed successfully.
 
 ## 1. Build and index a target repository
 
@@ -28,9 +28,10 @@ node /absolute/path/to/CodeGraph/dist/cli/main.js mcp serve --help
 
 Record the target revision so both clients test the same repository state:
 
-- Target repository: _____
-- Target revision: _____
-- CodeGraph commit: _____
+- Target repository: `tests/fixtures/repos/medium` (synthetic fixture)
+- Target revision: `9db05363b158ca68242b8ef9725f86b038dbf0f8`, plus the same temporary
+  tracked-source mutation in both clients
+- CodeGraph implementation commit: `dcbdd3c`
 
 ## 2. Claude Code
 
@@ -56,12 +57,17 @@ avoids depending on the client process's working directory.
 Start a new Claude Code session in the target repository, confirm `codegraph`
 connects, and call every tool at least once.
 
-- [ ] `find_symbols` with a real query — input/result summary: _____
-- [ ] `query_graph` with `callers_of` on a real symbol — input/result summary:
-      _____
-- [ ] Edit a tracked source file, then call `get_impact_radius` with
-      `from_git_diff: true` — input/result summary: _____
-- Claude Code version: _____
+- [x] `find_symbols` with `{ "query": "Dispatcher" }` returned seven matches
+      in the complete seven-field envelope.
+- [x] `query_graph` with `callees_of` on
+      `ts:src/scheduler/dispatcher.ts#Dispatcher.dispatch` returned explicit
+      `compiler`, `lexical`, and `heuristic` buckets, including the expected
+      heuristic member-call targets.
+- [x] After editing a tracked source file, `get_impact_radius` with
+      `from_git_diff: true` returned four seeds and five affected symbols,
+      including the depth-2 `run` caller; diagnostics reported no truncation or
+      omissions.
+- Claude Code version: `2.1.237`
 
 ## 3. Second client: MCP Inspector
 
@@ -74,19 +80,27 @@ npx @modelcontextprotocol/inspector node \
   /absolute/path/to/target
 ```
 
-In the Inspector UI, connect and run every tool with manually entered input.
+The in-app browser runtime had no available browser instance, so the same
+reference client was run in its official `--cli` mode with explicit JSON input.
 
-- [ ] `find_symbols` returns all seven envelope fields: `schemaVersion`,
+- [x] `find_symbols` returned all seven envelope fields: `schemaVersion`,
       `repository`, `freshness`, `summary`, `results`, `warnings`, and
-      `diagnostics` — result: _____
-- [ ] `query_graph` returns `compiler`, `lexical`, and `heuristic` as top-level
-      evidence buckets rather than nesting them under `results` — result: _____
-- [ ] `get_impact_radius` returns `diagnostics.truncated` and
-      `diagnostics.omittedCount` — result: _____
-- MCP Inspector version: _____
+      `diagnostics`; the `Dispatcher` query returned seven matches.
+- [x] `query_graph` returned `compiler`, `lexical`, and `heuristic` as top-level
+      evidence buckets rather than nesting them under `results`; `callees_of`
+      `Dispatcher.dispatch` returned seven heuristic callees.
+- [x] `get_impact_radius` returned `diagnostics.truncated: false` and
+      `diagnostics.omittedCount: 0`, with the same four seeds and five affected
+      symbols seen in Claude Code.
+- MCP Inspector version: `2.3.0`
 
 ## Result
 
-- [ ] Both clients passed every check above.
-- Completed on/by: _____
-- Notes or deviations: _____
+- [x] Both clients passed every check above.
+- Completed on/by: 2026-08-21 / Codex
+- Notes or deviations: The first Claude Code impact call exposed a nested-root
+  Git path defect: paths were relative to the enclosing worktree instead of the
+  indexed boundary, so no seeds matched. Commit `dcbdd3c` added a regression
+  test and fixed `changedFiles` with `git diff --relative -- .`. Both clients
+  then returned the expected impact graph. The temporary mutation and client
+  configuration were removed after verification.
