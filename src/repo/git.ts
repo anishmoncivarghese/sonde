@@ -57,8 +57,8 @@ export function changedFiles(
   against?: string,
 ): string[] | null {
   const args = against
-    ? ["diff", "--name-only", `${against}..HEAD`]
-    : ["diff", "--name-only", "HEAD"];
+    ? ["diff", "--name-only", "--relative", `${against}..HEAD`, "--", "."]
+    : ["diff", "--name-only", "--relative", "HEAD", "--", "."];
   const output = run(boundary, args);
   if (output === null) return null;
   if (output.length === 0) return [];

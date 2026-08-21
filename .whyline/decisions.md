@@ -866,3 +866,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/report.ts, bench/harness/traceScorer.ts, BENCHMARK.md
 
 <!-- whyline-event: 961b38224cbe4eb1a84522e7273c10fe -->
+
+## 2026-08-21 — Scope changed-file paths to a nested RepoBoundary
+
+**Because:** MCP targets may be subdirectories of a larger Git worktree, and impact seeds must use the same root-relative paths as the index
+
+**Rejected:**
+
+- Return top-level Git paths and filter later — leaks repository-layout assumptions into every caller and failed to match indexed paths
+
+**Files:** src/repo/git.ts
+
+<!-- whyline-event: 438175b5ac9847cbae2a140d2e0c0033 -->

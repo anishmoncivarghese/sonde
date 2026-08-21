@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -89,5 +89,18 @@ describe("changedFiles", () => {
   it("lists the uncommitted working-tree diff when no revision is given", () => {
     writeFileSync(join(root, "a.ts"), "export const a = 3;\n");
     expect(changedFiles(boundary)).toEqual(["a.ts"]);
+  });
+
+  it("returns paths relative to a nested repository boundary", () => {
+    mkdirSync(join(root, "fixture"));
+    writeFileSync(join(root, "fixture", "nested.ts"), "export const nested = 1;\n");
+    git("add", "fixture/nested.ts");
+    git("commit", "-q", "-m", "add nested fixture");
+
+    writeFileSync(join(root, "a.ts"), "export const a = 9;\n");
+    writeFileSync(join(root, "fixture", "nested.ts"), "export const nested = 2;\n");
+
+    expect(changedFiles(new RepoBoundary(join(root, "fixture"))))
+      .toEqual(["nested.ts"]);
   });
 });
