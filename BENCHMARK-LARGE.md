@@ -1,8 +1,8 @@
 # CodeGraph vs. agentic search — large fixture
 
-Generated: 2026-08-23T18:14:53.824Z
+Generated: 2026-08-23T18:59:21.423Z
 
-Fixture: Hono v4.6.3 (MIT) — 346 files indexed, 9031 symbols, 44144 edges, 8 parse failures.
+Fixture: Hono v4.6.3 (MIT) — 346 files indexed, 9348 symbols, 50517 edges, 8 parse failures.
 
 The medium-fixture benchmark is reported separately in BENCHMARK.md and the
 two are never averaged. That corpus is 198 lines — about 1,400 tokens — so
@@ -18,7 +18,7 @@ agree with its own bugs.
 
 | Baseline | Mean recall@k | Success rate | Mean distractors | Mean tool calls | Mean input tokens | Mean context tokens | Mean latency (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| CodeGraph | 0.833 | 0.833 | 0.00 | 1.0 | 14 | 1262 | 245 |
+| CodeGraph | 0.833 | 0.833 | 0.00 | 1.0 | 14 | 1263 | 280 |
 | Agentic search | 1.000 | 0.500 | 0.00 | 8.0 | 78548 | 3621 | 38602 |
 
 ## Per-task
@@ -26,7 +26,7 @@ agree with its own bugs.
 | Task | Category | CodeGraph recall | Agentic recall | CodeGraph ctx | Agentic ctx |
 |---|---|---:|---:|---:|---:|
 | hono-implementations-of-router | wide_interface | 1.00 | 1.00 | 337 | 332 |
-| hono-impact-router-add | transitive_impact | 1.00 | 1.00 | 3994 | 9756 |
+| hono-impact-router-add | transitive_impact | 1.00 | 1.00 | 4000 | 9756 |
 | hono-imported-by-compose | completeness | 1.00 | 1.00 | 198 | 131 |
 | hono-references-to-httpexception | completeness | 1.00 | 1.00 | 1077 | 945 |
 | hono-tests-for-compose | test_selection | 1.00 | 1.00 | 1967 | 7772 |

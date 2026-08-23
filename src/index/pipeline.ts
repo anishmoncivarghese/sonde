@@ -80,11 +80,23 @@ async function run(
           file.path,
           boundary.readFile(file.path),
         );
+        // Keep whatever tree-sitter recovered, AND record the diagnostic.
+        //
+        // Discarding the file outright cost far more than it protected: error
+        // recovery is local, so a single bad expression corrupts a few hundred
+        // bytes rather than a file. On a 376-file Swift corpus, 30 files were
+        // flagged while only 0.08% of source bytes sat inside ERROR nodes, and
+        // 955 declarations were being thrown away. On Hono it silently emptied
+        // eight files — including src/context.ts, src/types.ts and
+        // src/utils/body.ts — from every graph we published accuracy figures
+        // against.
+        //
+        // Invariant 8 asks for degradation with a warning, not for discarding
+        // good data to avoid admitting a partial parse.
         if (result.diagnostics.length > 0) {
           failed.set(file.path, result.diagnostics);
-        } else {
-          extracted.set(file.path, result);
         }
+        extracted.set(file.path, result);
       } catch (error) {
         failed.set(file.path, extractionFailure(error));
       }
