@@ -1,0 +1,51 @@
+{
+  "taskId": "impact-notifier-signature",
+  "toolCalls": [
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-notifier-signature-6lmfCL/src/notifiers/notifier.ts"
+      },
+      "resultSummary": "213 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "notify|Notifier",
+        "output_mode": "files_with_matches",
+        "head_limit": 100
+      },
+      "resultSummary": "307 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "notify|Notifier|TaskEvent",
+        "output_mode": "content",
+        "-n": true,
+        "-C": 3,
+        "head_limit": 250
+      },
+      "resultSummary": "11770 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-notifier-signature-6lmfCL/src/index.ts"
+      },
+      "resultSummary": "1131 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-notifier-signature-6lmfCL/src/scheduler/failureHandler.ts"
+      },
+      "resultSummary": "158 result bytes"
+    }
+  ],
+  "finalAnswerText": "Here's the full blast radius. `Notifier.notify` is declared once (`src/notifiers/notifier.ts:9`) and has exactly 7 usage sites.\n\n**5 implementers — all break if the parameter or return type changes**\n\n| File | Line | Body's use of the param |\n|---|---|---|\n| `src/notifiers/emailNotifier.ts:4` | `notify(event: TaskEvent): void` | `event.kind`, `event.task.title` |\n| `src/notifiers/slackNotifier.ts:4` | same | `event.kind`, `event.task.title` |\n| `src/notifiers/smsNotifier.ts:4` | same | `event.kind`, `event.task.title` |\n| `src/notifiers/consoleNotifier.ts:4` | same | `event.kind`, `event.task.title` |\n| `src/notifiers/webhookNotifier.ts:4` | same | `JSON.stringify(event)` — whole object |\n\nEach declares `implements Notifier`, so TypeScript flags them immediately. Four of the five only read `event.kind` and `event.task.title`; only `WebhookNotifier` serializes the entire event, so it's the one that silently changes behavior (payload shape) if you add or rename fields on `TaskEvent` without touching any signature at all.\n\n**1 caller**\n\n- `src/scheduler/dispatcher.ts:13` — `notifier.notify(event)` inside the loop. `Dispatcher.dispatch(event: TaskEvent)` at line 10 takes the same type and passes it straight through, so a parameter change propagates up to `dispatch`, and from there to `src/index.ts:22` (`dispatcher.dispatch({ task, kind: \"created\" })`), which builds the event object literal. That's the only place an event is actually constructed in the app.\n\n**2 tests**\n\n- `src/notifiers/emailNotifier.test.ts:7` — calls `notify({ task: {...}, kind: \"created\" })` with a literal. **Breaks on any parameter change**, and it's the only test asserting real notifier behavior.\n- `src/scheduler/dispatcher.test.ts:9` — `const fake: Notifier = { notify: () => notified.push(\"called\") }`. This is a trap: the implementation takes zero parameters, and TypeScript allows a function with fewer parameters to satisfy a longer signature. So **it will keep compiling no matter what you do to the parameter list** — it won't warn you. It *would* break if you change the return type (e.g. to `Promise<void>`, since `push` returns `number`, which is currently accepted under `void`-returning-function rules but not against `Promise<void>`).\n\n**Practical guidance by change type**\n\n- *Add a field to `TaskEvent`* — cheapest path. Implementers compile untouched; you only must update `src/index.ts:22` and `emailNotifier.test.ts:7`, the two construction sites. Check `WebhookNotifier` intentionally, since the new field lands in the wire payload.\n- *Add a second parameter to `notify`* — 5 implementers + `dispatcher.ts:13` + threading through `dispatch`/`index.ts`. The dispatcher fake stays green misleadingly.\n- *Make it `async` / return `Promise<void>`* — widest impact. All 5 implementers, plus `dispatcher.ts:12-14` needs `await`/`Promise.all` and `dispatch` must become async, which makes `start` and `run` in `index.ts` async too — a public API change for anyone importing this package. Both tests break here.\n\nOne thing worth flagging regardless of which change you pick: the dispatcher's zero-arg fake means your integration-level test gives no signature coverage. If you're changing this interface, tightening that fake to `notify: (_event: TaskEvent) => { ... }` first will make the compiler actually catch the dispatcher path for you.",
+  "inputTokens": 53134,
+  "outputTokens": 2067,
+  "contextTokens": 4219,
+  "wallClockMs": 31934
+}

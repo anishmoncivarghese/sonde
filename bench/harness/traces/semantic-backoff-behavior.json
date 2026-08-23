@@ -1,0 +1,62 @@
+{
+  "taskId": "semantic-backoff-behavior",
+  "toolCalls": [
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*"
+      },
+      "resultSummary": "500 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "backoff|retry|Retry|Backoff",
+        "output_mode": "files_with_matches"
+      },
+      "resultSummary": "124 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-backoff-behavior-M6vx6Z/src/scheduler/retryPolicy.ts"
+      },
+      "resultSummary": "290 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-backoff-behavior-M6vx6Z/src/scheduler/retryScheduler.ts"
+      },
+      "resultSummary": "147 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-backoff-behavior-M6vx6Z/src/scheduler/failureHandler.ts"
+      },
+      "resultSummary": "158 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "handleFailure|scheduleRetry|nextDelay",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": "984 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-backoff-behavior-M6vx6Z/src/index.ts"
+      },
+      "resultSummary": "1131 result bytes"
+    }
+  ],
+  "finalAnswerText": "The function is `nextDelay` in `src/scheduler/retryPolicy.ts:5`.\n\n```ts\nexport function nextDelay(attempt: number): number {\n  return Math.min(30000, 2 ** attempt * 100);\n}\n```\n\nExponential backoff: 100ms doubling per attempt, capped at 30s. `MAX_ATTEMPTS = 5` sits alongside it (`retryPolicy.ts:2`) as the give-up threshold, though nothing in this tree enforces it.\n\nEverything above it is a pass-through wrapper chain, so if you're changing timing behavior, `nextDelay` is the only place to edit:\n\n- `src/index.ts:29` `retryFailed(attempt)` →\n- `src/scheduler/failureHandler.ts:3` `handleFailure(attempt)` →\n- `src/scheduler/retryScheduler.ts:3` `scheduleRetry(attempt)` →\n- `src/scheduler/retryPolicy.ts:5` `nextDelay(attempt)`\n\nTwo things worth flagging: none of these actually sleep or schedule — they just return a number of milliseconds, so the caller of `retryFailed` is responsible for the waiting. And there's no jitter, so simultaneous failures across notifiers will retry in lockstep. Tests covering the current behavior are in `src/scheduler/retryPolicy.test.ts` (only the boundary cases: attempt 0 → 100, attempt 10 → 30000).",
+  "inputTokens": 54296,
+  "outputTokens": 1445,
+  "contextTokens": 852,
+  "wallClockMs": 24320
+}

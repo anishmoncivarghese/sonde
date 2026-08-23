@@ -1,0 +1,38 @@
+{
+  "name": "codegraph",
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "codegraph": "./dist/cli/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && cp src/store/schema.sql dist/store/schema.sql",
+    "bench:harness": "node --import tsx bench/harness/report.ts",
+    "bench:oracle": "node --import tsx bench/report.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "node scripts/fetch-grammars.mjs",
+    "bench:baseline": "node --import tsx bench/harness/runBaseline.ts",
+    "bench:fixture": "node scripts/fetch-bench-fixture.mjs",
+    "bench:large": "node --import tsx bench/harness/reportLarge.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "better-sqlite3": "^13.0.0",
+    "commander": "^12.0.0",
+    "js-tiktoken": "^1.0.21",
+    "typescript": "^5.6.0",
+    "web-tree-sitter": "^0.25.10",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.23.12",
+    "vitest": "^2.0.0"
+  }
+}

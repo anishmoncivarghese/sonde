@@ -1,0 +1,137 @@
+{
+  "taskId": "completeness-queue-callers",
+  "toolCalls": [
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*"
+      },
+      "resultSummary": "500 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "queue|Queue|QUEUE",
+        "output_mode": "files_with_matches"
+      },
+      "resultSummary": "137 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/scheduler/queue.ts"
+      },
+      "resultSummary": "248 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/core/task.ts"
+      },
+      "resultSummary": "146 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "TaskQueue|enqueue|pending|queue",
+        "output_mode": "content",
+        "-n": true,
+        "-i": true
+      },
+      "resultSummary": "1184 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/scheduler/dispatcher.ts"
+      },
+      "resultSummary": "449 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/index.ts"
+      },
+      "resultSummary": "1131 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/scheduler/retryScheduler.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/scheduler/failureHandler.ts"
+      },
+      "resultSummary": "147 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/reports/dailyDigest.ts"
+      },
+      "resultSummary": "179 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/notifiers/notifier.ts"
+      },
+      "resultSummary": "213 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/scheduler/dispatcher.test.ts"
+      },
+      "resultSummary": "757 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/notifiers/emailNotifier.ts"
+      },
+      "resultSummary": "320 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "Task\\[\\]|items|push|splice|shift|pop|sort|\\.length",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-queue-callers-snAB5k/src/notifiers/webhookNotifier.ts"
+      },
+      "resultSummary": "383 result bytes"
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*.{json,md,js,mjs,cjs,yaml,yml}"
+      },
+      "resultSummary": "13 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "dispatch|Dispatcher|summarizeActivity|start|run",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": "874 result bytes"
+    }
+  ],
+  "finalAnswerText": "Complete map. The queue's entire state is `items: Task[]` in `src/scheduler/queue.ts`, and I traced every path that reaches it — direct calls, transitive callers, and reference leaks.\n\n## Direct writes\n\n| Location | What |\n|---|---|\n| `src/scheduler/queue.ts:7` | `enqueue` — the only mutation of `items` anywhere in the repo |\n| `src/scheduler/dispatcher.ts:11` | `Dispatcher.dispatch` → `this.queue.enqueue(event.task)`. **The only production writer.** |\n| `src/scheduler/dispatcher.test.ts:13` | test drives `dispatch`, writing one task |\n\n## Direct reads\n\n| Location | What |\n|---|---|\n| `src/scheduler/queue.ts:11` | `pending()` — the only accessor |\n| `src/reports/dailyDigest.ts:4` | `summarizeActivity` → `queue.pending().length` |\n| `src/scheduler/dispatcher.test.ts:19` | `expect(queue.pending()).toHaveLength(1)` |\n\n## Transitive writers (reach `enqueue` without naming the queue)\n\n- `src/index.ts:22` — `start(task)` → `dispatcher.dispatch(...)`\n- `src/index.ts:26` — `run(task)` → `start(task)` → `dispatch`. Both are exported entry points, so this is the public write API.\n\n## Ownership / construction\n\n- `src/index.ts:19` — `new Dispatcher(notifiers, new TaskQueue())`, the single production instance\n- `src/scheduler/dispatcher.test.ts:10` — test instance\n\n---\n\n## Four things the grep-obvious list misses\n\n**1. `pending()` hands out the live internal array.** It returns `this.items` directly, not a copy — so every *reader* above is a latent *writer*. `dailyDigest.ts:4` and `dispatcher.test.ts:19` both hold an unfrozen handle to the queue's backing store; `queue.pending().push(x)` or `.sort()` from any caller would silently mutate queue state. Nothing currently does, but the encapsulation isn't there. If you're auditing writers, these two count.\n\n**2. `summarizeActivity` is unreachable dead code.** Nothing imports `dailyDigest.ts` anywhere. Worse, it *can't* be wired up as written: `index.ts:19` constructs the queue inline as a constructor argument and keeps no reference, and `Dispatcher.queue` is `private readonly` with no getter. The single production queue has **zero** reachable read paths — it's write-only in practice.\n\n**3. There is no dequeue, remove, or clear.** The queue only grows; every dispatched task stays in `items` forever. That's an unbounded leak in a long-running process, and it means \"pending\" is a misnomer — it's really \"all tasks ever dispatched.\"\n\n**4. The retry chain never touches the queue.** `retryFailed` → `handleFailure` → `scheduleRetry` → `nextDelay` (`index.ts:30`, `failureHandler.ts:4`, `retryScheduler.ts:4`) is pure delay arithmetic. Failed tasks are never re-enqueued or removed. I checked this explicitly because it's where you'd expect queue access to live.\n\nAlso confirmed clean: none of the five notifiers (`email`, `slack`, `sms`, `webhook`, `console`) touch the queue — they only read `event.task`. `retryPolicy.ts` and the two other test files have no queue reference. `src/` is the whole codebase; the only non-TS file is `tsconfig.json`.",
+  "inputTokens": 101717,
+  "outputTokens": 5118,
+  "contextTokens": 1858,
+  "wallClockMs": 84011
+}

@@ -1,0 +1,89 @@
+{
+  "taskId": "hono-semantic-router-selection",
+  "toolCalls": [
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*.{ts,js,tsx,jsx,json,md}"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "strategy|Strategy",
+        "output_mode": "files_with_matches"
+      },
+      "resultSummary": "3318 result bytes"
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "src/router/**/*.ts"
+      },
+      "resultSummary": "707 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "SmartRouter|new RegExpRouter|new TrieRouter",
+        "path": "src",
+        "output_mode": "content",
+        "glob": "!**/*.test.ts",
+        "-n": true
+      },
+      "resultSummary": "1090 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-semantic-router-selection-OyBdH5/src/router/smart-router/router.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-semantic-router-selection-OyBdH5/src/hono.ts"
+      },
+      "resultSummary": "1821 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "UnsupportedPathError",
+        "path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-semantic-router-selection-OyBdH5/src",
+        "output_mode": "content",
+        "-n": true,
+        "glob": "!**/*.test.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "src/preset/*.ts"
+      },
+      "resultSummary": "814 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-semantic-router-selection-OyBdH5/src/preset/tiny.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-semantic-router-selection-OyBdH5/src/preset/quick.ts"
+      },
+      "resultSummary": "587 result bytes"
+    }
+  ],
+  "finalAnswerText": "## The decision point: `SmartRouter.match()`\n\n`src/router/smart-router/router.ts:21-59` is where the runtime choice happens. It's a **lazy, one-time selection triggered by the first incoming request**, not at construction time.\n\nHow it works:\n\n1. `add()` (`router.ts:13`) doesn't build anything — it just buffers every route into `this.routes` as `[method, path, handler]` tuples.\n2. On the first `match()`, it iterates candidate routers in priority order (`router.ts:30-48`). For each one it replays all buffered routes through `router.add(...)` and tries `router.match()`.\n3. If that router throws `UnsupportedPathError`, it's skipped and the loop moves to the next candidate (`router.ts:37-42`). Any other error propagates.\n4. The first router that survives wins, and SmartRouter permanently steps out of the way: `this.match = router.match.bind(router)` (`router.ts:44`), `this.routers = [router]`, `this.routes = undefined`. Every subsequent request goes straight to the chosen router with zero dispatch overhead.\n5. `this.name` becomes e.g. `\"SmartRouter + RegExpRouter\"` (`router.ts:56`), and `activeRouter` (`router.ts:61`) throws until selection has occurred.\n\n## Which candidates are offered\n\nThe candidate list — the actual policy — is set by the constructor of whichever entry point you use:\n\n| Entry | Candidates | Location |\n|---|---|---|\n| `hono` (default) | `[RegExpRouter, TrieRouter]` | `src/hono.ts:28-32` |\n| `hono/quick` | `[LinearRouter, TrieRouter]` | `src/preset/quick.ts:20-22` |\n| `hono/tiny` | `PatternRouter` only, no SmartRouter | `src/preset/tiny.ts:18` |\n\nNote `src/hono.ts:29`: `options.router ?? new SmartRouter(...)`. Passing `new Hono({ router: new RegExpRouter() })` bypasses the whole selection mechanism.\n\n## What makes a router opt out\n\nThe `UnsupportedPathError` throws are the signal that drives fallback:\n\n- `src/router/reg-exp-router/router.ts:66` — converts an internal `PATH_ERROR` into `UnsupportedPathError(path)`; this is the common case where a route set can't be compiled into a single regex (e.g. conflicting param names at the same position).\n- `src/router/linear-router/router.ts:126` and `src/router/pattern-router/router.ts:35` — same signal for their own limitations.\n\nSo in the default setup: RegExpRouter is tried first for speed, and TrieRouter acts as the always-works fallback since it never throws that error.\n\nOne consequence worth knowing: because selection is deferred to the first request, a route pattern that RegExpRouter can't handle produces no error at registration time — the fallback happens silently on first traffic.",
+  "inputTokens": 79059,
+  "outputTokens": 2302,
+  "contextTokens": 2787,
+  "wallClockMs": 37579
+}

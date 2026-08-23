@@ -1,0 +1,119 @@
+{
+  "taskId": "impact-retry-policy",
+  "toolCalls": [
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/retryPolicy.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*.{ts,tsx,js,json}"
+      },
+      "resultSummary": "28 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-retry-policy-ozBfQO/src/scheduler/retryPolicy.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "nextDelay",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": "290 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-retry-policy-ozBfQO/src/scheduler/retryScheduler.ts"
+      },
+      "resultSummary": "147 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-retry-policy-ozBfQO/src/scheduler/retryPolicy.test.ts"
+      },
+      "resultSummary": "289 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "retryScheduler|computeBackoff|MAX_ATTEMPTS|retryPolicy",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": "310 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-retry-policy-ozBfQO/src/scheduler/failureHandler.ts"
+      },
+      "resultSummary": "158 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "failureHandler|handleFailure",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": "217 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-retry-policy-ozBfQO/src/index.ts"
+      },
+      "resultSummary": "1131 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-retry-policy-ozBfQO/src/scheduler/dispatcher.test.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-retry-policy-ozBfQO/src/notifiers/emailNotifier.test.ts"
+      },
+      "resultSummary": "757 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "retryFailed|from \"\\./index|from \"\\.\\./index|require\\(|import\\(",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": "70 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "delay|backoff|attempt|setTimeout|30000|retry",
+        "output_mode": "content",
+        "-n": true,
+        "-i": true
+      },
+      "resultSummary": "1319 result bytes"
+    }
+  ],
+  "finalAnswerText": "The impact graph is fully closed — here it is.\n\n## Call chain (complete, 4 levels)\n\n```\nnextDelay(attempt)                      src/scheduler/retryPolicy.ts:5\n└── scheduleRetry(attempt)              src/scheduler/retryScheduler.ts:4\n    └── handleFailure(attempt)          src/scheduler/failureHandler.ts:4\n        └── retryFailed(attempt)        src/index.ts:30   ← public API, terminus\n```\n\n**Production callers (3 files, all pure pass-throughs):**\n- `src/scheduler/retryScheduler.ts:4` — `scheduleRetry` returns `nextDelay(attempt)` unchanged\n- `src/scheduler/failureHandler.ts:4` — `handleFailure` returns `scheduleRetry(attempt)` unchanged\n- `src/index.ts:30` — `retryFailed` returns `handleFailure(attempt)` unchanged\n\nNo layer transforms, clamps, or validates the value, so any change to `nextDelay`'s return value propagates verbatim to `retryFailed`'s callers. Signature is `(number) => number` at every level; changing the arity or type breaks all three files.\n\n**Tests (1 file, 2 assertions):**\n- `src/scheduler/retryPolicy.test.ts:6` — `nextDelay(0) === 100` (pins the 100ms base)\n- `src/scheduler/retryPolicy.test.ts:7` — `nextDelay(10) === 30000` (pins the 30s ceiling)\n\n`dispatcher.test.ts` and `emailNotifier.test.ts` are unrelated — they cover the notifier/queue path, which never touches the retry chain. So `retryPolicy.test.ts` is the only test that fails on a behavior change, and only these two points are pinned: the growth curve *between* attempts 1–9 and the cap-crossing point are untested, so you can change the base or exponent shape in that range without any test noticing.\n\n**External surface:** `retryFailed` is exported from `src/index.ts` and nothing in this repo imports it. `retryPolicy.ts` also has no `package.json` here, so I can't confirm whether `index.ts` is a published entrypoint — if it is, `retryFailed` is a consumer-facing contract and the blast radius extends past this repo.\n\n## Two things worth flagging\n\n**The delay is computed but never applied.** There is no `setTimeout`, timer, sleep, or scheduling call anywhere in the repo (I grepped for all of them). Every consumer just returns the number upward, and the final consumer returns it to a caller that doesn't exist. Changing `nextDelay` currently has **zero runtime effect on actual retry timing** — it only changes a returned integer. If you're tuning this to fix a real backoff problem, the wiring to make the value take effect doesn't exist yet.\n\n**`MAX_ATTEMPTS` is dead.** It's exported at `retryPolicy.ts:2` and documented as the give-up threshold, but nothing imports it — nothing bounds `attempt`. That matters for a `nextDelay` change: the `Math.min(30000, ...)` cap is the only thing preventing unbounded growth, since callers can pass arbitrarily large `attempt` values. If you remove or raise that cap, there's no attempt limit backstopping it.",
+  "inputTokens": 82511,
+  "outputTokens": 3358,
+  "contextTokens": 1647,
+  "wallClockMs": 49495
+}

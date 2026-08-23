@@ -1,0 +1,96 @@
+{
+  "taskId": "semantic-alerting-synonym",
+  "toolCalls": [
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "alert|Alert|ALERT",
+        "output_mode": "files_with_matches",
+        "head_limit": 50
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*"
+      },
+      "resultSummary": "14 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-alerting-synonym-D86Jla/src/notifiers/notifier.ts"
+      },
+      "resultSummary": "213 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-alerting-synonym-D86Jla/src/scheduler/failureHandler.ts"
+      },
+      "resultSummary": "158 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-alerting-synonym-D86Jla/src/scheduler/dispatcher.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-alerting-synonym-D86Jla/src/index.ts"
+      },
+      "resultSummary": "449 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-alerting-synonym-D86Jla/src/notifiers/emailNotifier.ts"
+      },
+      "resultSummary": "320 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-alerting-synonym-D86Jla/src/notifiers/slackNotifier.ts"
+      },
+      "resultSummary": "326 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-alerting-synonym-D86Jla/src/notifiers/smsNotifier.ts"
+      },
+      "resultSummary": "311 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-alerting-synonym-D86Jla/src/notifiers/webhookNotifier.ts"
+      },
+      "resultSummary": "302 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-alerting-synonym-D86Jla/src/notifiers/consoleNotifier.ts"
+      },
+      "resultSummary": "313 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-semantic-alerting-synonym-D86Jla/src/reports/dailyDigest.ts"
+      },
+      "resultSummary": "179 result bytes"
+    }
+  ],
+  "finalAnswerText": "Alerting lives under `src/notifiers/`, under the name **notification** rather than \"alert\" — there's no `alert` identifier anywhere in the tree.\n\n## The contract\n\n`src/notifiers/notifier.ts:3` defines the event and the interface every channel implements:\n\n```ts\nexport interface TaskEvent {\n  task: Task;\n  kind: \"created\" | \"completed\";\n}\nexport interface Notifier { notify(event: TaskEvent): void; }\n```\n\n## The fan-out point\n\n`Dispatcher.dispatch` (`src/scheduler/dispatcher.ts:10`) is the single place events reach alerting. It enqueues the task, then loops over every injected notifier calling `notify(event)` — synchronous, in registration order, no error isolation (a throwing notifier stops the remaining ones).\n\n## The channels\n\nFive implementations, each a thin formatter over a private send method that currently just `console.log`s — all are stubs, none does real I/O:\n\n| File | Payload |\n|---|---|\n| `emailNotifier.ts:4` | `Task ${kind}: ${title}` → `sendMail` |\n| `slackNotifier.ts:4` | `Task ${kind}: ${title}` → `postMessage` |\n| `smsNotifier.ts:4` | `${kind}: ${title}` → `sendText` |\n| `webhookNotifier.ts:4` | `JSON.stringify(event)` → `post` |\n| `consoleNotifier.ts:4` | `${kind}: ${title}` → `print` |\n\n## Wiring\n\n`src/index.ts:12-19` builds the notifier array and the singleton `Dispatcher`. The only caller is `start()` (`src/index.ts:22`), which always dispatches `kind: \"created\"`.\n\nTwo things worth knowing:\n\n- **`\"completed\"` is declared but never emitted.** No call site anywhere constructs an event with that kind, so half the union is dead in practice.\n- **Failures don't alert.** `retryFailed` → `handleFailure` (`src/scheduler/failureHandler.ts:3`) delegates straight to `scheduleRetry` and never touches the dispatcher, so retries and exhausted-retry cases are silent. If you're looking for alerting on task *failure* specifically, it doesn't exist yet — that's the gap to fill.\n\n`src/reports/dailyDigest.ts` is adjacent but separate: it summarizes queue depth on demand and isn't hooked into the notifier path.",
+  "inputTokens": 44152,
+  "outputTokens": 2277,
+  "contextTokens": 1089,
+  "wallClockMs": 34302
+}

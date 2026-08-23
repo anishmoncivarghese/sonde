@@ -1,0 +1,28 @@
+{
+  "taskId": "hono-references-to-httpexception",
+  "toolCalls": [
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "HTTPException",
+        "path": "src/middleware",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": "3228 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "http-exception",
+        "output_mode": "files_with_matches"
+      },
+      "resultSummary": "548 result bytes"
+    }
+  ],
+  "finalAnswerText": "Seven middleware modules import `HTTPException` from `src/http-exception.ts` (excluding test files):\n\n| Middleware | File | Usage |\n|---|---|---|\n| **basic-auth** | `src/middleware/basic-auth/index.ts:7` | Throws `HTTPException(status, { res })` on auth failure (`:126`) |\n| **bearer-auth** | `src/middleware/bearer-auth/index.ts:7` | Local `throwHTTPException` helper throws with 401 (missing/invalid token) or 400 (invalid request) (`:109`) |\n| **body-limit** | `src/middleware/body-limit/index.ts:7` | Throws `HTTPException(413, { res })` when the payload exceeds the limit (`:64`) |\n| **csrf** | `src/middleware/csrf/index.ts:7` | Throws `HTTPException(403, { res })` on origin mismatch (`:85`) |\n| **ip-restriction** | `src/middleware/ip-restriction/index.ts:8` | `blockError(c): HTTPException` returns a 403 used as the default denial handler (`:141`) |\n| **jwt** | `src/middleware/jwt/jwt.ts:8` | Throws 401 for missing/malformed header (`:70`), and for verification failures (`:106`, `:124`) |\n| **timeout** | `src/middleware/timeout/index.ts:7` | Default `HTTPException(504)` (`:12`); the `exception` option accepts an `HTTPException` or an `HTTPExceptionFunction` returning one |\n\nOnly `timeout` exposes it in its public type surface — it exports `HTTPExceptionFunction = (context: Context) => HTTPException`. The others use it purely internally as the thrown error.\n\nTest files also reference it (`timeout/index.test.ts`, `jwt/index.test.ts`), and outside `src/middleware/` it's used by `src/validator/validator.ts` and `src/adapter/cloudflare-pages/handler.ts`.",
+  "inputTokens": 20800,
+  "outputTokens": 1071,
+  "contextTokens": 945,
+  "wallClockMs": 15602
+}

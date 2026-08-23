@@ -1,0 +1,172 @@
+{
+  "taskId": "hono-impact-router-add",
+  "toolCalls": [
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "src/router.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/router.ts"
+      },
+      "resultSummary": "13 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-impact-router-add-7YuToI/src/router.ts"
+      },
+      "resultSummary": "3026 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "\\badd\\s*\\(",
+        "glob": "src/**/*.ts",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 200
+      },
+      "resultSummary": "11761 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "implements Router|Router<",
+        "glob": "src/**/*.ts",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 100
+      },
+      "resultSummary": "2348 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-impact-router-add-7YuToI/src/router/smart-router/router.ts"
+      },
+      "resultSummary": "1821 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-impact-router-add-7YuToI/src/router/pattern-router/router.ts"
+      },
+      "resultSummary": "1766 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-impact-router-add-7YuToI/src/router/linear-router/router.ts",
+        "limit": 40
+      },
+      "resultSummary": "1649 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-impact-router-add-7YuToI/src/router/trie-router/router.ts"
+      },
+      "resultSummary": "736 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-impact-router-add-7YuToI/src/hono-base.ts",
+        "offset": 355,
+        "limit": 45
+      },
+      "resultSummary": "1486 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-impact-router-add-7YuToI/src/middleware/combine/index.ts",
+        "offset": 120,
+        "limit": 40
+      },
+      "resultSummary": "1216 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-impact-router-add-7YuToI/src/router/reg-exp-router/router.ts",
+        "offset": 120,
+        "limit": 60
+      },
+      "resultSummary": "2060 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "\\.add\\(|implements Router|Router<T>\\[|\\['add'\\]",
+        "glob": "!{node_modules,src}/**",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 60
+      },
+      "resultSummary": "2711 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "\"\\./router|router\\.ts",
+        "path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-hono-impact-router-add-7YuToI/package.json",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 40
+      },
+      "resultSummary": "200 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "Router<[^>]*>\\s*=\\s*\\{|: Router<|Parameters<|typeof .*\\.add",
+        "glob": "src/**/*.ts",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 40
+      },
+      "resultSummary": "1006 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "insert\\(",
+        "glob": "src/router/**/*.ts",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 30
+      },
+      "resultSummary": "2761 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "\\.add\\(",
+        "glob": "src/**/*.ts",
+        "output_mode": "count"
+      },
+      "resultSummary": "531 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "insert\\(method: string",
+        "glob": "src/router/**/node.ts",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": "95 result bytes"
+    }
+  ],
+  "finalAnswerText": "`Router.add` at `src/router.ts:42` is the SPI every router implements and the single entry point Hono uses to register routes, so a signature change fans out in four layers.\n\n## 1. The five implementations (all break immediately)\n\n| File | Line |\n|---|---|\n| `src/router/trie-router/router.ts` | 13 |\n| `src/router/linear-router/router.ts` | 15 |\n| `src/router/pattern-router/router.ts` | 10 — also self-recurses at `:17` for optional params |\n| `src/router/reg-exp-router/router.ts` | 134 |\n| `src/router/smart-router/router.ts` | 13 |\n\nEach is `implements Router<T>`, so TS errors at the class declaration if the new signature isn't satisfied.\n\n## 2. SmartRouter's replay buffer — the subtle one\n\n`SmartRouter` records calls and replays them into whichever router wins:\n\n- `routes?: [string, string, T][]` (`smart-router/router.ts:7`) is a hand-written mirror of the parameter list\n- `add` pushes `[method, path, handler]` (`:18`)\n- `match` replays via spread: `router.add(...args)` (`:34`)\n\nThe tuple type must change in lockstep. A **required** 4th parameter makes the spread a type error; an optional one type-checks but silently drops the new argument at replay time — a runtime bug that no compiler catches. This is the piece most likely to be missed.\n\n## 3. Internal callers\n\n- `src/hono-base.ts:381`, inside `private addRoute` — the sole funnel for `app.get/post/use/route/mount/on`, so every routing path in the framework goes through this one call.\n- `src/middleware/combine/index.ts:139` — `except()` builds an ad-hoc `TrieRouter<true>` and calls `add(METHOD_NAME_ALL, condition, true)`.\n\n## 4. Downstream storage (if you're adding data, not just renaming)\n\n`TrieRouter.add` delegates to `Node.insert(method, path, handler)` (`trie-router/node.ts:38`); RegExpRouter stores `HandlerWithMetadata<T>` = `[handler, paramCount]`; Linear/Pattern push 3-tuples. Threading a new argument through means touching those too, plus `trie-router/node.test.ts` (~60 direct `insert` calls).\n\n## 5. Tests and benchmarks\n\n131 `.add(` call sites in `src/`, dominated by `src/router/common.case.test.ts` (92) — that suite runs against all four routers, so it breaks once and reports four times. Plus `reg-exp-router/router.test.ts` (20), `linear-router/router.test.ts` (5), `pattern-router/router.test.ts` (3). Outside `src/`: `benchmarks/routers/src/hono.mts`, `benchmarks/routers/src/bench-includes-init.mts:56,63,70,102`, `benchmarks/routers-deno/src/hono.mts`.\n\n## 6. Public API — this is semver-breaking\n\n`package.json` exports `./router` and each `./router/*` subpath, so `Router<T>` is a published interface. Third-party routers implementing it (a documented extension point) break on any added *required* parameter or any change to existing parameter types.\n\n## Practical guidance\n\n- **Adding an optional 4th param** (`add(method, path, handler, options?)`): non-breaking for external implementers (TS allows implementations with fewer params) and for callers. But you still must update `SmartRouter`'s tuple + spread or the option is silently lost after the router is chosen.\n- **Narrowing existing types** (e.g. `method: string` → a `Method` union): breaks essentially every call site above, including the 131 test calls that pass string literals like `'PURGE'` (`common.case.test.ts:61`) and lowercase `'get'` (`:681`).\n- **Changing return type** from `void`: `hono-base.ts:381` discards the result, and `SmartRouter`'s `forEach` replay discards it too.",
+  "inputTokens": 178703,
+  "outputTokens": 5839,
+  "contextTokens": 9756,
+  "wallClockMs": 94802
+}
