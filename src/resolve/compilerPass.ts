@@ -175,12 +175,23 @@ export function runCompilerPass(
               const dstKey = declarationToStableKey(declaration, context);
               const srcKey = enclosingKey(node, context);
               if (dstKey && srcKey && dstKey !== srcKey) {
-                const upgraded = store.upgradeEdgeTier(
+                const kind = edgeKindFor(node);
+                const promoted = store.upgradeEdgeTier(
                   srcKey,
                   dstKey,
-                  edgeKindFor(node),
+                  kind,
                 );
-                if (upgraded) {
+                const inserted = promoted
+                  ? false
+                  : store.insertCompilerEdge(
+                      srcKey,
+                      dstKey,
+                      kind,
+                      sourceFile.getLineAndCharacterOfPosition(
+                        node.getStart(sourceFile),
+                      ).line + 1,
+                    );
+                if (promoted || inserted) {
                   result.upgraded += 1;
                   result.unresolvedCleared += store.deleteUnresolvedFor(
                     srcKey,

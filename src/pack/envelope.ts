@@ -31,6 +31,7 @@ export interface EnvelopeInput<T> {
   truncated: boolean;
   omittedCount: number;
   estimatedTokens: number;
+  tscVersion?: string | null;
 }
 
 // Response schema version, deliberately independent from the SQLite schema.
@@ -43,9 +44,7 @@ const UNKNOWN_GIT_WARNING =
 
 export function buildEnvelope<T>(input: EnvelopeInput<T>): Envelope<T> {
   const warnings = new Set(input.warnings);
-  // No compiler upgrade pass exists in this plan. Spec §9 requires every
-  // envelope to disclose the downgrade rather than silently omit the tier.
-  warnings.add(NO_COMPILER_WARNING);
+  if (!input.tscVersion) warnings.add(NO_COMPILER_WARNING);
   if (input.gitState.revision === null || input.gitState.dirty === null) {
     // Invariant 8: unknown must not be serialized as a clean worktree.
     warnings.add(UNKNOWN_GIT_WARNING);
@@ -66,7 +65,7 @@ export function buildEnvelope<T>(input: EnvelopeInput<T>): Envelope<T> {
       truncated: input.truncated,
       omittedCount: input.omittedCount,
       estimatedTokens: input.estimatedTokens,
-      tscVersion: null,
+      tscVersion: input.tscVersion ?? null,
     },
   };
 }

@@ -99,6 +99,7 @@ export async function packImpactResponse(
       truncated: impact.truncated || packed.truncated,
       omittedCount: impact.affected.length - results.length,
       estimatedTokens: packed.estimatedTokens,
+      tscVersion: state.compilerVersion,
     });
   } finally {
     state.db.close();

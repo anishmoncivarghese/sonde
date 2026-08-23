@@ -63,11 +63,28 @@ describe("cli", () => {
     const out = JSON.parse(cli("doctor", root, "--json")) as {
       parser: string;
       database: string;
+      compilerAvailable: boolean;
       tscVersion: string;
     };
     expect(out.parser).toBe("ok");
     expect(out.database).toBe("ok");
+    expect(out.compilerAvailable).toBe(true);
     expect(out.tscVersion).toMatch(/^\d+\.\d+/);
+  });
+
+  it("passes --resolve through to indexing", () => {
+    const out = JSON.parse(cli("index", root, "--resolve", "--json")) as {
+      compilerUpgraded: number | null;
+    };
+    expect(out.compilerUpgraded).toBe(0);
+  });
+
+  it("warns visibly when --resolve has no usable tsconfig", () => {
+    rmSync(join(root, "tsconfig.json"));
+    const out = cli("index", root, "--resolve");
+    expect(out).toContain(
+      "compiler tier unavailable (no usable tsconfig); edges remain LEXICAL/HEURISTIC",
+    );
   });
 
   it("updates an index and cleans it from the cache", () => {

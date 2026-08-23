@@ -54,4 +54,24 @@ describe("buildEnvelope", () => {
     expect(envelope.repository.dirty).toBeNull();
     expect(envelope.warnings).toContainEqual(expect.stringMatching(/git/i));
   });
+
+  it("reports compiler provenance without an unavailable warning", () => {
+    const envelope = buildEnvelope({
+      rootHash: "abc123",
+      gitState: { revision: "deadbeef", dirty: false },
+      freshness: { state: "fresh", driftCount: 0, verified: [] },
+      summary: "resolved",
+      results: [],
+      warnings: [],
+      truncated: false,
+      omittedCount: 0,
+      estimatedTokens: 0,
+      tscVersion: "5.9.2",
+    });
+
+    expect(envelope.diagnostics.tscVersion).toBe("5.9.2");
+    expect(envelope.warnings).not.toContainEqual(
+      expect.stringMatching(/COMPILER-tier resolution is unavailable/),
+    );
+  });
 });

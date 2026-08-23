@@ -88,6 +88,59 @@ function namedNodes(sourceFile: ts.SourceFile): ts.Node[] {
   return nodes;
 }
 
+const keysBySourceFile = new WeakMap<ts.SourceFile, Map<ts.Node, string>>();
+
+function buildKeyMap(
+  sourceFile: ts.SourceFile,
+  context: CompilerContext,
+): Map<ts.Node, string> {
+  const relativePath = relative(context.root, sourceFile.fileName)
+    .split(sep)
+    .join("/");
+  const groups = new Map<string, { chain: string[]; nodes: ts.Node[] }>();
+
+  for (const node of namedNodes(sourceFile)) {
+    const mapped = chainFor(node);
+    if (!mapped) continue;
+    const groupKey = mapped.chain.join(".");
+    const group = groups.get(groupKey) ?? { chain: mapped.chain, nodes: [] };
+    group.nodes.push(node);
+    groups.set(groupKey, group);
+  }
+
+  const keys = new Map<ts.Node, string>();
+  for (const { chain, nodes } of groups.values()) {
+    const base = stableKey(relativePath, chain);
+    if (nodes.length === 1) {
+      const only = nodes[0];
+      if (only) keys.set(only, base);
+      continue;
+    }
+
+    const hashOccurrences = new Map<string, number>();
+    for (const node of nodes) {
+      const signatureHash = hash8(signatureOf(node, sourceFile));
+      const occurrence = (hashOccurrences.get(signatureHash) ?? 0) + 1;
+      hashOccurrences.set(signatureHash, occurrence);
+      const collisionSuffix = occurrence === 1 ? "" : `~${occurrence}`;
+      keys.set(node, `${base}~${signatureHash}${collisionSuffix}`);
+    }
+  }
+
+  return keys;
+}
+
+function keyMapFor(
+  sourceFile: ts.SourceFile,
+  context: CompilerContext,
+): Map<ts.Node, string> {
+  const cached = keysBySourceFile.get(sourceFile);
+  if (cached) return cached;
+  const keys = buildKeyMap(sourceFile, context);
+  keysBySourceFile.set(sourceFile, keys);
+  return keys;
+}
+
 /**
  * Produce the same stable key the tree-sitter adapter mints.
  *
@@ -103,29 +156,12 @@ export function declarationToStableKey(
   const sourceFile = declaration.getSourceFile();
   if (!context.inRepo(sourceFile.fileName)) return null;
 
-  const mapped = chainFor(declaration);
-  if (!mapped) return null;
-
-  const relativePath = relative(context.root, sourceFile.fileName)
-    .split(sep)
-    .join("/");
-  const base = stableKey(relativePath, mapped.chain);
-  const group = namedNodes(sourceFile).filter((node) => {
-    const candidate = chainFor(node);
-    return candidate?.chain.join(".") === mapped.chain.join(".");
-  });
-  if (group.length === 1) return base;
-
-  const hashOccurrences = new Map<string, number>();
-  for (const node of group) {
-    const signatureHash = hash8(signatureOf(node, sourceFile));
-    const occurrence = (hashOccurrences.get(signatureHash) ?? 0) + 1;
-    hashOccurrences.set(signatureHash, occurrence);
-    if (node === mapped.symbolNode) {
-      const collisionSuffix = occurrence === 1 ? "" : `~${occurrence}`;
-      return `${base}~${signatureHash}${collisionSuffix}`;
-    }
+  const keys = keyMapFor(sourceFile, context);
+  let current: ts.Node | undefined = declaration;
+  while (current && !ts.isSourceFile(current)) {
+    const key = keys.get(current);
+    if (key) return key;
+    current = current.parent;
   }
-
   return null;
 }

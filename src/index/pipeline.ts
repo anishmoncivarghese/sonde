@@ -5,6 +5,7 @@ import { buildExportMap } from "../link/exportmap.js";
 import { RepoBoundary } from "../repo/boundary.js";
 import { discover, type FileRecord } from "../repo/discover.js";
 import { resolveAll } from "../resolve/resolver.js";
+import { runCompilerPass } from "../resolve/compilerPass.js";
 import { migrate, openDb, Store } from "../store/index.js";
 import { loadTsConfig } from "../tsconfig/load.js";
 
@@ -16,6 +17,11 @@ export interface IndexStats {
   external: number;
   unresolved: number;
   parseFailures: number;
+  compilerUpgraded: number | null;
+}
+
+export interface IndexOptions {
+  resolve?: boolean;
 }
 
 function extractionFailure(error: unknown): Diagnostic[] {
@@ -30,6 +36,7 @@ async function run(
   root: string,
   dbPath: string,
   incremental: boolean,
+  options: IndexOptions,
 ): Promise<IndexStats> {
   await getTsParser();
   const boundary = new RepoBoundary(root);
@@ -115,6 +122,7 @@ async function run(
       external: resolved.external.length,
       unresolved: resolved.unresolved.length,
       parseFailures: failed.size,
+      compilerUpgraded: null,
     };
 
     store.transaction(() => {
@@ -139,7 +147,26 @@ async function run(
       store.insertEdges(resolved.edges);
       store.insertExternal(resolved.external);
       store.insertUnresolved(resolved.unresolved);
+      // Any deterministic rebuild removes prior compiler promotions. The
+      // version is restored below only when this invocation completes a fresh
+      // compiler pass; inline refresh therefore discloses its downgrade.
+      store.setCompilerVersion(null);
     });
+
+    // The deterministic index is already committed. Compiler resolution is an
+    // opt-in promotion pass, so its unavailability can never roll back or
+    // invalidate the usable tree-sitter graph (invariant 8).
+    if (options.resolve) {
+      const compilerResult = runCompilerPass(root, store);
+      stats.compilerUpgraded = compilerResult?.upgraded ?? null;
+      if (compilerResult) {
+        store.setCompilerVersion(compilerResult.tscVersion);
+        stats.edges = Object.values(store.tierCounts()).reduce(
+          (total, count) => total + count,
+          0,
+        );
+      }
+    }
 
     return stats;
   } finally {
@@ -147,10 +174,18 @@ async function run(
   }
 }
 
-export function indexRepo(root: string, dbPath: string): Promise<IndexStats> {
-  return run(root, dbPath, false);
+export function indexRepo(
+  root: string,
+  dbPath: string,
+  options: IndexOptions = {},
+): Promise<IndexStats> {
+  return run(root, dbPath, false, options);
 }
 
-export function updateRepo(root: string, dbPath: string): Promise<IndexStats> {
-  return run(root, dbPath, true);
+export function updateRepo(
+  root: string,
+  dbPath: string,
+  options: IndexOptions = {},
+): Promise<IndexStats> {
+  return run(root, dbPath, true, options);
 }

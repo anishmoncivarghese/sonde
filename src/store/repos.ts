@@ -264,6 +264,40 @@ export class Store {
     return result.changes > 0;
   }
 
+  /** Insert an exact edge when ambiguity prevented any candidate edge. */
+  insertCompilerEdge(
+    srcKey: string,
+    dstKey: string,
+    kind: EdgeKind,
+    siteLine: number | null,
+  ): boolean {
+    const result = this.db
+      .prepare(
+        `INSERT INTO edge
+           (src_symbol_id, dst_symbol_id, kind, tier, confidence, site_line,
+            extractor_version)
+         SELECT source.id, target.id, @kind, 'COMPILER', 1.0, @siteLine,
+                @extractorVersion
+         FROM symbol AS source, symbol AS target
+         WHERE source.stable_key = @srcKey
+           AND target.stable_key = @dstKey
+           AND NOT EXISTS (
+             SELECT 1 FROM edge AS existing
+             WHERE existing.src_symbol_id = source.id
+               AND existing.dst_symbol_id = target.id
+               AND existing.kind = @kind
+           )`,
+      )
+      .run({
+        srcKey,
+        dstKey,
+        kind,
+        siteLine,
+        extractorVersion: EXTRACTOR_VERSION,
+      });
+    return result.changes > 0;
+  }
+
   /** Remove unresolved records for a reference the compiler has now placed. */
   deleteUnresolvedFor(srcKey: string, name: string): number {
     return this.db
@@ -282,6 +316,26 @@ export class Store {
       .prepare("SELECT tier, COUNT(*) AS count FROM edge GROUP BY tier")
       .all() as Array<{ tier: string; count: number }>;
     return Object.fromEntries(rows.map((row) => [row.tier, row.count]));
+  }
+
+  setCompilerVersion(version: string | null): void {
+    if (version === null) {
+      this.db.prepare("DELETE FROM meta WHERE key = 'compiler_version'").run();
+      return;
+    }
+    this.db
+      .prepare(
+        `INSERT INTO meta (key, value) VALUES ('compiler_version', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      )
+      .run(version);
+  }
+
+  compilerVersion(): string | null {
+    const row = this.db
+      .prepare("SELECT value FROM meta WHERE key = 'compiler_version'")
+      .get() as { value: string } | undefined;
+    return row?.value ?? null;
   }
 
   symbolsInFile(path: string): SymbolRow[] {

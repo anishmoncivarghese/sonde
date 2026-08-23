@@ -1015,3 +1015,27 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/resolve/compilerPass.ts
 
 <!-- whyline-event: dbee0452a02547f38f26debdb71ddcfb -->
+
+## 2026-08-23 — Let compiler resolution place exact edges omitted by the ambiguity cap
+
+**Because:** Hono.route had no heuristic candidate edge by design, so promotion-only resolution could never satisfy the compiler-tier acceptance query even though tsc resolved the call exactly
+
+**Rejected:**
+
+- only upgrade existing edges — preserves the zero-result failure for every reference over AMBIGUITY_CAP
+
+**Files:** src/resolve/compilerPass.ts, src/store/repos.ts
+
+<!-- whyline-event: 09bb79f3a84a416ab4253736ac10202e -->
+
+## 2026-08-23 — Persist compiler provenance and cache declaration key maps per source file
+
+**Because:** read envelopes must disclose the bundled tsc version after a resolved index, while 81289 identifier lookups must not rebuild collision groups on every mapping
+
+**Rejected:**
+
+- derive provenance from edge presence and rescan declarations per identifier — loses the compiler version and makes stable-key parity quadratic within files
+
+**Files:** src/resolve/symbolMapping.ts, src/pack/envelope.ts, src/index/pipeline.ts
+
+<!-- whyline-event: afbdda9eb41b4b7cacf8897145907914 -->

@@ -4,7 +4,6 @@ import { createHash } from "node:crypto";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { existsSync, rmSync } from "node:fs";
 import { Command } from "commander";
-import ts from "typescript";
 import { getTsParser } from "../adapters/typescript/parser.js";
 import { indexPathFor } from "../index/cache.js";
 import { checkDrift } from "../index/drift.js";
@@ -16,6 +15,10 @@ import { ensureFresh, NoIndexError } from "../pack/refresh.js";
 import { estimateJsonTokens } from "../pack/tokens.js";
 import { findSymbols } from "../query/find.js";
 import { queryGraph, type TraversePattern } from "../query/traverse.js";
+import {
+  createCompilerContext,
+  TSC_VERSION,
+} from "../resolve/compilerPass.js";
 import { EMBEDDING_MODEL, hashInput, loadEmbedder } from "../enrich/embedder.js";
 import { buildSymbolDocument, packVector } from "../enrich/vectors.js";
 import { RepoBoundary } from "../repo/boundary.js";
@@ -42,6 +45,16 @@ interface TierRow {
 
 function emit(json: boolean, value: unknown, human: string): void {
   console.log(json ? JSON.stringify(value, null, 2) : human);
+}
+
+function compilerIndexSummary(
+  requested: boolean,
+  upgraded: number | null,
+): string {
+  if (!requested) return "";
+  return upgraded === null
+    ? "; compiler tier unavailable (no usable tsconfig); edges remain LEXICAL/HEURISTIC"
+    : `; compiler upgraded ${upgraded} edge(s)`;
 }
 
 function rootHash(boundary: RepoBoundary): string {
@@ -72,28 +85,54 @@ program.name("codegraph").version("0.1.0");
 program
   .command("index")
   .argument("[path]", "repository root", ".")
+  .option(
+    "--resolve",
+    "resolve edges with the TypeScript compiler (slower, more precise)",
+  )
   .option("--json", "structured output")
-  .action(async (path: string, options: { json?: boolean }) => {
-    const stats = await indexRepo(path, indexPathFor(path));
+  .action(async (
+    path: string,
+    options: { json?: boolean; resolve?: boolean },
+  ) => {
+    const stats = await indexRepo(path, indexPathFor(path), {
+      resolve: options.resolve,
+    });
     emit(
       options.json === true,
       stats,
       `indexed ${stats.filesIndexed} files, ${stats.symbols} symbols, ` +
         `${stats.edges} edges (${stats.external} external, ` +
-        `${stats.unresolved} unresolved, ${stats.parseFailures} parse failures)`,
+        `${stats.unresolved} unresolved, ${stats.parseFailures} parse failures)` +
+        compilerIndexSummary(
+          options.resolve === true,
+          stats.compilerUpgraded,
+        ),
     );
   });
 
 program
   .command("update")
   .argument("[path]", "repository root", ".")
+  .option(
+    "--resolve",
+    "resolve edges with the TypeScript compiler (slower, more precise)",
+  )
   .option("--json", "structured output")
-  .action(async (path: string, options: { json?: boolean }) => {
-    const stats = await updateRepo(path, indexPathFor(path));
+  .action(async (
+    path: string,
+    options: { json?: boolean; resolve?: boolean },
+  ) => {
+    const stats = await updateRepo(path, indexPathFor(path), {
+      resolve: options.resolve,
+    });
     emit(
       options.json === true,
       stats,
-      `updated ${stats.filesIndexed} files (${stats.filesSkipped} unchanged)`,
+      `updated ${stats.filesIndexed} files (${stats.filesSkipped} unchanged)` +
+        compilerIndexSummary(
+          options.resolve === true,
+          stats.compilerUpgraded,
+        ),
     );
   });
 
@@ -188,7 +227,8 @@ program
     const report = {
       parser,
       database,
-      tscVersion: ts.version,
+      compilerAvailable: createCompilerContext(path) !== null,
+      tscVersion: TSC_VERSION,
       tscSource: "bundled (repository TypeScript is never loaded — SEC-008)",
       schemaVersion: SCHEMA_VERSION,
       indexPath: indexPathFor(path),
@@ -308,6 +348,7 @@ program
           truncated: false,
           omittedCount: 0,
           estimatedTokens: estimateJsonTokens(results),
+          tscVersion: state.compilerVersion,
         });
         emit(
           options.json === true,
@@ -370,6 +411,7 @@ program
           truncated: result.truncated,
           omittedCount: 0,
           estimatedTokens: estimateJsonTokens(result),
+          tscVersion: state.compilerVersion,
         });
         const { results: _results, ...envelopeMetadata } = metadata;
         const response = { ...envelopeMetadata, ...result };

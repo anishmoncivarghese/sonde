@@ -64,6 +64,29 @@ describe("ensureFresh", () => {
     }
   });
 
+  it("surfaces compiler provenance and clears it after inline refresh", async () => {
+    await indexRepo(root, dbPath, { resolve: true });
+
+    const resolved = await ensureFresh(root, dbPath);
+    try {
+      expect(resolved.compilerVersion).toMatch(/^\d+\.\d+/);
+    } finally {
+      resolved.db.close();
+    }
+
+    writeFileSync(
+      join(root, "src", "a.ts"),
+      "export function a() { return 1; }\n",
+    );
+    const refreshed = await ensureFresh(root, dbPath);
+    try {
+      expect(refreshed.compilerVersion).toBeNull();
+      expect(refreshed.warnings).toContainEqual(expect.stringMatching(/LEXICAL/));
+    } finally {
+      refreshed.db.close();
+    }
+  });
+
   it("refreshes small drift and discloses the compiler-tier downgrade", async () => {
     await indexRepo(root, dbPath);
     writeFileSync(

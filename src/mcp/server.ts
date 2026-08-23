@@ -57,6 +57,7 @@ function graphResponse(
   repositoryState: GitState,
   freshness: { state: string; driftCount: number; verified: string[] },
   warnings: string[],
+  compilerVersion: string | null,
 ) {
   const envelope = buildEnvelope({
     rootHash,
@@ -69,6 +70,7 @@ function graphResponse(
     truncated: result.truncated,
     omittedCount: 0,
     estimatedTokens: estimateJsonTokens(result),
+    tscVersion: compilerVersion,
   });
   const { results: _results, ...metadata } = envelope;
   return { ...metadata, ...result };
@@ -104,6 +106,7 @@ export function createServer(root: string): McpServer {
             truncated: false,
             omittedCount: 0,
             estimatedTokens: estimateJsonTokens(results),
+            tscVersion: state.compilerVersion,
           }));
         } finally {
           state.db.close();
@@ -143,6 +146,7 @@ export function createServer(root: string): McpServer {
             gitState(boundary),
             state.freshness,
             warnings,
+            state.compilerVersion,
           ));
         } finally {
           state.db.close();

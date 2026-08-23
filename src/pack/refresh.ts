@@ -18,6 +18,7 @@ export class NoIndexError extends Error {
 
 export interface ReadState {
   db: Db;
+  compilerVersion: string | null;
   freshness: {
     state: "fresh" | "refreshed" | "partial";
     driftCount: number;
@@ -62,9 +63,10 @@ export async function ensureFresh(
 
   const boundary = new RepoBoundary(root);
   let db = openCompatibleDb(dbPath);
+  let store = new Store(db);
   let drift;
   try {
-    drift = checkDrift(boundary, new Store(db), AUTO_REFRESH_LIMIT);
+    drift = checkDrift(boundary, store, AUTO_REFRESH_LIMIT);
   } catch (error) {
     db.close();
     throw error;
@@ -73,6 +75,7 @@ export async function ensureFresh(
   if (drift.state === "fresh") {
     return {
       db,
+      compilerVersion: store.compilerVersion(),
       freshness: { state: "fresh", driftCount: 0, verified: [] },
       warnings: [],
     };
@@ -81,6 +84,7 @@ export async function ensureFresh(
   if (drift.state === "partial") {
     return {
       db,
+      compilerVersion: store.compilerVersion(),
       freshness: {
         state: "partial",
         driftCount: drift.driftCount,
@@ -93,10 +97,10 @@ export async function ensureFresh(
   db.close();
   await updateRepo(root, dbPath);
   db = openCompatibleDb(dbPath);
-  const refreshedStore = new Store(db);
+  store = new Store(db);
   let afterRefresh;
   try {
-    afterRefresh = checkDrift(boundary, refreshedStore, AUTO_REFRESH_LIMIT);
+    afterRefresh = checkDrift(boundary, store, AUTO_REFRESH_LIMIT);
   } catch (error) {
     db.close();
     throw error;
@@ -110,6 +114,7 @@ export async function ensureFresh(
         '"codegraph update" to refresh';
     return {
       db,
+      compilerVersion: store.compilerVersion(),
       freshness: {
         state: "partial",
         driftCount: afterRefresh.driftCount,
@@ -123,11 +128,12 @@ export async function ensureFresh(
   // a re-indexed file — updateRepo correctly removed it, so it has nothing
   // left to verify and must not be reported as a verified source of truth.
   const verified = drift.driftedPaths.filter(
-    (path) => refreshedStore.getFile(path) !== undefined,
+    (path) => store.getFile(path) !== undefined,
   );
 
   return {
     db,
+    compilerVersion: store.compilerVersion(),
     freshness: {
       state: "refreshed",
       driftCount: drift.driftCount,

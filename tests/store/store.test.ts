@@ -410,4 +410,27 @@ describe("compiler tier upgrades", () => {
       db.prepare("SELECT COUNT(*) AS count FROM unresolved_ref").get(),
     ).toEqual({ count: 0 });
   });
+
+  it("inserts one exact compiler edge when ambiguity left no candidate edge", () => {
+    seedEdge("HEURISTIC");
+    db.prepare("DELETE FROM edge").run();
+
+    expect(
+      store.insertCompilerEdge(
+        "ts:a.ts#caller",
+        "ts:a.ts#target",
+        "CALLS",
+        7,
+      ),
+    ).toBe(true);
+    expect(
+      store.insertCompilerEdge(
+        "ts:a.ts#caller",
+        "ts:a.ts#target",
+        "CALLS",
+        7,
+      ),
+    ).toBe(false);
+    expect(store.tierCounts()).toEqual({ COMPILER: 1 });
+  });
 });
