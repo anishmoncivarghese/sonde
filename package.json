@@ -34,5 +34,16 @@
     "@types/node": "^22.0.0",
     "tsx": "^4.23.12",
     "vitest": "^2.0.0"
-  }
+  },
+  "license": "Apache-2.0",
+  "author": "Anish Varghese",
+  "description": "Local code-context engine for AI coding agents: structural answers within a token budget.",
+  "files": [
+    "dist",
+    "vendor",
+    "scripts/fetch-grammars.mjs",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ]
 }
