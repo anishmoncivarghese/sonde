@@ -991,3 +991,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/resolve/symbolMapping.ts, src/adapters/typescript/symbols.ts
 
 <!-- whyline-event: e9b1b0764f8c4ab8abac76e4288fe087 -->
+
+## 2026-08-23 — Report only actual edge promotions from upgradeEdgeTier
+
+**Because:** Compiler-pass statistics must count newly promoted rows, not edges that were already COMPILER tier and merely matched an UPDATE
+
+**Rejected:**
+
+- update every matching row unconditionally — SQLite can report an already-promoted edge as changed and inflate compilerUpgraded
+
+**Files:** src/store/repos.ts
+
+<!-- whyline-event: ac3aca992e6f47f4a9a7fce4eb9e3ad6 -->

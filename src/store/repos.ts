@@ -245,6 +245,45 @@ export class Store {
     })(rows);
   }
 
+  /** Promote matching edges to COMPILER tier. Returns whether any row changed. */
+  upgradeEdgeTier(srcKey: string, dstKey: string, kind: EdgeKind): boolean {
+    const result = this.db
+      .prepare(
+        `UPDATE edge
+         SET tier = 'COMPILER', confidence = 1.0
+         WHERE kind = @kind
+           AND src_symbol_id = (
+             SELECT id FROM symbol WHERE stable_key = @srcKey
+           )
+           AND dst_symbol_id = (
+             SELECT id FROM symbol WHERE stable_key = @dstKey
+           )
+           AND (tier <> 'COMPILER' OR confidence <> 1.0)`,
+      )
+      .run({ srcKey, dstKey, kind });
+    return result.changes > 0;
+  }
+
+  /** Remove unresolved records for a reference the compiler has now placed. */
+  deleteUnresolvedFor(srcKey: string, name: string): number {
+    return this.db
+      .prepare(
+        `DELETE FROM unresolved_ref
+         WHERE name = @name
+           AND src_symbol_id = (
+             SELECT id FROM symbol WHERE stable_key = @srcKey
+           )`,
+      )
+      .run({ srcKey, name }).changes;
+  }
+
+  tierCounts(): Record<string, number> {
+    const rows = this.db
+      .prepare("SELECT tier, COUNT(*) AS count FROM edge GROUP BY tier")
+      .all() as Array<{ tier: string; count: number }>;
+    return Object.fromEntries(rows.map((row) => [row.tier, row.count]));
+  }
+
   symbolsInFile(path: string): SymbolRow[] {
     const rows = this.db
       .prepare(`${SYMBOL_SELECT} WHERE f.path = ? ORDER BY s.start_byte`)

@@ -286,3 +286,128 @@ describe("Store", () => {
     expect(afterDelete.count).toBe(0);
   });
 });
+
+describe("compiler tier upgrades", () => {
+  function seedEdge(tier: "HEURISTIC" | "LEXICAL" | "COMPILER"): void {
+    store.upsertFile({
+      path: "a.ts",
+      contentHash: "h",
+      mtimeMs: 1,
+      size: 1,
+    });
+    const base = {
+      filePath: "a.ts",
+      kind: "function" as const,
+      signature: null,
+      startByte: 0,
+      endByte: 1,
+      startLine: 1,
+      endLine: 1,
+      bodyHash: null,
+      exported: true,
+      isTest: false,
+    };
+    store.insertSymbols([
+      {
+        ...base,
+        stableKey: "ts:a.ts#caller",
+        qualifiedName: "caller",
+        shortName: "caller",
+      },
+      {
+        ...base,
+        stableKey: "ts:a.ts#target",
+        qualifiedName: "target",
+        shortName: "target",
+      },
+    ]);
+    store.insertEdges([
+      {
+        srcKey: "ts:a.ts#caller",
+        dstKey: "ts:a.ts#target",
+        kind: "CALLS",
+        tier,
+        confidence: tier === "HEURISTIC" ? 0.25 : 1,
+        siteLine: 1,
+      },
+    ]);
+  }
+
+  it("upgrades a heuristic edge and reports the change", () => {
+    seedEdge("HEURISTIC");
+    expect(
+      store.upgradeEdgeTier(
+        "ts:a.ts#caller",
+        "ts:a.ts#target",
+        "CALLS",
+      ),
+    ).toBe(true);
+    expect(store.tierCounts().COMPILER).toBe(1);
+  });
+
+  it("sets confidence to 1.0 on upgrade", () => {
+    seedEdge("HEURISTIC");
+    store.upgradeEdgeTier(
+      "ts:a.ts#caller",
+      "ts:a.ts#target",
+      "CALLS",
+    );
+    const row = db
+      .prepare("SELECT tier, confidence FROM edge")
+      .get() as { tier: string; confidence: number };
+    expect(row).toEqual({ tier: "COMPILER", confidence: 1 });
+  });
+
+  it("reports no change for an edge that does not exist", () => {
+    seedEdge("HEURISTIC");
+    expect(
+      store.upgradeEdgeTier(
+        "ts:a.ts#caller",
+        "ts:a.ts#missing",
+        "CALLS",
+      ),
+    ).toBe(false);
+  });
+
+  it("never downgrades a LEXICAL edge", () => {
+    // Tier order is COMPILER > LEXICAL > HEURISTIC. Upgrading LEXICAL to
+    // COMPILER is fine; the guard is that nothing here can lower a tier.
+    seedEdge("LEXICAL");
+    store.upgradeEdgeTier(
+      "ts:a.ts#caller",
+      "ts:a.ts#target",
+      "CALLS",
+    );
+    expect(store.tierCounts().COMPILER).toBe(1);
+    expect(store.tierCounts().LEXICAL ?? 0).toBe(0);
+  });
+
+  it("reports no change when an edge is already compiler-tier", () => {
+    seedEdge("COMPILER");
+    expect(
+      store.upgradeEdgeTier(
+        "ts:a.ts#caller",
+        "ts:a.ts#target",
+        "CALLS",
+      ),
+    ).toBe(false);
+  });
+
+  it("deletes unresolved rows that the compiler has placed", () => {
+    seedEdge("HEURISTIC");
+    store.insertUnresolved([
+      {
+        srcKey: "ts:a.ts#caller",
+        name: "target",
+        kind: "CALLS",
+        siteLine: 1,
+        candidateCount: 9,
+        reason: "too_ambiguous",
+      },
+    ]);
+    expect(store.deleteUnresolvedFor("ts:a.ts#caller", "target")).toBe(1);
+    expect(
+      db.prepare("SELECT COUNT(*) AS count FROM unresolved_ref").get(),
+    ).toEqual({ count: 0 });
+  });
+});
