@@ -979,3 +979,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/resolve/compilerPass.ts
 
 <!-- whyline-event: e432abb8169a47b4bc8e0d30b80ee884 -->
+
+## 2026-08-23 — Mirror adapter collision hashing in compiler declaration mapping
+
+**Because:** COMPILER upgrades only hit when compiler declarations reproduce the adapter's byte-identical stable keys, including export-wrapper normalization and overload hash suffixes
+
+**Rejected:**
+
+- use only the dotted scope chain — overloads and residual collisions would silently miss their stored targets
+
+**Files:** src/resolve/symbolMapping.ts, src/adapters/typescript/symbols.ts
+
+<!-- whyline-event: e9b1b0764f8c4ab8abac76e4288fe087 -->
