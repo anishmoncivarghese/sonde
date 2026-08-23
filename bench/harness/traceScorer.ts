@@ -60,12 +60,12 @@ export function scoreTrace(task: BenchmarkTask, trace: AgentTrace): TaskResult {
       `Trace task ID ${trace.taskId} does not match benchmark task ${task.id}`,
     );
   }
-  if (trace.contextTokens > task.groundTruth.maxContextBudgetTokens) {
-    throw new Error(
-      `Trace context budget exceeded for ${task.id}: ` +
-        `${trace.contextTokens} > ${task.groundTruth.maxContextBudgetTokens}`,
-    );
-  }
+  // Recorded, not thrown. Discarding the trace kept the baseline's recall
+  // unconstrained while the CodeGraph arm paid for packing to the same budget,
+  // which measured the two arms asymmetrically.
+  const budget = task.groundTruth.maxContextBudgetTokens;
+  const contextOverageTokens = Math.max(0, trace.contextTokens - budget);
+  const budgetExceeded = contextOverageTokens > 0;
 
   const answer = trace.finalAnswerText;
   const required = task.groundTruth.requiredEvidence;
@@ -88,7 +88,9 @@ export function scoreTrace(task: BenchmarkTask, trace: AgentTrace): TaskResult {
     wallClockMs: trace.wallClockMs,
     helpfulHits,
     distractorHits,
-    preliminarySuccess: recallAtK === 1 && distractorHits === 0,
+    budgetExceeded,
+    contextOverageTokens,
+    preliminarySuccess: recallAtK === 1 && distractorHits === 0 && !budgetExceeded,
     tierUtility: null,
     tierHits: null,
   };

@@ -1,0 +1,69 @@
+{
+  "taskId": "tests-for-retry-policy-change",
+  "toolCalls": [
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "nextDelay",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*retry*"
+      },
+      "resultSummary": "521 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-retry-policy-change-CSKlLl/src/scheduler/retryPolicy.test.ts"
+      },
+      "resultSummary": "289 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-retry-policy-change-CSKlLl/src/scheduler/retryPolicy.ts"
+      },
+      "resultSummary": "290 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-retry-policy-change-CSKlLl/src/scheduler/retryScheduler.ts"
+      },
+      "resultSummary": "147 result bytes"
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*.test.*"
+      },
+      "resultSummary": "102 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-retry-policy-change-CSKlLl/src/scheduler/dispatcher.test.ts"
+      },
+      "resultSummary": "757 result bytes"
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*.{json,ts}",
+        "path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-retry-policy-change-CSKlLl"
+      },
+      "resultSummary": "500 result bytes"
+    }
+  ],
+  "finalAnswerText": "**`src/scheduler/retryPolicy.test.ts`** — it's the only test that touches `nextDelay`.\n\n```\nnpx vitest run src/scheduler/retryPolicy.test.ts\n```\n\nTwo things worth knowing before you change it:\n\n- **The existing coverage is thin.** The one test (`retryPolicy.test.ts:5`) only asserts `nextDelay(0) === 100` and `nextDelay(10) === 30000` — the first step and the saturated cap. Nothing pins the growth curve in between, nor the exact attempt where the 30s cap kicks in (attempt 9 → 51200 is the last uncapped value, attempt 8 → 25600). A change to the base, multiplier, or cap could pass this test while altering every intermediate delay.\n- **Callers aren't covered.** `scheduleRetry` (`src/scheduler/retryScheduler.ts:3`) just forwards to `nextDelay` and has no test file at all, and `src/scheduler/failureHandler.ts` is untested too. `dispatcher.test.ts` doesn't exercise retry timing. So the whole regression surface is that single file.\n\nIf you want a real baseline before editing, add assertions for a few mid-range attempts and the exact cap boundary first, confirm they pass against the current implementation, then make your change. Say the word and I'll write them.",
+  "inputTokens": 42647,
+  "outputTokens": 1437,
+  "contextTokens": 728,
+  "wallClockMs": 27410
+}

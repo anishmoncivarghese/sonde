@@ -15,6 +15,8 @@ function result(overrides: Partial<TaskResult> = {}): TaskResult {
     wallClockMs: 5,
     helpfulHits: 0,
     distractorHits: 0,
+    budgetExceeded: false,
+    contextOverageTokens: 0,
     preliminarySuccess: true,
     tierUtility: null,
     tierHits: null,

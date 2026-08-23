@@ -1,0 +1,160 @@
+{
+  "taskId": "tests-for-dispatcher-change",
+  "toolCalls": [
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "class Dispatcher|def dispatch|Dispatcher\\.dispatch",
+        "output_mode": "content",
+        "-n": true,
+        "head_limit": 50
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*ispatch*"
+      },
+      "resultSummary": "55 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/scheduler/dispatcher.ts"
+      },
+      "resultSummary": "449 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/scheduler/dispatcher.test.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*"
+      },
+      "resultSummary": "500 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/notifiers/notifier.ts"
+      },
+      "resultSummary": "213 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/scheduler/queue.ts"
+      },
+      "resultSummary": "248 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/scheduler/retryScheduler.ts"
+      },
+      "resultSummary": "147 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/scheduler/failureHandler.ts"
+      },
+      "resultSummary": "158 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/index.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/reports/dailyDigest.ts"
+      },
+      "resultSummary": "1131 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/notifiers/emailNotifier.test.ts"
+      },
+      "resultSummary": "523 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/scheduler/retryPolicy.test.ts"
+      },
+      "resultSummary": "289 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/notifiers/emailNotifier.ts"
+      },
+      "resultSummary": "320 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/notifiers/slackNotifier.ts"
+      },
+      "resultSummary": "326 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/notifiers/smsNotifier.ts"
+      },
+      "resultSummary": "311 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/notifiers/webhookNotifier.ts"
+      },
+      "resultSummary": "302 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/notifiers/consoleNotifier.ts"
+      },
+      "resultSummary": "313 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/src/scheduler/retryPolicy.ts"
+      },
+      "resultSummary": "290 result bytes"
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/{package.json,vitest.config.*,vite.config.*,*.md,.gitignore}"
+      },
+      "resultSummary": "14 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-tests-for-dispatcher-change-ECcGLw/tsconfig.json"
+      },
+      "resultSummary": "77 result bytes"
+    }
+  ],
+  "finalAnswerText": "Three test files exist in the whole repo, so the honest answer is \"all of them costs nothing\" — but here's the actual blast radius, and the more useful point is what the tests *won't* catch.\n\n## Blast radius of `Dispatcher.dispatch` (`src/scheduler/dispatcher.ts:10`)\n\n- **Callers:** only `index.ts:22` (`start`), which `run` delegates to (`src/index.ts:26`).\n- **Collaborators:** `TaskQueue.enqueue` (`src/scheduler/queue.ts:6`) and `Notifier.notify` across 5 implementations (email, slack, sms, webhook, console).\n- **Downstream reader:** `summarizeActivity` (`src/reports/dailyDigest.ts:3`) reads the queue that only `dispatch` fills.\n- **Not connected:** the retry chain (`retryPolicy` → `retryScheduler` → `failureHandler` → `index.retryFailed`) never touches `Dispatcher`.\n\n## Tests to run\n\n```\nnpx vitest run src/scheduler/dispatcher.test.ts src/notifiers/emailNotifier.test.ts\n```\n\n- `src/scheduler/dispatcher.test.ts` — the only direct coverage.\n- `src/notifiers/emailNotifier.test.ts` — relevant only if you change the event you hand to `notify`; it pins that the `kind` and `task.title` reach a real notifier.\n- `src/scheduler/retryPolicy.test.ts` — unrelated, but the suite is 3 files, so just run `npx vitest run`.\n\n## The catch: green here proves very little\n\nThe single dispatcher test (`dispatcher.test.ts:7`) uses one fake whose `notify` ignores its argument. These all stay green through changes that alter real behavior:\n\n- **Fan-out** — one notifier in the test, five in production. Reordering, filtering, or dropping notifiers passes.\n- **Ordering** — nothing asserts enqueue happens before notify, so a notifier reading `queue.pending()` would see different state either way.\n- **Throwing notifier** — today an exception aborts the loop: the task is already queued, but the remaining notifiers are skipped. Nothing pins this. If your change is about wrapping `notify` in try/catch, this is precisely the baseline you're missing.\n- **Event fidelity** — no assertion that `notify` receives the same event object.\n- `index.ts` wiring and `summarizeActivity` have no tests at all.\n\nIf your change touches any of those, I'd add characterization tests recording *current* behavior first (multi-notifier fan-out, enqueue/notify ordering, throwing-notifier outcome), confirm they pass, then change. Want me to write them?\n\n## Tooling note\n\nThere's no `package.json`, no vitest config, and this isn't a git repo — the tests import `vitest` but nothing installs it, so `npx vitest run` will fetch it ad hoc and you have no baseline commit to diff against. Worth fixing before you start editing; say the word and I'll add a minimal `package.json` and `git init`.",
+  "inputTokens": 75889,
+  "outputTokens": 5323,
+  "contextTokens": 1761,
+  "wallClockMs": 71059
+}

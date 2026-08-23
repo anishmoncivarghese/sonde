@@ -70,8 +70,22 @@ function validateResult(
   assertMetric(result, "wallClockMs");
   assertMetric(result, "helpfulHits", { integer: true });
   assertMetric(result, "distractorHits", { integer: true });
-  if (result.contextTokens > task.groundTruth.maxContextBudgetTokens) {
-    throw new Error(`Invalid contextTokens for task ${result.taskId}: over budget`);
+  // An over-budget result is reported, not rejected. Discarding it kept the
+  // agentic arm's recall unconstrained while the CodeGraph arm paid for packing
+  // to the same budget. Consistency between the two fields is still enforced.
+  assertMetric(result, "contextOverageTokens", { integer: true });
+  const overage = Math.max(
+    0,
+    result.contextTokens - task.groundTruth.maxContextBudgetTokens,
+  );
+  if (result.contextOverageTokens !== overage) {
+    throw new Error(
+      `Inconsistent contextOverageTokens for ${result.taskId}: ` +
+        `${result.contextOverageTokens} != ${overage}`,
+    );
+  }
+  if (result.budgetExceeded !== overage > 0) {
+    throw new Error(`Inconsistent budgetExceeded for task ${result.taskId}`);
   }
   if (
     result.helpfulHits > task.groundTruth.helpfulEvidence.length ||
@@ -82,7 +96,10 @@ function validateResult(
   if (typeof result.preliminarySuccess !== "boolean") {
     throw new Error(`Invalid preliminarySuccess for task ${result.taskId}`);
   }
-  const expectedSuccess = result.recallAtK === 1 && result.distractorHits === 0;
+  const expectedSuccess =
+    result.recallAtK === 1 &&
+    result.distractorHits === 0 &&
+    !result.budgetExceeded;
   if (result.preliminarySuccess !== expectedSuccess) {
     throw new Error(`Inconsistent preliminarySuccess for task ${result.taskId}`);
   }
@@ -178,11 +195,28 @@ export function renderBenchmarkReport(
     "## Methodology",
     "",
     "Recall@k scores only evidence admitted by each task's disclosed context-token " +
-      "budget. Preliminary success requires recall@k = 1 and zero distractor hits; " +
-      "it is a deterministic proxy, not a validated semantic success judge. " +
+      "budget. Preliminary success requires recall@k = 1, zero distractor hits, " +
+      "and staying inside that budget; it is a deterministic proxy, not a " +
+      "validated semantic success judge. " +
       "Tier utility is the fraction of all required evidence contributed by " +
       "HEURISTIC edges. C/L/H/U required hits report compiler, lexical, heuristic, " +
       "and unranked matches respectively.",
+    "",
+    "**Budget asymmetry, disclosed.** The two arms reach the budget differently, " +
+      "and this changes how the numbers should be read. CodeGraph's packer " +
+      "truncates evidence TO the budget, so it can never exceed it and its recall " +
+      "already pays for whatever does not fit. The agentic baseline is " +
+      "unconstrained and consumes whatever context it reads. Over-budget baseline " +
+      "runs are therefore reported with their recall intact and an explicit " +
+      "overage rather than discarded or silently credited, and are denied " +
+      "preliminary success because staying inside the budget is the constraint " +
+      "the CodeGraph arm pays on every task.",
+    "",
+    "**Token comparison caveat.** Baseline input tokens include Claude Code's " +
+      "cached harness prompt — roughly 79k tokens on a probe against 4 tokens of " +
+      "real task input. That fixed overhead is not attributable to the task, so " +
+      "context tokens (measured tool-result bytes) is the arm-comparable figure, " +
+      "not input tokens.",
     "",
     "## Summary",
     "",

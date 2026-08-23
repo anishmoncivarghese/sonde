@@ -1,0 +1,78 @@
+{
+  "taskId": "impact-queue-enqueue",
+  "toolCalls": [
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/queue.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*.ts"
+      },
+      "resultSummary": "22 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn-T-cg-baseline-impact-queue-enqueue-SRIL8S/src/scheduler/queue.ts"
+      },
+      "resultSummary": "194 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "enqueue",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": "229 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-queue-enqueue-SRIL8S/src/scheduler/queue.ts"
+      },
+      "resultSummary": "248 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "TaskQueue|queue",
+        "output_mode": "content",
+        "-n": true,
+        "-i": true
+      },
+      "resultSummary": "1136 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-queue-enqueue-SRIL8S/src/scheduler/dispatcher.ts"
+      },
+      "resultSummary": "449 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-queue-enqueue-SRIL8S/src/index.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-impact-queue-enqueue-SRIL8S/src/scheduler/dispatcher.test.ts"
+      },
+      "resultSummary": "1131 result bytes"
+    }
+  ],
+  "finalAnswerText": "`TaskQueue.enqueue` (`src/scheduler/queue.ts:6`) has exactly one caller in the repo, but a short chain hangs off it.\n\n**Direct caller**\n- `Dispatcher.dispatch` — `src/scheduler/dispatcher.ts:11`. Every dispatched event is enqueued before notifiers are invoked, so this is on the critical path for all dispatch traffic.\n\n**Transitive callers (via `Dispatcher.dispatch`)**\n- `start(task)` — `src/index.ts:22`, the public entry point; dispatches `{ kind: \"created\" }`.\n- `run(task)` — `src/index.ts:26`, a thin wrapper over `start`.\n- The module-level `dispatcher` in `src/index.ts:19` is constructed with a single shared `new TaskQueue()`, so all `start`/`run` calls accumulate into one process-wide queue instance.\n\n**Behavioral dependents (read the state `enqueue` writes)**\n- `summarizeActivity(queue)` — `src/reports/dailyDigest.ts:4` reports `queue.pending().length`, so its output is a direct function of how many times `enqueue` ran. Note it takes a `TaskQueue` parameter and nothing in the repo passes the `index.ts` instance to it — it's currently unwired.\n- `TaskQueue.pending()` — `src/scheduler/queue.ts:10` returns the internal `items` array by reference, so callers can mutate the queue's backing store. Anything changing `enqueue`'s storage representation has to account for that leak.\n\n**Tests**\n- `src/scheduler/dispatcher.test.ts:19` asserts `queue.pending()` has length 1 after one `dispatch` — the only test covering the enqueue path, and it does so indirectly. There is no test file for `queue.ts` itself.\n\nNothing in `retryScheduler.ts`, `retryPolicy.ts`, `failureHandler.ts`, or any notifier touches the queue. So the blast radius of a signature change to `enqueue` is one call site (`dispatcher.ts:11`) plus that one assertion; a change to its *semantics* (ordering, dedup, capacity) additionally reaches `summarizeActivity` and anyone holding the array from `pending()`.",
+  "inputTokens": 54915,
+  "outputTokens": 2012,
+  "contextTokens": 1201,
+  "wallClockMs": 30760
+}

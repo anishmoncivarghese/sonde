@@ -23,6 +23,8 @@ function result(
     wallClockMs: 20,
     helpfulHits: 0,
     distractorHits: 0,
+    budgetExceeded: false,
+    contextOverageTokens: 0,
     preliminarySuccess: recallAtK === 1,
     tierUtility: baseline === "codegraph" ? 0.5 : null,
     tierHits: baseline === "codegraph"

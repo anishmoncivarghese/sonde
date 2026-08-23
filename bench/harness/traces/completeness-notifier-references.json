@@ -1,0 +1,66 @@
+{
+  "taskId": "completeness-notifier-references",
+  "toolCalls": [
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "Notifier",
+        "output_mode": "files_with_matches"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Glob",
+      "input": {
+        "pattern": "**/*"
+      },
+      "resultSummary": "307 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "Notifier",
+        "output_mode": "content",
+        "-n": true
+      },
+      "resultSummary": "2236 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-notifier-references-mij0ZB/src/notifiers/notifier.ts"
+      },
+      "resultSummary": "213 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "notifier|notify",
+        "-i": true,
+        "output_mode": "content",
+        "-n": true,
+        "glob": "**/{failureHandler,retryScheduler,queue,dailyDigest,retryPolicy,task}.ts"
+      },
+      "resultSummary": "16 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-notifier-references-mij0ZB/src/scheduler/dispatcher.ts"
+      },
+      "resultSummary": "449 result bytes"
+    },
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn/T/cg-baseline-completeness-notifier-references-mij0ZB/src/index.ts"
+      },
+      "resultSummary": "1131 result bytes"
+    }
+  ],
+  "finalAnswerText": "`Notifier` is declared in `src/notifiers/notifier.ts:8` as `interface Notifier { notify(event: TaskEvent): void }`. Nine references across seven files:\n\n**As an array element type (`Notifier[]`)**\n- `src/index.ts:12` — `const notifiers: Notifier[] = [...]`, the five concrete notifiers, passed to `Dispatcher` at line 19.\n- `src/scheduler/dispatcher.ts:6` — `private readonly notifiers: Notifier[]` constructor param, iterated in `dispatch()` at line 12.\n\n**As a direct type annotation**\n- `src/scheduler/dispatcher.test.ts:9` — `const fake: Notifier = { notify: () => notified.push(\"called\") }`.\n\n**As an `implements` clause** (all five implementations, each also importing it via `import type` on line 1)\n- `src/notifiers/emailNotifier.ts:3` — `class EmailNotifier implements Notifier`\n- `src/notifiers/slackNotifier.ts:3` — `class SlackNotifier implements Notifier`\n- `src/notifiers/smsNotifier.ts:3` — `class SmsNotifier implements Notifier`\n- `src/notifiers/webhookNotifier.ts:3` — `class WebhookNotifier implements Notifier`\n- `src/notifiers/consoleNotifier.ts:3` — `class ConsoleNotifier implements Notifier`\n\nTwo notes on things that *look* like references but aren't: `src/notifiers/emailNotifier.test.ts` only uses the `EmailNotifier` class, never the interface; and the remaining files (`queue.ts`, `failureHandler.ts`, `retryPolicy.ts`, `retryScheduler.ts`, `dailyDigest.ts`, `core/task.ts`) contain no reference to `Notifier` under any name — I checked for aliased imports and `notify`-shaped structural usage. Every reference is type-only (`import type`), so `Notifier` is fully erased at compile time.",
+  "inputTokens": 56844,
+  "outputTokens": 1854,
+  "contextTokens": 1231,
+  "wallClockMs": 30767
+}

@@ -136,7 +136,18 @@ export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
     wallClockMs: Date.now() - startedAt,
     helpfulHits,
     distractorHits,
-    preliminarySuccess: recallAtK === 1 && distractorHits === 0,
+    // The packer truncates to the budget, so this arm cannot exceed it. The
+    // fields are computed rather than hardcoded so the invariant stays visible
+    // and would break loudly if the packer ever stopped enforcing it.
+    budgetExceeded: packed.estimatedTokens > task.groundTruth.maxContextBudgetTokens,
+    contextOverageTokens: Math.max(
+      0,
+      packed.estimatedTokens - task.groundTruth.maxContextBudgetTokens,
+    ),
+    preliminarySuccess:
+      recallAtK === 1 &&
+      distractorHits === 0 &&
+      packed.estimatedTokens <= task.groundTruth.maxContextBudgetTokens,
     tierUtility: hasTieredSeed
       ? hitsByTier.heuristic / task.groundTruth.requiredEvidence.length
       : null,

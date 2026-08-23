@@ -106,12 +106,41 @@ describe("scoreTrace", () => {
     expect(result.preliminarySuccess).toBe(false);
   });
 
-  it("rejects traces that exceed the task context budget", () => {
+  it("records a budget overrun instead of discarding the trace", () => {
+    // The CodeGraph arm packs TO the budget and its recall already pays for
+    // whatever does not fit (codegraphRunner.ts). Throwing away an over-budget
+    // agentic trace measured the two arms asymmetrically in the baseline's
+    // favour: it kept unconstrained recall while CodeGraph paid for truncation.
     const task = taskById("semantic-alerting-synonym");
     const trace = traceFor(task, "Notifier");
+    trace.contextTokens = task.groundTruth.maxContextBudgetTokens + 89;
+
+    const result = scoreTrace(task, trace);
+    expect(result.budgetExceeded).toBe(true);
+    expect(result.contextOverageTokens).toBe(89);
+  });
+
+  it("denies preliminary success to an over-budget trace even at full recall", () => {
+    const task = taskById("semantic-alerting-synonym");
+    const trace = traceFor(
+      task,
+      task.groundTruth.requiredEvidence.map((e) => e.qualifiedName).join(", "),
+    );
     trace.contextTokens = task.groundTruth.maxContextBudgetTokens + 1;
 
-    expect(() => scoreTrace(task, trace)).toThrow(/context budget/i);
+    const result = scoreTrace(task, trace);
+    expect(result.recallAtK).toBe(1);
+    expect(result.preliminarySuccess).toBe(false);
+  });
+
+  it("reports no overage for a trace inside its budget", () => {
+    const task = taskById("semantic-alerting-synonym");
+    const trace = traceFor(task, "Notifier");
+    trace.contextTokens = task.groundTruth.maxContextBudgetTokens;
+
+    const result = scoreTrace(task, trace);
+    expect(result.budgetExceeded).toBe(false);
+    expect(result.contextOverageTokens).toBe(0);
   });
 
   it("rejects malformed and non-finite trace fields", () => {

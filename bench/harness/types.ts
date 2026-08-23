@@ -83,7 +83,20 @@ export interface TaskResult {
   wallClockMs: number;
   helpfulHits: number;
   distractorHits: number;
-  /** Deterministic proxy pending a validated end-to-end success judge. */
+  /**
+   * True when the arm consumed more evidence context than the task's budget.
+   * The CodeGraph arm packs to the budget and cannot exceed it; the agentic
+   * baseline is unconstrained and can, so this is reported rather than used to
+   * discard the trace.
+   */
+  budgetExceeded: boolean;
+  /** Tokens consumed beyond the task budget; 0 when within budget. */
+  contextOverageTokens: number;
+  /**
+   * Deterministic proxy pending a validated end-to-end success judge.
+   * Requires full recall, no distractors, AND staying inside the budget — the
+   * same constraint the CodeGraph arm pays for by truncating.
+   */
   preliminarySuccess: boolean;
   /**
    * Marginal required-evidence recall contributed by HEURISTIC graph edges.
