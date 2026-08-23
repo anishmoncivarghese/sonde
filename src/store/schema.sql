@@ -95,3 +95,16 @@ CREATE TRIGGER IF NOT EXISTS symbol_fts_au AFTER UPDATE ON symbol BEGIN
   INSERT INTO symbol_fts(rowid, short_name, qualified_name, signature)
   VALUES (new.id, new.short_name, new.qualified_name, new.signature);
 END;
+
+-- Optional semantic enrichment (spec §13). Deterministic retrieval must remain
+-- fully functional with this table empty, and dropping it must lose nothing
+-- that cannot be recomputed from source.
+CREATE TABLE IF NOT EXISTS embedding (
+  symbol_id  INTEGER PRIMARY KEY REFERENCES symbol(id) ON DELETE CASCADE,
+  model      TEXT NOT NULL,
+  dim        INTEGER NOT NULL,
+  vector     BLOB NOT NULL,
+  input_hash TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_embedding_model ON embedding(model);

@@ -16,6 +16,8 @@ import { ensureFresh, NoIndexError } from "../pack/refresh.js";
 import { estimateJsonTokens } from "../pack/tokens.js";
 import { findSymbols } from "../query/find.js";
 import { queryGraph, type TraversePattern } from "../query/traverse.js";
+import { EMBEDDING_MODEL, hashInput, loadEmbedder } from "../enrich/embedder.js";
+import { buildSymbolDocument, packVector } from "../enrich/vectors.js";
 import { RepoBoundary } from "../repo/boundary.js";
 import { gitState } from "../repo/git.js";
 import {
@@ -199,6 +201,69 @@ program
         .map(([key, value]) => `${key}: ${value}`)
         .join("\n"),
     );
+  });
+
+program
+  .command("embed")
+  .argument("[path]", "repository root", ".")
+  .option("--json", "structured output")
+  .description("compute local embeddings for semantic search (optional)")
+  .action(async (path: string, options: { json?: boolean }) => {
+    const dbPath = indexPathFor(path);
+    if (!existsSync(dbPath)) {
+      emit(options.json === true, { error: "no index" },
+        "no index; run `codegraph index` first");
+      process.exitCode = 1;
+      return;
+    }
+    const db = openDb(dbPath);
+    migrate(db);
+    const store = new Store(db);
+
+    let embedder;
+    try {
+      embedder = await loadEmbedder();
+    } catch (error) {
+      // Invariant 8: degrade with a warning that says exactly how to fix it.
+      const message = (error as Error).message;
+      emit(options.json === true, { error: message }, message);
+      process.exitCode = 1;
+      db.close();
+      return;
+    }
+
+    const pending = store.symbolsNeedingEmbedding(EMBEDDING_MODEL);
+    const BATCH = 64;
+    let embedded = 0;
+    for (let start = 0; start < pending.length; start += BATCH) {
+      const batch = pending.slice(start, start + BATCH);
+      const documents = batch.map((symbol) =>
+        buildSymbolDocument({
+          qualifiedName: symbol.qualifiedName,
+          kind: symbol.kind,
+          signature: symbol.signature,
+          documentation: null,
+          path: symbol.path,
+        }),
+      );
+      const vectors = await embedder.embed(documents);
+      for (const [offset, vector] of vectors.entries()) {
+        const symbol = batch[offset];
+        if (!symbol) continue;
+        store.upsertEmbedding({
+          symbolId: symbol.id,
+          model: EMBEDDING_MODEL,
+          dim: vector.length,
+          vector: packVector(vector),
+          inputHash: hashInput(documents[offset] ?? ""),
+        });
+        embedded += 1;
+      }
+    }
+    const total = store.countEmbeddings(EMBEDDING_MODEL);
+    db.close();
+    emit(options.json === true, { embedded, total, model: EMBEDDING_MODEL },
+      `embedded ${embedded} symbol(s); ${total} total for ${EMBEDDING_MODEL}`);
   });
 
 program

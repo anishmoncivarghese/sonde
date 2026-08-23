@@ -252,6 +252,64 @@ export class Store {
     return rows.map(decodeSymbol);
   }
 
+  /** Symbols whose embedding is missing or stale for this model. */
+  symbolsNeedingEmbedding(model: string): Array<{
+    id: number;
+    qualifiedName: string;
+    kind: string;
+    signature: string | null;
+    path: string;
+  }> {
+    return this.db
+      .prepare(
+        `SELECT s.id, s.qualified_name AS qualifiedName, s.kind, s.signature,
+                f.path
+         FROM symbol s
+         JOIN file f ON f.id = s.file_id
+         LEFT JOIN embedding e ON e.symbol_id = s.id AND e.model = ?
+         WHERE e.symbol_id IS NULL`,
+      )
+      .all(model) as never;
+  }
+
+  upsertEmbedding(row: {
+    symbolId: number;
+    model: string;
+    dim: number;
+    vector: Buffer;
+    inputHash: string;
+  }): void {
+    this.db
+      .prepare(
+        `INSERT INTO embedding (symbol_id, model, dim, vector, input_hash)
+         VALUES (@symbolId, @model, @dim, @vector, @inputHash)
+         ON CONFLICT(symbol_id) DO UPDATE SET
+           model = excluded.model, dim = excluded.dim,
+           vector = excluded.vector, input_hash = excluded.input_hash`,
+      )
+      .run(row);
+  }
+
+  allEmbeddings(model: string): Array<{
+    stableKey: string;
+    vector: Buffer;
+  }> {
+    return this.db
+      .prepare(
+        `SELECT s.stable_key AS stableKey, e.vector
+         FROM embedding e JOIN symbol s ON s.id = e.symbol_id
+         WHERE e.model = ?`,
+      )
+      .all(model) as never;
+  }
+
+  countEmbeddings(model: string): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) AS n FROM embedding WHERE model = ?")
+      .get(model) as { n: number };
+    return row.n;
+  }
+
   findSymbolsByName(shortName: string): SymbolRow[] {
     const rows = this.db
       .prepare(`${SYMBOL_SELECT} WHERE s.short_name = ? ORDER BY s.stable_key`)
