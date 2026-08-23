@@ -1087,3 +1087,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** probes/structural-roles/RESULTS.md
 
 <!-- whyline-event: 6a176bcd4c224133880c33badd5bbcbe -->
+
+## 2026-08-23 — Keep symbols recovered from files with parse diagnostics instead of discarding the file
+
+**Because:** tree-sitter error recovery is local, so a single bad expression corrupts a few hundred bytes rather than a file; measured on a 376-file Swift corpus only 0.08 percent of source bytes sat inside ERROR nodes while 955 declarations were being discarded, and on Hono eight files including src/context.ts contributed zero symbols to graphs we published accuracy figures against
+
+**Rejected:**
+
+- keep discarding the file to avoid partial data — trades a large amount of good data for a small amount of bad, and hides real symbols rather than admitting a partial parse
+- introduce a distinct partial parse_state — the degraded-freshness signal keys off parse_state='failed', so a new value would silently break it
+
+**Files:** src/index/pipeline.ts
+
+<!-- whyline-event: 3611ba3fa33f42d59e9abf84a3e665b0 -->
