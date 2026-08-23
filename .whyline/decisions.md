@@ -967,3 +967,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/enrich/semantic.ts
 
 <!-- whyline-event: 8aab615b14b24e4ebb61eb4b2526f725 -->
+
+## 2026-08-23 — Canonicalize compiler file paths before repository containment checks
+
+**Because:** macOS aliases /var through /private/var, so comparing a canonical root with an uncanonicalized source path rejects a real in-repo file
+
+**Rejected:**
+
+- compare raw absolute strings — fails on platform path aliases and silently prevents compiler upgrades
+
+**Files:** src/resolve/compilerPass.ts
+
+<!-- whyline-event: e432abb8169a47b4bc8e0d30b80ee884 -->
