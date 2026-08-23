@@ -1,3 +1,4 @@
+import { evidenceAppears } from "./evidenceMatch.js";
 import type { AgentTrace, BenchmarkTask, TaskResult } from "./types.js";
 
 function assertNonNegativeFinite(value: unknown, field: string): asserts value is number {
@@ -31,26 +32,6 @@ function validateTrace(trace: AgentTrace): void {
   assertNonNegativeFinite(trace.outputTokens, "outputTokens");
   assertNonNegativeFinite(trace.contextTokens, "contextTokens");
   assertNonNegativeFinite(trace.wallClockMs, "wallClockMs");
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function boundedMatch(answer: string, value: string): boolean {
-  const token = "[\\p{L}\\p{N}_$]";
-  return new RegExp(
-    `(?<!${token})${escapeRegExp(value)}(?!${token})`,
-    "iu",
-  ).test(answer);
-}
-
-function evidenceAppears(
-  answer: string,
-  evidence: BenchmarkTask["groundTruth"]["requiredEvidence"][number],
-): boolean {
-  return [evidence.qualifiedName, evidence.path, evidence.stableKey]
-    .some((candidate) => boundedMatch(answer, candidate));
 }
 
 export function scoreTrace(task: BenchmarkTask, trace: AgentTrace): TaskResult {

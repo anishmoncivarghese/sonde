@@ -1,4 +1,5 @@
 import { estimateJsonTokens, packToBudget } from "../../src/pack/tokens.js";
+import { evidenceAppears } from "./evidenceMatch.js";
 import { findSymbols } from "../../src/query/find.js";
 import { getImpactRadius } from "../../src/query/impact.js";
 import { queryGraph } from "../../src/query/traverse.js";
@@ -19,16 +20,43 @@ interface RetrievedEvidence {
   tier?: EvidenceTier;
 }
 
-function recall(required: EvidenceSymbol[], matched: Set<string>): number {
+/** A retrieved item that survived the token budget, with its rendered text. */
+interface IncludedEvidence {
+  stableKey: string;
+  text: string;
+  tier?: EvidenceTier;
+}
+
+/**
+ * Find the retrieved item that identifies this evidence, or null.
+ *
+ * Both arms are scored by the same rule (evidenceMatch.ts). Exact stable-key
+ * membership was the previous rule here, and it scored a MORE precise answer as
+ * a miss: `ts:src/index.ts#notifiers` did not equal a required `ts:src/index.ts#`,
+ * while the agentic arm scored a hit for merely writing the path in prose.
+ */
+function findMatch(
+  included: IncludedEvidence[],
+  evidence: EvidenceSymbol,
+): IncludedEvidence | null {
+  return included.find((item) => evidenceAppears(item.text, evidence)) ?? null;
+}
+
+function countMatches(
+  included: IncludedEvidence[],
+  required: EvidenceSymbol[],
+): number {
+  return required.filter((item) => findMatch(included, item) !== null).length;
+}
+
+function recall(required: EvidenceSymbol[], included: IncludedEvidence[]): number {
   if (required.length === 0) return 1;
-  const hits = required.filter((item) => matched.has(item.stableKey)).length;
-  return hits / required.length;
+  return countMatches(included, required) / required.length;
 }
 
 function tierHits(
   required: EvidenceSymbol[],
-  matched: Set<string>,
-  tiers: Map<string, EvidenceTier>,
+  included: IncludedEvidence[],
 ): TierHitCounts {
   const counts: TierHitCounts = {
     compiler: 0,
@@ -37,8 +65,9 @@ function tierHits(
     unranked: 0,
   };
   for (const item of required) {
-    if (!matched.has(item.stableKey)) continue;
-    const tier = tiers.get(item.stableKey);
+    const match = findMatch(included, item);
+    if (!match) continue;
+    const tier = match.tier;
     if (tier === "COMPILER") counts.compiler += 1;
     else if (tier === "LEXICAL") counts.lexical += 1;
     else if (tier === "HEURISTIC") counts.heuristic += 1;
@@ -102,26 +131,29 @@ export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
     }
   }
 
-  const packed = packToBudget(
-    retrieved.map((item) => ({
-      id: item.stableKey,
-      priority: 1,
-      text: JSON.stringify(item.payload, null, 2),
-    })),
-    task.groundTruth.maxContextBudgetTokens,
-  );
+  const rendered = retrieved.map((item) => ({
+    id: item.stableKey,
+    priority: 1,
+    text: JSON.stringify(item.payload, null, 2),
+  }));
+  const packed = packToBudget(rendered, task.groundTruth.maxContextBudgetTokens);
+
+  // Only evidence that survived the budget is scorable — the same constraint the
+  // agentic arm is measured against.
   const matchedKeys = new Set(packed.included);
-  const tiers = new Map(
-    retrieved
-      .filter((item) => matchedKeys.has(item.stableKey) && item.tier !== undefined)
-      .map((item) => [item.stableKey, item.tier!] as const),
-  );
-  const recallAtK = recall(task.groundTruth.requiredEvidence, matchedKeys);
-  const helpfulHits = task.groundTruth.helpfulEvidence
-    .filter((item) => matchedKeys.has(item.stableKey)).length;
-  const distractorHits = task.groundTruth.distractors
-    .filter((item) => matchedKeys.has(item.stableKey)).length;
-  const hitsByTier = tierHits(task.groundTruth.requiredEvidence, matchedKeys, tiers);
+  const textByKey = new Map(rendered.map((item) => [item.id, item.text] as const));
+  const included: IncludedEvidence[] = retrieved
+    .filter((item) => matchedKeys.has(item.stableKey))
+    .map((item) => ({
+      stableKey: item.stableKey,
+      text: textByKey.get(item.stableKey) ?? "",
+      tier: item.tier,
+    }));
+
+  const recallAtK = recall(task.groundTruth.requiredEvidence, included);
+  const helpfulHits = countMatches(included, task.groundTruth.helpfulEvidence);
+  const distractorHits = countMatches(included, task.groundTruth.distractors);
+  const hitsByTier = tierHits(task.groundTruth.requiredEvidence, included);
   const hasTieredSeed = task.seeds.some((seed) => seed.kind !== "find");
 
   return {

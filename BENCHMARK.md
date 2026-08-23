@@ -1,6 +1,6 @@
 # CodeGraph vs. agentic search — 12-task benchmark
 
-Generated: 2026-08-23T07:31:22.244Z
+Generated: 2026-08-23T07:35:50.046Z
 
 Adversarially selected per spec §10 Layer 3, not drawn uniformly — a uniform sample would show parity on tasks modern agentic search is already good at and invite the wrong conclusion. Selection criteria, disclosed as the spec requires:
 
@@ -22,21 +22,21 @@ Recall@k scores only evidence admitted by each task's disclosed context-token bu
 
 | Baseline | Mean recall@k | Preliminary success rate | Mean distractors | Mean helpful | Mean tool calls | Mean input tokens | Mean output tokens | Mean context tokens | Mean latency (ms) | Mean heuristic utility |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| CodeGraph | 0.698 | 0.667 | 0.00 | 0.17 | 1.1 | 17 | 238 | 238 | 2 | 0.302 |
+| CodeGraph | 0.781 | 0.750 | 0.00 | 0.17 | 1.1 | 17 | 238 | 238 | 6 | 0.422 |
 | Agentic search | 1.000 | 0.500 | 0.25 | 0.25 | 10.8 | 60268 | 2676 | 1490 | 40900 | n/a |
 
 ## Per-task recall@k
 
 | Task | Category | CodeGraph recall | CodeGraph success | C/L/H/U required hits | Agentic recall | Agentic success |
 |---|---|---:|:---:|---:|---:|:---:|
-| impact-notifier-signature | transitive_impact | 0.38 | no | 0/1/2/0 | 1.00 | no |
-| impact-queue-enqueue | transitive_impact | 1.00 | yes | 0/1/2/0 | 1.00 | no |
-| impact-dispatch-two-hop | transitive_impact | 1.00 | yes | 0/1/1/0 | 1.00 | no |
+| impact-notifier-signature | transitive_impact | 0.38 | no | 0/0/3/0 | 1.00 | no |
+| impact-queue-enqueue | transitive_impact | 1.00 | yes | 0/0/3/0 | 1.00 | no |
+| impact-dispatch-two-hop | transitive_impact | 1.00 | yes | 0/0/2/0 | 1.00 | no |
 | impact-retry-policy | transitive_impact | 1.00 | yes | 0/4/0/0 | 1.00 | no |
 | implementations-of-notifier | wide_interface | 1.00 | yes | 0/5/0/0 | 1.00 | yes |
 | implementations-of-notifier-completeness | wide_interface | 1.00 | yes | 0/3/0/0 | 1.00 | yes |
 | completeness-queue-callers | completeness | 1.00 | yes | 0/0/2/0 | 1.00 | yes |
-| completeness-notifier-references | completeness | 0.00 | no | 0/0/0/0 | 1.00 | yes |
+| completeness-notifier-references | completeness | 1.00 | yes | 0/2/0/0 | 1.00 | yes |
 | tests-for-dispatcher-change | test_selection | 1.00 | yes | 0/0/0/1 | 1.00 | no |
 | tests-for-retry-policy-change | test_selection | 1.00 | yes | 0/0/0/1 | 1.00 | yes |
 | semantic-backoff-behavior | semantic_disadvantage | 0.00 | no | 0/0/0/0 | 1.00 | yes |
