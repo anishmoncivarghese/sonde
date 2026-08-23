@@ -70,6 +70,21 @@ useless; a query whose answer has distinctive vocabulary may well work. It does
 show that swapping in a semantic retriever is not a general remedy for the
 task class, and that the roadmap should not assume otherwise.
 
+**Structural-role follow-up.** A blind probe then tested whether reusable graph
+patterns could answer this task class without fitting queries to known symbols.
+The protocol and thresholds were committed before querying, five behavioural
+questions about the same Hono fixture were authored separately from the
+implementer, and predictions were committed before the answer key was opened.
+Structural queries found 2 of 5 answers in the top three (40%):
+`Hono.handleError` and `HonoRequest`, both at rank 2. They missed `compose`,
+`Context`, and `notFoundHandler`. The one query shape reused across two questions
+accounted for only one hit, so no shape generalised to two hits.
+
+The fixed protocol classifies 30-59% as **INCONCLUSIVE**. No structural-role
+feature is built from this result, and the behavioural-query gap remains
+unsolved for v0.1. The full auditable record, including failed queries, is in
+`probes/structural-roles/`.
+
 *(That installation was fully removed on 2026-08-16 — hooks, MCP registrations, generated skill, global instruction file, and all six per-repo data directories.)*
 
 ---

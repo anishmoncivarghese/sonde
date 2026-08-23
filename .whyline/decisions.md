@@ -1075,3 +1075,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/index/pipeline.ts
 
 <!-- whyline-event: fd1474dd5fad45e5abed374881506245 -->
+
+## 2026-08-23 — Close the behavioural-query gap as unsolved for v0.1
+
+**Because:** both candidate remedies were measured and failed: embeddings ranked the wrong symbol first across two models and four configurations, and structural role queries hit only 40% under a blind protocol with criteria fixed in advance
+
+**Rejected:**
+
+- ship a structural role feature anyway — the probe was designed to prevent exactly this
+
+**Files:** probes/structural-roles/RESULTS.md
+
+<!-- whyline-event: 6a176bcd4c224133880c33badd5bbcbe -->
