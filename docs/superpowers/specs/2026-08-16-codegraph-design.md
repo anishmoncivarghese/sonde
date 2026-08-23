@@ -76,6 +76,34 @@ task class, and that the roadmap should not assume otherwise.
 
 ## 3. Decisions
 
+### 3.0 The claim, corrected by measurement
+
+The PRD opens by promising context a text search cannot reach. **The benchmark
+does not support that promise and it has been withdrawn.** On a real
+19,409-line repository a competent agentic search loop scored 1.000 recall on
+every task — the same structural evidence CodeGraph returns.
+
+What the measurements do support:
+
+| Structural tasks, large fixture | CodeGraph | Agentic search |
+|---|---:|---:|
+| Recall | 1.00 | 1.00 |
+| Tool calls | **1.0** | 8.0 |
+| Context tokens | **1,262** | 3,621 |
+| Latency | **263 ms** | 38,602 ms |
+| Budget overruns | **0/6** | 3/6 |
+
+So the product is a **cost and determinism** play, not a reach play: the same
+answers, ~3× less context, ~8× fewer calls, ~147× faster, and never outside the
+caller's budget because the packer truncates to it by construction. PRD §8.1's
+positioning statement should be read as superseded by this section.
+
+This matters beyond marketing copy. A reach claim would justify building more
+retrieval surface; a cost claim justifies making the existing surface cheaper,
+faster, and more predictable — and it makes latency and budget compliance
+first-class metrics rather than footnotes.
+
+
 | Decision | Choice | Rationale |
 |---|---|---|
 | Success criterion | An OSS project others adopt | Sets language, distribution, and benchmark priorities |

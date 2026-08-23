@@ -314,6 +314,15 @@ CodeGraph cannot differentiate merely by offering “a graph of functions and ca
 
 ### 8.1 Positioning statement
 
+> **Superseded by measurement (2026-08-23).** The statement below promises
+> retrieval that flat maps and probabilistic search cannot match. Benchmarking
+> against a real 19,409-line repository showed a competent agentic search loop
+> reaching 1.000 recall on every structural task — the same evidence CodeGraph
+> returns. The defensible claim is cost and determinism, not reach: the same
+> answers at ~3× less context, ~8× fewer tool calls, ~147× lower latency, and
+> zero budget overruns against three of six. See design spec §3.0.
+
+
 For developers using AI agents on real repositories, CodeGraph is a local context compiler that turns source code into fresh, evidence-backed, token-budgeted task context. Unlike flat repository maps or probabilistic code search alone, it combines deterministic program relationships with lexical and semantic retrieval and reports exactly why every source fragment was selected.
 
 ---

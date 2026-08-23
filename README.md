@@ -3,8 +3,39 @@
 A local code-context engine for AI coding agents. CodeGraph indexes a
 TypeScript repository into a symbol-level graph in SQLite and exposes three MCP
 tools — `find_symbols`, `query_graph`, and `get_impact_radius` — so an agent can
-ask structural questions text search cannot answer: who calls this, what breaks
-if I change it, and which tests are structurally related.
+answer *who calls this*, *what breaks if I change it*, and *which tests relate
+to it* in one call instead of a search loop.
+
+## What the benchmark actually shows
+
+The honest claim is **not** "finds what grep cannot". A competent agentic search
+loop finds the same structural evidence — we measured it, on a real 19,409-line
+repository, and it scored 1.000 recall on every task.
+
+The claim is **the same answers for a fraction of the cost, inside a budget**:
+
+| On real production TypeScript | CodeGraph | Agentic search |
+|---|---:|---:|
+| Recall on structural tasks | **1.00** | 1.00 |
+| Tool calls | **1.0** | 8.0 |
+| Context tokens | **1,262** | 3,621 |
+| Latency | **263 ms** | 38,602 ms |
+| Runs that blew the token budget | **0 of 6** | 3 of 6 |
+
+CodeGraph matches the baseline's answers on every structural task while using
+~3× less context, 8× fewer calls, and ~147× less wall-clock time — and it never
+exceeds the caller's token budget, because the packer truncates to it by
+construction. That is the trade being offered.
+
+**Where it loses.** Behavioural queries with no shared vocabulary — *"where is
+the retry backoff decided?"* — score 0.00. Local semantic retrieval was built
+and measured and does not fix it (see the design doc §2.2); the capability is
+therefore not claimed. If your questions are mostly of that shape, an agentic
+search loop is the better tool today.
+
+Numbers are reproducible: `npm run bench:fixture && npm run bench:large`.
+Full results in [BENCHMARK-LARGE.md](BENCHMARK-LARGE.md) and
+[BENCHMARK.md](BENCHMARK.md).
 
 ## Install and run
 
