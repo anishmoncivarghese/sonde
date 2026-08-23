@@ -311,6 +311,13 @@ export class Store {
       .run({ srcKey, name }).changes;
   }
 
+  countUnresolved(): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) AS n FROM unresolved_ref")
+      .get() as { n: number };
+    return row.n;
+  }
+
   tierCounts(): Record<string, number> {
     const rows = this.db
       .prepare("SELECT tier, COUNT(*) AS count FROM edge GROUP BY tier")

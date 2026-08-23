@@ -89,3 +89,38 @@ describe("compiler pass integration", () => {
     expect(stats.symbols).toBeGreaterThan(0);
   });
 });
+
+describe("stats reflect the compiler pass", () => {
+  it("recomputes the unresolved count after compiler placements", async () => {
+    // stats.edges was refreshed after the pass but stats.unresolved was not, so
+    // `index --resolve` reported 21,078 unresolved on the large fixture while
+    // the database held 19,361. The figure understated the benefit of the flag.
+    const root = ambiguousFixture();
+    const dbPath = join(root, "i.sqlite");
+    const stats = await indexRepo(root, dbPath, { resolve: true });
+
+    const db = openDb(dbPath);
+    migrate(db);
+    const actual = (
+      db.prepare("SELECT COUNT(*) AS n FROM unresolved_ref").get() as { n: number }
+    ).n;
+    db.close();
+
+    expect(stats.unresolved).toBe(actual);
+  });
+
+  it("leaves the unresolved count alone when the pass does not run", async () => {
+    const root = ambiguousFixture();
+    const dbPath = join(root, "i.sqlite");
+    const stats = await indexRepo(root, dbPath);
+
+    const db = openDb(dbPath);
+    migrate(db);
+    const actual = (
+      db.prepare("SELECT COUNT(*) AS n FROM unresolved_ref").get() as { n: number }
+    ).n;
+    db.close();
+
+    expect(stats.unresolved).toBe(actual);
+  });
+});

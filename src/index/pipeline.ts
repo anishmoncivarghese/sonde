@@ -165,6 +165,10 @@ async function run(
           (total, count) => total + count,
           0,
         );
+        // The pass clears unresolved records it has placed, so the figure taken
+        // during RESOLVE is stale by exactly the number of references the
+        // compiler rescued — it understated the benefit of --resolve.
+        stats.unresolved = store.countUnresolved();
       }
     }
 
