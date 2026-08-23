@@ -4,6 +4,7 @@ import {
   buildClaudeArgs,
   parseClaudeResult,
   toolCallsFromTranscript,
+  projectSlugFor,
   type ClaudeResultJson,
 } from "../../bench/harness/claudeCodeBaseline.js";
 import { BENCHMARK_TASKS } from "../../bench/harness/tasks.js";
@@ -105,5 +106,21 @@ describe("toolCallsFromTranscript", () => {
     const { toolCalls, contextTokens } = toolCallsFromTranscript("");
     expect(toolCalls).toEqual([]);
     expect(contextTokens).toBe(0);
+  });
+});
+
+describe("projectSlugFor", () => {
+  it("maps a resolved macOS temp path to Claude Code's project directory name", () => {
+    // Regression: os.tmpdir() yields /var/... while the realpath is
+    // /private/var/..., and Claude Code names the directory after the realpath.
+    // Using the unresolved path silently found no transcript and produced a
+    // trace with zero tool calls.
+    expect(
+      projectSlugFor(
+        "/private/var/folders/43/x7x092wj/T/cg-baseline-impact-notifier-signature-6UK1SA",
+      ),
+    ).toBe(
+      "-private-var-folders-43-x7x092wj-T-cg-baseline-impact-notifier-signature-6UK1SA",
+    );
   });
 });

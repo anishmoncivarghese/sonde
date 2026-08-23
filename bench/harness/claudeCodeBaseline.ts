@@ -18,7 +18,14 @@
  *    executes against an isolated copy of the fixture outside the repository.
  */
 import { spawn } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs";
+import {
+  cpSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  existsSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -137,8 +144,18 @@ export function parseClaudeResult(
   };
 }
 
+/**
+ * Claude Code names a project directory after the REAL path of the working
+ * directory. On macOS `os.tmpdir()` returns `/var/...` while the resolved path
+ * is `/private/var/...`, so the slug must be derived from the realpath or the
+ * transcript is silently never found and the trace reports zero tool calls.
+ */
+export function projectSlugFor(workDir: string): string {
+  return workDir.replace(/[/.]/g, "-");
+}
+
 function transcriptPathFor(workDir: string, sessionId: string): string | null {
-  const slug = workDir.replace(/[/.]/g, "-");
+  const slug = projectSlugFor(realpathSync(workDir));
   const candidate = join(
     process.env.HOME ?? "",
     ".claude",
