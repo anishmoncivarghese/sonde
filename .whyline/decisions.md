@@ -1003,3 +1003,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/store/repos.ts
 
 <!-- whyline-event: ac3aca992e6f47f4a9a7fce4eb9e3ad6 -->
+
+## 2026-08-23 — Apply compiler promotions transactionally and clear only placed unresolved references
+
+**Because:** A checker failure must not leave a half-upgraded graph, and resolving a target without a matching stored edge is not enough evidence to erase the unresolved completeness signal
+
+**Rejected:**
+
+- delete unresolved rows whenever tsc finds a declaration — silently loses evidence when no CodeGraph edge was actually promoted
+
+**Files:** src/resolve/compilerPass.ts
+
+<!-- whyline-event: dbee0452a02547f38f26debdb71ddcfb -->

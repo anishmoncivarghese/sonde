@@ -1,6 +1,9 @@
 import { existsSync, realpathSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import ts from "typescript";
+import type { Store } from "../store/index.js";
+import type { EdgeKind } from "../store/repos.js";
+import { declarationToStableKey } from "./symbolMapping.js";
 
 export const TSC_VERSION = ts.version;
 
@@ -59,6 +62,141 @@ export function createCompilerContext(root: string): CompilerContext | null {
         return canonicalFile === realRoot || canonicalFile.startsWith(prefix);
       },
     };
+  } catch {
+    return null;
+  }
+}
+
+export interface CompilerPassResult {
+  upgraded: number;
+  unresolvedCleared: number;
+  identifiersSeen: number;
+  identifiersResolved: number;
+  tscVersion: string;
+}
+
+function isDeclarationName(node: ts.Identifier): boolean {
+  if (
+    ts.isPropertyAccessExpression(node.parent) ||
+    ts.isQualifiedName(node.parent)
+  ) {
+    return false;
+  }
+  return ts.getNameOfDeclaration(node.parent as ts.Declaration) === node;
+}
+
+/** The enclosing named symbol of a reference, in adapter key form. */
+function enclosingKey(
+  node: ts.Node,
+  context: CompilerContext,
+): string | null {
+  let current: ts.Node | undefined = node.parent;
+  while (current && !ts.isSourceFile(current)) {
+    const key = declarationToStableKey(
+      current as ts.Declaration,
+      context,
+    );
+    if (key) return key;
+    current = current.parent;
+  }
+  return null;
+}
+
+function edgeKindFor(node: ts.Node): EdgeKind {
+  const parent = node.parent;
+  if (
+    parent &&
+    ts.isCallExpression(parent) &&
+    parent.expression === node
+  ) {
+    return "CALLS";
+  }
+  if (
+    parent &&
+    ts.isPropertyAccessExpression(parent) &&
+    parent.parent &&
+    ts.isCallExpression(parent.parent) &&
+    parent.parent.expression === parent
+  ) {
+    return "CALLS";
+  }
+  return "REFERENCES";
+}
+
+function resolvedSymbol(
+  node: ts.Identifier,
+  context: CompilerContext,
+): ts.Symbol | undefined {
+  const found = context.checker.getSymbolAtLocation(node);
+  if (!found) return undefined;
+  return (found.flags & ts.SymbolFlags.Alias) !== 0
+    ? context.checker.getAliasedSymbol(found)
+    : found;
+}
+
+/**
+ * Upgrade edges the tree-sitter path could only guess at.
+ *
+ * Only ever raises a tier. A reference the checker cannot place is left exactly
+ * as the deterministic path recorded it—never fabricated, never downgraded.
+ * The write phase is transactional, so a checker or mapping failure cannot
+ * leave a partially upgraded graph.
+ *
+ * The Program is discarded when this returns. Do not cache it: spec §8.4 keeps
+ * inline refresh compiler-free so idle memory stays within PRD §17.1's budget.
+ */
+export function runCompilerPass(
+  root: string,
+  store: Store,
+): CompilerPassResult | null {
+  const context = createCompilerContext(root);
+  if (!context) return null;
+
+  try {
+    return store.transaction(() => {
+      const result: CompilerPassResult = {
+        upgraded: 0,
+        unresolvedCleared: 0,
+        identifiersSeen: 0,
+        identifiersResolved: 0,
+        tscVersion: TSC_VERSION,
+      };
+
+      for (const sourceFile of context.program.getSourceFiles()) {
+        if (!context.inRepo(sourceFile.fileName)) continue;
+        if (sourceFile.fileName.endsWith(".d.ts")) continue;
+
+        const visit = (node: ts.Node): void => {
+          if (ts.isIdentifier(node) && !isDeclarationName(node)) {
+            result.identifiersSeen += 1;
+            const declaration = resolvedSymbol(node, context)?.declarations?.[0];
+            if (declaration) {
+              result.identifiersResolved += 1;
+              const dstKey = declarationToStableKey(declaration, context);
+              const srcKey = enclosingKey(node, context);
+              if (dstKey && srcKey && dstKey !== srcKey) {
+                const upgraded = store.upgradeEdgeTier(
+                  srcKey,
+                  dstKey,
+                  edgeKindFor(node),
+                );
+                if (upgraded) {
+                  result.upgraded += 1;
+                  result.unresolvedCleared += store.deleteUnresolvedFor(
+                    srcKey,
+                    node.text,
+                  );
+                }
+              }
+            }
+          }
+          ts.forEachChild(node, visit);
+        };
+        visit(sourceFile);
+      }
+
+      return result;
+    });
   } catch {
     return null;
   }
