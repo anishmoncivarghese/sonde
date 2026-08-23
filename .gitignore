@@ -3,3 +3,6 @@ dist/
 vendor/
 *.sqlite
 .codegraph/
+
+# Large benchmark fixture: fetched by scripts/fetch-bench-fixture.mjs, never committed
+tests/fixtures/repos/large/

@@ -916,3 +916,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/claudeCodeBaseline.ts
 
 <!-- whyline-event: 9ebfbc82945146288117cc9009873422 -->
+
+## 2026-08-23 — Score both benchmark arms with a single shared evidence matcher
+
+**Because:** the CodeGraph arm required exact stable-key membership while the agentic arm substring-matched prose, so the two published columns measured different things and structurally favoured the verbose arm; a more precise CodeGraph answer scored zero while naming a path in prose scored full marks
+
+**Rejected:**
+
+- hold both arms to exact stable-key matching — agents emit prose, not stable keys, so it would crater the baseline artificially
+- leave the asymmetry and disclose it — an incomparable headline number is not rescued by a footnote
+
+**Files:** bench/harness/evidenceMatch.ts
+
+<!-- whyline-event: 4fe7de03a48b4ee4bc6dd3fefcf16443 -->
