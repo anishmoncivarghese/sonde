@@ -1,9 +1,9 @@
-# CodeGraph — Product Requirements Document
+# Sonde — Product Requirements Document
 
 **Document status:** Draft for validation  
 **Version:** 0.1  
 **Date:** 2026-08-15  
-**Working product name:** CodeGraph  
+**Working product name:** Sonde  
 **Distribution intent:** Free and open source  
 **Primary interface:** Local CLI and Model Context Protocol (MCP) server
 
@@ -11,17 +11,17 @@
 
 ## 1. Executive summary
 
-CodeGraph is a local, deterministic context engine for AI coding agents. It indexes a software repository into a symbol-level relationship graph, combines that graph with lexical and semantic retrieval, and returns the smallest evidence-backed set of source code needed for a task.
+Sonde is a local, deterministic context engine for AI coding agents. It indexes a software repository into a symbol-level relationship graph, combines that graph with lexical and semantic retrieval, and returns the smallest evidence-backed set of source code needed for a task.
 
 Today, coding agents often rediscover a repository repeatedly. They list directories, search text, open entire files, follow imports manually, and consume large numbers of tokens before they can answer a question or make a safe change. Pure vector search is useful but can miss structurally related code. Sending a complete repository map can also become expensive and noisy.
 
-CodeGraph will perform repository analysis before the LLM is invoked. The model will continue to use self-attention over the context it receives; CodeGraph does not replace or disable self-attention. Its purpose is to reduce and improve that context.
+Sonde will perform repository analysis before the LLM is invoked. The model will continue to use self-attention over the context it receives; Sonde does not replace or disable self-attention. Its purpose is to reduce and improve that context.
 
 The product promise is:
 
 > Give any compatible coding agent the minimum sufficient, source-verifiable context for understanding, reviewing, and changing a codebase.
 
-CodeGraph will be local-first, model-neutral, client-neutral, incremental, inspectable, and benchmarked against ordinary file exploration and existing repository-context systems. The first release will prioritize retrieval correctness and freshness over visualizations, AI-generated summaries, or broad language coverage.
+Sonde will be local-first, model-neutral, client-neutral, incremental, inspectable, and benchmarked against ordinary file exploration and existing repository-context systems. The first release will prioritize retrieval correctness and freshness over visualizations, AI-generated summaries, or broad language coverage.
 
 ---
 
@@ -66,7 +66,7 @@ MCP provides a broadly supported way for agents to discover and invoke repositor
 
 ## 3. Product vision
 
-CodeGraph should become a reusable context layer between source repositories and coding agents.
+Sonde should become a reusable context layer between source repositories and coding agents.
 
 ```text
 Developer question or task
@@ -75,7 +75,7 @@ Developer question or task
    Client coding agent
             |
             v
-      CodeGraph MCP
+      Sonde MCP
             |
     +-------+--------+
     |                |
@@ -96,7 +96,7 @@ Developer question or task
  Actual source evidence returned to agent
 ```
 
-Long term, CodeGraph should answer questions such as:
+Long term, Sonde should answer questions such as:
 
 - “Where is login-session refresh implemented?”
 - “What can break if I change this protocol?”
@@ -297,12 +297,12 @@ Existing systems validate the product category:
 - Aider constructs a repository map and graph-ranks important symbols within a token budget.
 - Serena provides MCP-based semantic symbol retrieval and refactoring backed by language servers.
 - GitNexus exposes a local code knowledge graph, call chains, clusters, and execution flows.
-- CodeGraphContext provides symbol-level graph retrieval through MCP.
-- CodeGraphMCPServer provides Tree-sitter indexing, Graph RAG, incremental updates, and multiple languages.
+- SondeContext provides symbol-level graph retrieval through MCP.
+- SondeMCPServer provides Tree-sitter indexing, Graph RAG, incremental updates, and multiple languages.
 - Sourcegraph combines search and code-graph intelligence at large scale.
 - Academic systems such as CodexGraph demonstrate repository interaction through code graphs.
 
-CodeGraph cannot differentiate merely by offering “a graph of functions and calls.” Its intended differentiation is the combination of:
+Sonde cannot differentiate merely by offering “a graph of functions and calls.” Its intended differentiation is the combination of:
 
 1. Reproducible context-efficiency benchmarks.
 2. Explicit freshness and uncertainty semantics.
@@ -317,13 +317,13 @@ CodeGraph cannot differentiate merely by offering “a graph of functions and ca
 > **Superseded by measurement (2026-08-23).** The statement below promises
 > retrieval that flat maps and probabilistic search cannot match. Benchmarking
 > against a real 19,409-line repository showed a competent agentic search loop
-> reaching 1.000 recall on every structural task — the same evidence CodeGraph
+> reaching 1.000 recall on every structural task — the same evidence Sonde
 > returns. The defensible claim is cost and determinism, not reach: the same
 > answers at ~3× less context, ~8× fewer tool calls, ~147× lower latency, and
 > zero budget overruns against three of six. See design spec §3.0.
 
 
-For developers using AI agents on real repositories, CodeGraph is a local context compiler that turns source code into fresh, evidence-backed, token-budgeted task context. Unlike flat repository maps or probabilistic code search alone, it combines deterministic program relationships with lexical and semantic retrieval and reports exactly why every source fragment was selected.
+For developers using AI agents on real repositories, Sonde is a local context compiler that turns source code into fresh, evidence-backed, token-budgeted task context. Unlike flat repository maps or probabilistic code search alone, it combines deterministic program relationships with lexical and semantic retrieval and reports exactly why every source fragment was selected.
 
 ---
 
@@ -336,7 +336,7 @@ Requirements use the labels **P0** (required for MVP), **P1** (important after M
 - **FR-001 / P0:** Accept an explicit repository root.
 - **FR-002 / P0:** Canonicalize and validate the root before reading files.
 - **FR-003 / P0:** Respect `.gitignore` by default.
-- **FR-004 / P0:** Support an additional `.codegraphignore` file using gitignore-style patterns.
+- **FR-004 / P0:** Support an additional `.sondeignore` file using gitignore-style patterns.
 - **FR-005 / P0:** Exclude VCS internals, dependency directories, build products, generated artifacts, binaries, and oversized files using configurable defaults.
 - **FR-006 / P0:** Detect Git revision and dirty-worktree state when Git is available.
 - **FR-007 / P0:** Detect supported languages and package/build manifests.
@@ -593,7 +593,7 @@ MCP tool definitions should correctly describe read-only and idempotent behavior
 ### 11.1 Components
 
 ```text
-codegraph CLI / MCP server
+sonde CLI / MCP server
         |
         +-- Repository manager
         |     - root validation
@@ -674,12 +674,12 @@ Do not require Neo4j for the local product. A dedicated graph database may be ev
 
 Default options to validate:
 
-1. `.codegraph/index.sqlite` inside the repository and ignored by Git.
+1. `.sonde/index.sqlite` inside the repository and ignored by Git.
 2. A global cache keyed by canonical root and repository identity.
 
 Provisional behavior:
 
-- Store configuration in `.codegraph/config.json` if the user opts into project-local configuration.
+- Store configuration in `.sonde/config.json` if the user opts into project-local configuration.
 - Store disposable indexes in the user cache directory by default to avoid repository pollution.
 - Never commit the binary index automatically.
 - Permit an optional portable metadata export for debugging and CI artifacts.
@@ -995,7 +995,7 @@ Targets are provisional and must be measured on reference hardware.
 ### 17.4 Accessibility and usability
 
 - Installation should require one documented command where possible.
-- `codegraph doctor` should diagnose parser, database, MCP, and repository configuration.
+- `sonde doctor` should diagnose parser, database, MCP, and repository configuration.
 - Errors should state a corrective action.
 - The product must remain useful without a graph visualization UI.
 
@@ -1006,23 +1006,23 @@ Targets are provisional and must be measured on reference hardware.
 Proposed commands:
 
 ```text
-codegraph init [path]
-codegraph index [path]
-codegraph update [path]
-codegraph watch [path]
-codegraph status [path]
-codegraph doctor
-codegraph search <query>
-codegraph query <pattern> <symbol>
-codegraph context --task <text> --budget <tokens>
-codegraph changes [--base <revision>]
-codegraph mcp serve [path]
-codegraph mcp setup [client]
-codegraph export architecture --format markdown
-codegraph clean [path]
+sonde init [path]
+sonde index [path]
+sonde update [path]
+sonde watch [path]
+sonde status [path]
+sonde doctor
+sonde search <query>
+sonde query <pattern> <symbol>
+sonde context --task <text> --budget <tokens>
+sonde changes [--base <revision>]
+sonde mcp serve [path]
+sonde mcp setup [client]
+sonde export architecture --format markdown
+sonde clean [path]
 ```
 
-`clean` must resolve and display the exact index target and should remove only CodeGraph-owned data.
+`clean` must resolve and display the exact index target and should remove only Sonde-owned data.
 
 ---
 
@@ -1036,8 +1036,8 @@ Compare at least:
 
 1. Agent with ordinary file listing, text search, and file reads.
 2. Agent with a static repository map.
-3. Agent with CodeGraph deterministic retrieval.
-4. Agent with CodeGraph hybrid retrieval.
+3. Agent with Sonde deterministic retrieval.
+4. Agent with Sonde hybrid retrieval.
 5. Where practical, established open-source tools configured comparably.
 
 ### 19.2 Benchmark task classes
@@ -1091,7 +1091,7 @@ Ground truth should be human-reviewed and version-pinned.
 
 The project should proceed beyond MVP if, on the selected benchmark:
 
-- Deterministic CodeGraph retrieval reduces median agent input tokens by at least 30% without a statistically meaningful task-success decrease; **or**
+- Deterministic Sonde retrieval reduces median agent input tokens by at least 30% without a statistically meaningful task-success decrease; **or**
 - It improves task success by at least 10 percentage points at an equal context budget; and
 - Required-evidence recall is at least 90% for supported structural task classes; and
 - Stale source is never silently returned in the evaluation suite.
@@ -1108,7 +1108,7 @@ No public token-reduction percentage should be claimed from metadata compression
 
 Default: no network telemetry.
 
-Local anonymous counters may be available through `codegraph status`:
+Local anonymous counters may be available through `sonde status`:
 
 - Indexed files, symbols, and edges.
 - Parse and resolution coverage.
@@ -1121,13 +1121,13 @@ Any future telemetry must be opt-in, documented, source-free, path-sanitized, an
 
 ### 20.1 The activity ledger moved to AgentDock
 
-**Status: removed from CodeGraph scope on 2026-08-16.**
+**Status: removed from Sonde scope on 2026-08-16.**
 
-An expanded draft of this section specified an opt-in activity ledger (tokens, lines, files, time, tool calls) with generated Markdown efficiency reports, together with FR-090–100, the `get_activity_report` MCP tool, the activity-event data model, the `codegraph activity *` CLI commands, and Risk 9.
+An expanded draft of this section specified an opt-in activity ledger (tokens, lines, files, time, tool calls) with generated Markdown efficiency reports, together with FR-090–100, the `get_activity_report` MCP tool, the activity-event data model, the `sonde activity *` CLI commands, and Risk 9.
 
 All of it is reassigned to AgentDock. Reasons:
 
-1. **Opposite durability classes.** A CodeGraph index is derived and disposable — delete it, rebuild from source, lose nothing. An activity ledger is authored and irreplaceable. They require opposite backup, retention, privacy, and commit policies, so any single decision is wrong for one of them.
+1. **Opposite durability classes.** A Sonde index is derived and disposable — delete it, rebuild from source, lose nothing. An activity ledger is authored and irreplaceable. They require opposite backup, retention, privacy, and commit policies, so any single decision is wrong for one of them.
 2. **AgentDock already owns the substrate.** It has an event ledger, and it already emits session-start events carrying the client-provided session ID, the agent name, and a timestamp.
 3. **The join key already exists there.** AgentDock records the same session identifier that names the coding client's own transcript file, so token and tool-call measurements can be read from an authoritative source rather than reconstructed.
 4. **This was the only section of this PRD** that never referenced a symbol, an edge, or a line of source.
@@ -1278,8 +1278,8 @@ Repository expectations:
 
 ### Risk 8: generic product name
 
-**Risk:** “CodeGraph” conflicts conceptually and in search results with several existing projects.  
-**Mitigation:** Treat CodeGraph as a working name and perform package, domain, repository, and trademark checks before public launch.
+**Risk:** “Sonde” conflicts conceptually and in search results with several existing projects.  
+**Mitigation:** Treat Sonde as a working name and perform package, domain, repository, and trademark checks before public launch.
 
 ---
 
@@ -1295,7 +1295,7 @@ Repository expectations:
 8. Freshness, uncertainty, provenance, and token budgeting are public product contracts.
 9. Evaluation is defined before feature expansion.
 10. Visualization is not required for MVP.
-11. Activity and efficiency analytics belong to AgentDock, not CodeGraph — see §20.
+11. Activity and efficiency analytics belong to AgentDock, not Sonde — see §20.
 
 ---
 
@@ -1306,7 +1306,7 @@ Repository expectations:
 - Which user pain is the launch headline: token efficiency, safer changes, review intelligence, or Swift/Xcode understanding?
 - Is the initial audience individual developers or agent-tool authors?
 - Is a native macOS application part of the product, or is CLI/MCP sufficient initially?
-- What final product name avoids confusion with existing CodeGraph projects?
+- What final product name avoids confusion with existing Sonde projects?
 
 ### Technical decisions
 
@@ -1347,8 +1347,8 @@ Repository expectations:
 - [Aider repository map](https://aider.chat/docs/repomap.html)
 - [Serena](https://github.com/oraios/serena)
 - [GitNexus](https://github.com/nxpatterns/gitnexus)
-- [CodeGraphContext](https://github.com/codegraphcontext/codegraphcontext)
-- [CodeGraphMCPServer](https://github.com/nahisaho/CodeGraphMCPServer)
+- [SondeContext](https://github.com/sondecontext/sondecontext)
+- [SondeMCPServer](https://github.com/nahisaho/SondeMCPServer)
 - [Sourcegraph code context](https://sourcegraph.com/docs/cody/core-concepts/context)
 - [Sourcegraph SCIP and precise code navigation](https://sourcegraph.com/docs/code-navigation/precise-code-navigation)
 - [CodexGraph research paper](https://arxiv.org/abs/2408.03910)
@@ -1357,4 +1357,4 @@ Repository expectations:
 
 ## 28. One-sentence success definition
 
-CodeGraph succeeds when a coding agent can solve repository-level tasks with fewer input tokens and equal or better correctness, while every selected source fragment remains fresh, explainable, and verifiable.
+Sonde succeeds when a coding agent can solve repository-level tasks with fewer input tokens and equal or better correctness, while every selected source fragment remains fresh, explainable, and verifiable.

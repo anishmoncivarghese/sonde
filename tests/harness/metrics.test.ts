@@ -6,7 +6,7 @@ function result(overrides: Partial<TaskResult> = {}): TaskResult {
   return {
     taskId: "t",
     category: "transitive_impact",
-    baseline: "codegraph",
+    baseline: "sonde",
     recallAtK: 1,
     toolCalls: 1,
     inputTokens: 10,
@@ -81,7 +81,7 @@ describe("aggregateResults", () => {
   it("rejects empty and mixed-baseline result sets", () => {
     expect(() => aggregateResults([])).toThrow(/at least one/i);
     expect(() => aggregateResults([
-      result({ baseline: "codegraph" }),
+      result({ baseline: "sonde" }),
       result({ baseline: "agentic_search" }),
     ])).toThrow(/single baseline/i);
   });

@@ -76,7 +76,7 @@ function tierHits(
   return counts;
 }
 
-export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
+export function runSondeTask(db: Db, task: BenchmarkTask): TaskResult {
   const startedAt = Date.now();
   const retrieved: RetrievedEvidence[] = [];
   const indexByKey = new Map<string, number>();
@@ -159,7 +159,7 @@ export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
   return {
     taskId: task.id,
     category: task.category,
-    baseline: "codegraph",
+    baseline: "sonde",
     recallAtK,
     toolCalls: task.seeds.length,
     inputTokens: estimateJsonTokens(task.prompt),

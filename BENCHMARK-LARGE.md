@@ -1,4 +1,4 @@
-# CodeGraph vs. agentic search — large fixture
+# Sonde vs. agentic search — large fixture
 
 Generated: 2026-08-23T18:59:21.423Z
 
@@ -11,19 +11,19 @@ retrieval beats exhaustive reading. This corpus is two orders of magnitude
 beyond any task budget, so neither arm can read it exhaustively.
 
 Ground truth was verified by reading the fixture source, not generated from
-CodeGraph's own output: an oracle derived from the tool under test would
+Sonde's own output: an oracle derived from the tool under test would
 agree with its own bugs.
 
 ## Summary
 
 | Baseline | Mean recall@k | Success rate | Mean distractors | Mean tool calls | Mean input tokens | Mean context tokens | Mean latency (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| CodeGraph | 0.833 | 0.833 | 0.00 | 1.0 | 14 | 1263 | 280 |
+| Sonde | 0.833 | 0.833 | 0.00 | 1.0 | 14 | 1263 | 280 |
 | Agentic search | 1.000 | 0.500 | 0.00 | 8.0 | 78548 | 3621 | 38602 |
 
 ## Per-task
 
-| Task | Category | CodeGraph recall | Agentic recall | CodeGraph ctx | Agentic ctx |
+| Task | Category | Sonde recall | Agentic recall | Sonde ctx | Agentic ctx |
 |---|---|---:|---:|---:|---:|
 | hono-implementations-of-router | wide_interface | 1.00 | 1.00 | 337 | 332 |
 | hono-impact-router-add | transitive_impact | 1.00 | 1.00 | 4000 | 9756 |

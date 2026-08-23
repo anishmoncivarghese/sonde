@@ -1,4 +1,4 @@
-# CodeGraph Foundation (Plan 1 of 3) Implementation Plan
+# Sonde Foundation (Plan 1 of 3) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript (strict), Node 22+, `web-tree-sitter` (WASM), `better-sqlite3`, `typescript` (bundled, for the oracle and the optional upgrade pass), `vitest`, `commander`.
 
-**Spec:** `docs/superpowers/specs/2026-08-16-codegraph-design.md` (revision 2)
+**Spec:** `docs/superpowers/specs/2026-08-16-sonde-design.md` (revision 2)
 
 ## Global Constraints
 
@@ -34,7 +34,7 @@
 src/
   repo/
     boundary.ts        # canonicalize + containment check. THE security boundary.
-    ignore.ts          # .gitignore + .codegraphignore matching
+    ignore.ts          # .gitignore + .sondeignore matching
     discover.ts        # walk + filter + hash → FileRecord[]
     git.ts             # revision, dirty state
   store/
@@ -119,11 +119,11 @@ Expected: FAIL — cannot resolve `../src/version.js`
 `package.json`:
 ```json
 {
-  "name": "codegraph",
+  "name": "sonde",
   "version": "0.1.0",
   "type": "module",
   "engines": { "node": ">=22" },
-  "bin": { "codegraph": "./dist/cli/main.js" },
+  "bin": { "sonde": "./dist/cli/main.js" },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
@@ -182,7 +182,7 @@ node_modules/
 dist/
 vendor/
 *.sqlite
-.codegraph/
+.sonde/
 ```
 
 `.nvmrc` — this machine's default node is v20, which cannot run the project:
@@ -413,7 +413,7 @@ beforeAll(() => {
   mkdirSync(join(root, "node_modules", "pkg"), { recursive: true });
   mkdirSync(join(root, "dist"));
   writeFileSync(join(root, ".gitignore"), "dist/\n*.log\n");
-  writeFileSync(join(root, ".codegraphignore"), "src/generated.ts\n");
+  writeFileSync(join(root, ".sondeignore"), "src/generated.ts\n");
   writeFileSync(join(root, "src", "a.ts"), "export const a = 1;");
   writeFileSync(join(root, "src", "generated.ts"), "export const g = 1;");
   writeFileSync(join(root, "node_modules", "pkg", "i.ts"), "export const p = 1;");
@@ -428,7 +428,7 @@ describe("discover", () => {
   it("excludes node_modules", () => expect(paths().some(p => p.startsWith("node_modules"))).toBe(false));
   it("honours .gitignore directories", () => expect(paths().some(p => p.startsWith("dist"))).toBe(false));
   it("honours .gitignore globs", () => expect(paths()).not.toContain("debug.log"));
-  it("honours .codegraphignore", () => expect(paths()).not.toContain("src/generated.ts"));
+  it("honours .sondeignore", () => expect(paths()).not.toContain("src/generated.ts"));
 
   it("records hash, mtime and size", () => {
     const f = discover(new RepoBoundary(root)).find(x => x.path === "src/a.ts")!;
@@ -459,7 +459,7 @@ import { join } from "node:path";
 import type { RepoBoundary } from "./boundary.js";
 
 const ALWAYS_IGNORED = new Set([
-  ".git", "node_modules", ".codegraph", "dist", "build", "out",
+  ".git", "node_modules", ".sonde", "dist", "build", "out",
   ".next", ".turbo", "coverage", "__pycache__", ".venv",
 ]);
 
@@ -478,7 +478,7 @@ export interface IgnoreMatcher { ignores(relPath: string): boolean; }
 
 export function buildIgnore(boundary: RepoBoundary): IgnoreMatcher {
   const rules: Rule[] = [];
-  for (const name of [".gitignore", ".codegraphignore"]) {
+  for (const name of [".gitignore", ".sondeignore"]) {
     const abs = join(boundary.root, name);
     if (!existsSync(abs)) continue;
     for (const raw of readFileSync(abs, "utf8").split("\n")) {
@@ -768,7 +768,7 @@ import type { Db } from "./db.js";
 
 export class SchemaVersionError extends Error {
   constructor(found: number) {
-    super(`index schema version ${found} != supported ${SCHEMA_VERSION}; run "codegraph index --rebuild"`);
+    super(`index schema version ${found} != supported ${SCHEMA_VERSION}; run "sonde index --rebuild"`);
     this.name = "SchemaVersionError";
   }
 }
@@ -2229,8 +2229,8 @@ git commit -m "feat: add cycle-safe export-map fixpoint and import binding"
 
 Spec §10 Layer 2. Two rules are non-negotiable:
 
-1. **`ancestry.ts` must map positions to enclosing symbols using `tsc`'s own AST**, never CodeGraph's containment logic. Sharing that code would make a containment bug produce correlated errors and the oracle would silently agree with the bug it exists to catch.
-2. **Filter to in-repo targets.** `tsc` resolves into `node_modules` and `lib.d.ts`; CodeGraph deliberately does not. Unfiltered recall would be meaningless.
+1. **`ancestry.ts` must map positions to enclosing symbols using `tsc`'s own AST**, never Sonde's containment logic. Sharing that code would make a containment bug produce correlated errors and the oracle would silently agree with the bug it exists to catch.
+2. **Filter to in-repo targets.** `tsc` resolves into `node_modules` and `lib.d.ts`; Sonde deliberately does not. Unfiltered recall would be meaningless.
 
 - [ ] **Step 1: Create the fixture repo**
 
@@ -2394,7 +2394,7 @@ export function buildOracle(fixtureRoot: string): OracleEdge[] {
     visit(sf);
   }
 
-  // Dedupe: CodeGraph stores symbol→symbol pairs, not identifier positions.
+  // Dedupe: Sonde stores symbol→symbol pairs, not identifier positions.
   const key = (e: OracleEdge) => `${e.srcFile}|${e.srcSymbol}|${e.dstFile}|${e.dstSymbol}|${e.kind}`;
   return [...new Map(out.map(e => [key(e), e])).values()];
 }
@@ -3037,7 +3037,7 @@ git commit -m "feat: add stat-based drift detection with hash confirmation"
 
 **Interfaces:**
 - Consumes: `indexRepo`/`updateRepo` (Task 13), `checkDrift` (Task 14), `compare` (Task 11)
-- Produces: `codegraph index|update|status|doctor|clean` and `npm run bench:oracle`
+- Produces: `sonde index|update|status|doctor|clean` and `npm run bench:oracle`
 
 This closes Plan 1: an indexed graph plus a published accuracy number.
 
@@ -3113,7 +3113,7 @@ import { SCHEMA_VERSION } from "../version.js";
 function indexPathFor(root: string): string {
   const boundary = new RepoBoundary(root);
   const hash = createHash("sha256").update(boundary.root).digest("hex").slice(0, 16);
-  const dir = join(homedir(), ".cache", "codegraph", hash);
+  const dir = join(homedir(), ".cache", "sonde", hash);
   mkdirSync(dir, { recursive: true });
   return join(dir, "index.sqlite");
 }
@@ -3123,7 +3123,7 @@ const emit = (json: boolean, obj: unknown, human: string): void => {
 };
 
 const program = new Command();
-program.name("codegraph").version("0.1.0");
+program.name("sonde").version("0.1.0");
 
 program.command("index").argument("[path]", "repository root", ".")
   .option("--json", "structured output")
@@ -3146,7 +3146,7 @@ program.command("status").argument("[path]", "repository root", ".")
   .action((path: string, opts: { json?: boolean }) => {
     const dbPath = indexPathFor(path);
     if (!existsSync(dbPath)) {
-      emit(!!opts.json, { freshness: { state: "unknown" } }, "no index; run `codegraph index`");
+      emit(!!opts.json, { freshness: { state: "unknown" } }, "no index; run `sonde index`");
       return;
     }
     const db = openDb(dbPath); migrate(db);
@@ -3202,7 +3202,7 @@ import { openDb, migrate } from "../src/store/index.js";
 
 const FIXTURES = ["tests/fixtures/repos/small"];
 
-/** Reads CodeGraph's own edges back out in OracleEdge shape for comparison. */
+/** Reads Sonde's own edges back out in OracleEdge shape for comparison. */
 function actualEdges(dbPath: string): OracleEdge[] {
   const db = openDb(dbPath); migrate(db);
   const rows = db.prepare(`
@@ -3218,7 +3218,7 @@ function actualEdges(dbPath: string): OracleEdge[] {
 }
 
 const lines: string[] = [
-  "# CodeGraph edge accuracy vs the TypeScript compiler",
+  "# Sonde edge accuracy vs the TypeScript compiler",
   "",
   `Generated: ${new Date().toISOString()}`,
   `TypeScript: ${ts.version} (bundled; the repository's own typescript is never loaded)`,
@@ -3473,9 +3473,9 @@ git commit -m "feat: derive TESTS edges with barrel exclusion and fan-out cap"
 
 ## Plan 1 completion criteria
 
-- [ ] `npx codegraph index <repo>` produces a populated SQLite graph, including `TESTS` edges
-- [ ] `codegraph status` reports drift and tier distribution
-- [ ] `codegraph doctor` reports parser, tsc version, and index path
+- [ ] `npx sonde index <repo>` produces a populated SQLite graph, including `TESTS` edges
+- [ ] `sonde status` reports drift and tier distribution
+- [ ] `sonde doctor` reports parser, tsc version, and index path
 - [ ] `ORACLE.md` contains real precision/recall per edge kind
 - [ ] Swift spike findings recorded; adapter contract amended if Part B failed
 - [ ] `npm run typecheck && npm test` clean in CI

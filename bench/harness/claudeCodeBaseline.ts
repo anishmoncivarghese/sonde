@@ -12,9 +12,9 @@
  *    A probe run given `--allowedTools "Glob" "Grep" "Read"` still reached for
  *    `Bash` and answered with `find | wc -l`. Only `--tools` narrows the
  *    built-in set, so that is what this driver passes.
- * 2. The benchmark fixtures live inside the CodeGraph repository, so Claude
+ * 2. The benchmark fixtures live inside the Sonde repository, so Claude
  *    Code's CLAUDE.md auto-discovery would walk up and load AGENTS.md — priming
- *    the baseline agent with CodeGraph's own invariants. Each run therefore
+ *    the baseline agent with Sonde's own invariants. Each run therefore
  *    executes against an isolated copy of the fixture outside the repository.
  */
 import { spawn } from "node:child_process";
@@ -168,7 +168,7 @@ function transcriptPathFor(workDir: string, sessionId: string): string | null {
 
 /**
  * Run one task. Copies the fixture outside the repository first so that neither
- * CLAUDE.md discovery nor the CodeGraph index can inform the baseline.
+ * CLAUDE.md discovery nor the Sonde index can inform the baseline.
  */
 export async function runClaudeCodeBaseline(
   task: BenchmarkTask,

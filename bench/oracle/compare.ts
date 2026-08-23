@@ -45,7 +45,7 @@ export function compare(actual: OracleEdge[], expected: OracleEdge[]): Report {
   const kinds = [...new Set([...actual, ...expected].map((x) => x.kind))];
   const byKind: Record<string, KindScore> = {};
   for (const kind of kinds) {
-    // Spec §6.1: CALLS is a subset of REFERENCES. CodeGraph stores each edge
+    // Spec §6.1: CALLS is a subset of REFERENCES. Sonde stores each edge
     // once and unions the kinds at query time, while tsc's findReferences
     // reports call sites and heritage clauses as references too. Scoring the
     // stored REFERENCES rows alone therefore reported 0.000 recall for queries

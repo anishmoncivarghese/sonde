@@ -2,7 +2,7 @@
  * Optional local embedding model.
  *
  * `@huggingface/transformers` is ~380MB installed, so it is deliberately NOT a
- * dependency of this package: the install promise is `npx codegraph` with no
+ * dependency of this package: the install promise is `npx sonde` with no
  * setup, and paying 380MB for an optional enrichment would break it. The import
  * is dynamic and failure is actionable, so the deterministic core is unaffected
  * whether or not the model is present (spec §13, invariant 8).
@@ -20,7 +20,7 @@ export class EmbedderUnavailableError extends Error {
     super(
       "semantic search needs the optional embedding model, which is not installed.\n" +
         `  npm install @huggingface/transformers\n` +
-        `Deterministic search works without it; this affects 'codegraph embed' only.\n` +
+        `Deterministic search works without it; this affects 'sonde embed' only.\n` +
         `  (${cause})`,
     );
     this.name = "EmbedderUnavailableError";

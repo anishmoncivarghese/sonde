@@ -11,7 +11,7 @@ import {
 
 export class NoIndexError extends Error {
   constructor(dbPath: string) {
-    super(`no index at ${dbPath}; run "codegraph index" first`);
+    super(`no index at ${dbPath}; run "sonde index" first`);
     this.name = "NoIndexError";
   }
 }
@@ -36,11 +36,11 @@ function partialWarning(driftCount: number): string {
   if (driftCount > AUTO_REFRESH_LIMIT) {
     return `index is partial: ${driftCount} drifted file(s) exceed the ` +
       `${AUTO_REFRESH_LIMIT}-file auto-refresh limit; run ` +
-      '"codegraph update" to refresh';
+      '"sonde update" to refresh';
   }
   return `index is partial because a prior parse failure is still recorded ` +
     `(drift count: ${driftCount}); fix the source and run ` +
-    '"codegraph update" to refresh';
+    '"sonde update" to refresh';
 }
 
 function openCompatibleDb(dbPath: string): Db {
@@ -111,7 +111,7 @@ export async function ensureFresh(
       ? partialWarning(afterRefresh.driftCount)
       : `repository changed during inline refresh; ` +
         `${afterRefresh.driftCount} file(s) still drifted; run ` +
-        '"codegraph update" to refresh';
+        '"sonde update" to refresh';
     return {
       db,
       compilerVersion: store.compilerVersion(),

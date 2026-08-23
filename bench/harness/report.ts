@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 import { indexRepo } from "../../src/index/pipeline.js";
 import { RepoBoundary } from "../../src/repo/boundary.js";
 import { migrate, openDb } from "../../src/store/index.js";
-import { runCodegraphTask } from "./codegraphRunner.js";
+import { runSondeTask } from "./sondeRunner.js";
 import { aggregateResults, type AggregatedMetrics } from "./metrics.js";
 import { scoreTrace } from "./traceScorer.js";
 import { BENCHMARK_TASKS } from "./tasks.js";
@@ -71,7 +71,7 @@ function validateResult(
   assertMetric(result, "helpfulHits", { integer: true });
   assertMetric(result, "distractorHits", { integer: true });
   // An over-budget result is reported, not rejected. Discarding it kept the
-  // agentic arm's recall unconstrained while the CodeGraph arm paid for packing
+  // agentic arm's recall unconstrained while the Sonde arm paid for packing
   // to the same budget. Consistency between the two fields is still enforced.
   assertMetric(result, "contextOverageTokens", { integer: true });
   const overage = Math.max(
@@ -112,8 +112,8 @@ function validateResult(
   if (baseline === "agentic_search" && result.tierHits !== null) {
     throw new Error(`Agentic result ${result.taskId} cannot report tierHits`);
   }
-  if (baseline === "codegraph" && result.tierHits === null) {
-    throw new Error(`CodeGraph result ${result.taskId} must report tierHits`);
+  if (baseline === "sonde" && result.tierHits === null) {
+    throw new Error(`Sonde result ${result.taskId} must report tierHits`);
   }
   if (result.tierHits !== null) {
     for (const tier of ["compiler", "lexical", "heuristic", "unranked"] as const) {
@@ -156,25 +156,25 @@ function tierHitsCell(result: TaskResult): string {
 }
 
 export function renderBenchmarkReport(
-  codegraphResults: TaskResult[],
+  sondeResults: TaskResult[],
   agenticResults: TaskResult[],
   generatedAt = new Date(),
 ): string {
-  const codegraphByTask = resultMap(codegraphResults, "codegraph", true);
+  const sondeByTask = resultMap(sondeResults, "sonde", true);
   const agenticByTask = resultMap(agenticResults, "agentic_search", false);
   const rows = BENCHMARK_TASKS.map((task) => {
-    const codegraph = codegraphByTask.get(task.id);
-    if (!codegraph) throw new Error(`Missing CodeGraph result for ${task.id}`);
+    const sonde = sondeByTask.get(task.id);
+    if (!sonde) throw new Error(`Missing Sonde result for ${task.id}`);
     const agentic = agenticByTask.get(task.id);
-    return `| ${task.id} | ${task.category} | ${codegraph.recallAtK.toFixed(2)} | ` +
-      `${codegraph.preliminarySuccess ? "yes" : "no"} | ` +
-      `${tierHitsCell(codegraph)} | ` +
+    return `| ${task.id} | ${task.category} | ${sonde.recallAtK.toFixed(2)} | ` +
+      `${sonde.preliminarySuccess ? "yes" : "no"} | ` +
+      `${tierHitsCell(sonde)} | ` +
       `${agentic ? agentic.recallAtK.toFixed(2) : "PENDING"} | ` +
       `${agentic ? (agentic.preliminarySuccess ? "yes" : "no") : "PENDING"} |`;
   });
 
   return [
-    "# CodeGraph vs. agentic search — 12-task benchmark",
+    "# Sonde vs. agentic search — 12-task benchmark",
     "",
     `Generated: ${generatedAt.toISOString()}`,
     "",
@@ -203,14 +203,14 @@ export function renderBenchmarkReport(
       "and unranked matches respectively.",
     "",
     "**Budget asymmetry, disclosed.** The two arms reach the budget differently, " +
-      "and this changes how the numbers should be read. CodeGraph's packer " +
+      "and this changes how the numbers should be read. Sonde's packer " +
       "truncates evidence TO the budget, so it can never exceed it and its recall " +
       "already pays for whatever does not fit. The agentic baseline is " +
       "unconstrained and consumes whatever context it reads. Over-budget baseline " +
       "runs are therefore reported with their recall intact and an explicit " +
       "overage rather than discarded or silently credited, and are denied " +
       "preliminary success because staying inside the budget is the constraint " +
-      "the CodeGraph arm pays on every task.",
+      "the Sonde arm pays on every task.",
     "",
     "**Token comparison caveat.** Baseline input tokens include Claude Code's " +
       "cached harness prompt — roughly 79k tokens on a probe against 4 tokens of " +
@@ -224,12 +224,12 @@ export function renderBenchmarkReport(
       "Mean helpful | Mean tool calls | Mean input tokens | Mean output tokens | " +
       "Mean context tokens | Mean latency (ms) | Mean heuristic utility |",
     "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
-    summaryRow("CodeGraph", aggregateResults(codegraphResults)),
+    summaryRow("Sonde", aggregateResults(sondeResults)),
     agenticSummaryRow(agenticResults),
     "",
     "## Per-task recall@k",
     "",
-    "| Task | Category | CodeGraph recall | CodeGraph success | C/L/H/U required hits | " +
+    "| Task | Category | Sonde recall | Sonde success | C/L/H/U required hits | " +
       "Agentic recall | Agentic success |",
     "|---|---|---:|:---:|---:|---:|:---:|",
     ...rows,
@@ -252,7 +252,7 @@ function loadTrace(boundary: RepoBoundary, taskId: string): TaskResult | null {
 
 export async function runBenchmarkReport(repoRoot = process.cwd()): Promise<string> {
   const boundary = new RepoBoundary(repoRoot);
-  const tempDirectory = mkdtempSync(join(tmpdir(), "codegraph-bench-"));
+  const tempDirectory = mkdtempSync(join(tmpdir(), "sonde-bench-"));
   const dbPath = join(tempDirectory, "index.sqlite");
 
   try {
@@ -260,14 +260,14 @@ export async function runBenchmarkReport(repoRoot = process.cwd()): Promise<stri
     const db = openDb(dbPath);
     try {
       migrate(db);
-      const codegraphResults = BENCHMARK_TASKS.map((task) =>
-        runCodegraphTask(db, task),
+      const sondeResults = BENCHMARK_TASKS.map((task) =>
+        runSondeTask(db, task),
       );
       const agenticResults = BENCHMARK_TASKS.flatMap((task) => {
         const result = loadTrace(boundary, task.id);
         return result ? [result] : [];
       });
-      const output = renderBenchmarkReport(codegraphResults, agenticResults);
+      const output = renderBenchmarkReport(sondeResults, agenticResults);
       writeFileSync(boundary.resolve("BENCHMARK.md"), output);
       return output;
     } finally {

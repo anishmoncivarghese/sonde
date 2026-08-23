@@ -26,8 +26,8 @@ function result(
     budgetExceeded: false,
     contextOverageTokens: 0,
     preliminarySuccess: recallAtK === 1,
-    tierUtility: baseline === "codegraph" ? 0.5 : null,
-    tierHits: baseline === "codegraph"
+    tierUtility: baseline === "sonde" ? 0.5 : null,
+    tierHits: baseline === "sonde"
       ? { compiler: 0, lexical: 1, heuristic: 0, unranked: 0 }
       : null,
   };
@@ -35,16 +35,16 @@ function result(
 
 describe("renderBenchmarkReport", () => {
   const generatedAt = new Date("2026-08-21T00:00:00.000Z");
-  const codegraphResults = BENCHMARK_TASKS.map((task) =>
-    result(task.id, "codegraph", 1),
+  const sondeResults = BENCHMARK_TASKS.map((task) =>
+    result(task.id, "sonde", 1),
   );
 
-  it("publishes measured CodeGraph results and labels a missing baseline pending", () => {
-    const report = renderBenchmarkReport(codegraphResults, [], generatedAt);
+  it("publishes measured Sonde results and labels a missing baseline pending", () => {
+    const report = renderBenchmarkReport(sondeResults, [], generatedAt);
 
     expect(report).toContain("Generated: 2026-08-21T00:00:00.000Z");
     expect(report).toContain(
-      "| CodeGraph | 1.000 | 1.000 | 0.00 | 0.00 | 1.0 | 10 | 5 | 5 | 20 | 0.500 |",
+      "| Sonde | 1.000 | 1.000 | 0.00 | 0.00 | 1.0 | 10 | 5 | 5 | 20 | 0.500 |",
     );
     expect(report).toContain(
       "| Agentic search | PENDING — live baseline not yet run (0/12 traces) |",
@@ -60,7 +60,7 @@ describe("renderBenchmarkReport", () => {
   it("does not present a partial set of traces as a complete summary", () => {
     const first = BENCHMARK_TASKS[0]!;
     const report = renderBenchmarkReport(
-      codegraphResults,
+      sondeResults,
       [result(first.id, "agentic_search", 0.5)],
       generatedAt,
     );
@@ -72,13 +72,13 @@ describe("renderBenchmarkReport", () => {
   });
 
   it("rejects duplicate, missing, and wrong-baseline result sets", () => {
-    const duplicated = [...codegraphResults.slice(0, -1), codegraphResults[0]!];
+    const duplicated = [...sondeResults.slice(0, -1), sondeResults[0]!];
     expect(() => renderBenchmarkReport(duplicated, [], generatedAt))
       .toThrow(/duplicate|missing/i);
 
     const wrongBaseline = [
-      { ...codegraphResults[0]!, baseline: "agentic_search" as const },
-      ...codegraphResults.slice(1),
+      { ...sondeResults[0]!, baseline: "agentic_search" as const },
+      ...sondeResults.slice(1),
     ];
     expect(() => renderBenchmarkReport(wrongBaseline, [], generatedAt))
       .toThrow(/baseline/i);
@@ -86,8 +86,8 @@ describe("renderBenchmarkReport", () => {
 
   it("rejects non-finite and out-of-range metrics", () => {
     const invalid = [
-      { ...codegraphResults[0]!, recallAtK: Number.NaN },
-      ...codegraphResults.slice(1),
+      { ...sondeResults[0]!, recallAtK: Number.NaN },
+      ...sondeResults.slice(1),
     ];
     expect(() => renderBenchmarkReport(invalid, [], generatedAt))
       .toThrow(/recallAtK/i);
@@ -97,25 +97,25 @@ describe("renderBenchmarkReport", () => {
     // result could silently launder a budget overrun into a success.
     const inconsistentOverage = [
       {
-        ...codegraphResults[0]!,
+        ...sondeResults[0]!,
         contextTokens:
           BENCHMARK_TASKS[0]!.groundTruth.maxContextBudgetTokens + 1,
       },
-      ...codegraphResults.slice(1),
+      ...sondeResults.slice(1),
     ];
     expect(() => renderBenchmarkReport(inconsistentOverage, [], generatedAt))
       .toThrow(/contextOverageTokens/i);
 
     const consistentOverage = [
       {
-        ...codegraphResults[0]!,
+        ...sondeResults[0]!,
         contextTokens:
           BENCHMARK_TASKS[0]!.groundTruth.maxContextBudgetTokens + 1,
         contextOverageTokens: 1,
         budgetExceeded: true,
         preliminarySuccess: false,
       },
-      ...codegraphResults.slice(1),
+      ...sondeResults.slice(1),
     ];
     expect(() => renderBenchmarkReport(consistentOverage, [], generatedAt))
       .not.toThrow();

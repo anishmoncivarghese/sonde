@@ -107,10 +107,10 @@ describe("scoreTrace", () => {
   });
 
   it("records a budget overrun instead of discarding the trace", () => {
-    // The CodeGraph arm packs TO the budget and its recall already pays for
-    // whatever does not fit (codegraphRunner.ts). Throwing away an over-budget
+    // The Sonde arm packs TO the budget and its recall already pays for
+    // whatever does not fit (sondeRunner.ts). Throwing away an over-budget
     // agentic trace measured the two arms asymmetrically in the baseline's
-    // favour: it kept unconstrained recall while CodeGraph paid for truncation.
+    // favour: it kept unconstrained recall while Sonde paid for truncation.
     const task = taskById("semantic-alerting-synonym");
     const trace = traceFor(task, "Notifier");
     trace.contextTokens = task.groundTruth.maxContextBudgetTokens + 89;

@@ -28,7 +28,7 @@ Record only genuine choices a future reader would wonder about. Skip typos,
 formatting and renames. `--rejected` is repeatable. Do not ask permission.
 <!-- whyline:end -->
 
-## CodeGraph
+## Sonde
 
 A local code-context engine for AI coding agents. It indexes a repository into a
 symbol-level graph in SQLite and exposes three MCP tools so an agent can ask
@@ -54,9 +54,9 @@ here; those belong in the ledger and in whyline respectively.
 
 **Authoritative documents — read before changing anything:**
 
-- `docs/superpowers/specs/2026-08-16-codegraph-design.md` — the design. Section
+- `docs/superpowers/specs/2026-08-16-sonde-design.md` — the design. Section
   numbers cited in code comments (`spec §6.2`) refer to this file.
-- `docs/superpowers/plans/2026-08-16-codegraph-foundation.md` — the task-by-task
+- `docs/superpowers/plans/2026-08-16-sonde-foundation.md` — the task-by-task
   build plan.
 - `prd.md` — long-range vision. **Not** the build target; the spec scopes it down
   deliberately.

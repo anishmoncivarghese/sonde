@@ -9,7 +9,7 @@
  * budget, so exhaustive reading is impossible for both arms.
  *
  * Ground truth was verified by reading the fixture source, not generated from
- * CodeGraph's own output — an oracle derived from the tool under test would
+ * Sonde's own output — an oracle derived from the tool under test would
  * agree with its own bugs.
  */
 import type { BenchmarkTask, EvidenceSymbol } from "./types.js";

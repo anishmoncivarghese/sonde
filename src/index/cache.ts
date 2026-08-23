@@ -11,7 +11,7 @@ export function indexPathFor(root: string): string {
     .update(boundary.root)
     .digest("hex")
     .slice(0, 16);
-  const directory = join(homedir(), ".cache", "codegraph", hash);
+  const directory = join(homedir(), ".cache", "sonde", hash);
   mkdirSync(directory, { recursive: true });
   return join(directory, "index.sqlite");
 }

@@ -80,7 +80,7 @@ function unknownEnvelope(path: string, message: string) {
 }
 
 const program = new Command();
-program.name("codegraph").version("0.1.0");
+program.name("sonde").version("0.1.0");
 
 program
   .command("index")
@@ -146,7 +146,7 @@ program
       emit(
         options.json === true,
         { freshness: { state: "unknown" } },
-        "no index; run `codegraph index`",
+        "no index; run `sonde index`",
       );
       return;
     }
@@ -252,7 +252,7 @@ program
     const dbPath = indexPathFor(path);
     if (!existsSync(dbPath)) {
       emit(options.json === true, { error: "no index" },
-        "no index; run `codegraph index` first");
+        "no index; run `sonde index` first");
       process.exitCode = 1;
       return;
     }

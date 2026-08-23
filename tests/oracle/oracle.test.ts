@@ -56,7 +56,7 @@ describe("REFERENCES is the union of all edge kinds (spec §6.1)", () => {
   it("credits a stored CALLS edge against an oracle REFERENCES edge", () => {
     // Spec §6.1: CALLS is a subset of REFERENCES, stored once and unioned at
     // query time. tsc's findReferences includes call sites, so the oracle
-    // records both; scoring CodeGraph's REFERENCES rows alone reported 0.000
+    // records both; scoring Sonde's REFERENCES rows alone reported 0.000
     // recall for a query that would in fact return the call site.
     const actual = [edge("caller", "target", "CALLS")];
     const expected = [
@@ -78,7 +78,7 @@ describe("REFERENCES is the union of all edge kinds (spec §6.1)", () => {
     expect(compare(actual, expected).byKind.REFERENCES!.recall).toBe(1);
   });
 
-  it("still misses a reference CodeGraph never saw in any form", () => {
+  it("still misses a reference Sonde never saw in any form", () => {
     const actual: OracleEdge[] = [];
     const expected = [edge("reader", "unseen", "REFERENCES")];
     expect(compare(actual, expected).byKind.REFERENCES!.recall).toBe(0);

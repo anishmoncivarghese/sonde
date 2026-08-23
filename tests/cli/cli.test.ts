@@ -180,6 +180,6 @@ describe("cli", () => {
 
   it("registers the long-lived mcp serve command", () => {
     const help = cli("mcp", "serve", "--help");
-    expect(help).toContain("Usage: codegraph mcp serve");
+    expect(help).toContain("Usage: sonde mcp serve");
   });
 });

@@ -17,7 +17,7 @@ const symbolEvidence: EvidenceSymbol = {
 
 describe("evidenceAppears", () => {
   it("credits a finer-grained symbol from the required file", () => {
-    // CodeGraph answered `ts:src/index.ts#notifiers` — the exact variable that
+    // Sonde answered `ts:src/index.ts#notifiers` — the exact variable that
     // holds the reference, which is a better answer than the file. Exact
     // stable-key membership scored that 0.00 while the prose arm scored 1.00
     // for merely naming the path.

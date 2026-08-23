@@ -1,16 +1,16 @@
-# CodeGraph Benchmark Harness (Plan 3 of 3) Implementation Plan
+# Sonde Benchmark Harness (Plan 3 of 3) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the spec §10 Layer 3 benchmark harness — 12 adversarially-selected tasks scoring CodeGraph's deterministic retrieval against a strong agentic search-loop baseline — as fully deterministic, unit-tested infrastructure. This closes Definition-of-Done items 2 (MCP tools verified in two clients), 3 (zero stale bytes / zero unreported drift across an eval suite), and 5 (the 12-task benchmark, published with its adversarial selection criteria disclosed).
+**Goal:** Build the spec §10 Layer 3 benchmark harness — 12 adversarially-selected tasks scoring Sonde's deterministic retrieval against a strong agentic search-loop baseline — as fully deterministic, unit-tested infrastructure. This closes Definition-of-Done items 2 (MCP tools verified in two clients), 3 (zero stale bytes / zero unreported drift across an eval suite), and 5 (the 12-task benchmark, published with its adversarial selection criteria disclosed).
 
 **Scope decision (confirmed with the human before writing this plan):** every task in this plan is buildable and testable with **zero live LLM calls** — the agentic-search baseline is captured as a data format (`AgentTrace`) that a scorer consumes, and the code that actually *produces* a trace by running a real Claude session (Task 10) is built here but not executed as part of this plan. Running it, publishing `BENCHMARK.md` with real numbers, and retuning ranking weights/`AUTO_REFRESH_LIMIT` from those numbers is Task 12 — one explicit, opt-in, manual procedure triggered whenever usage allows, not an automated plan step.
 
-**Architecture:** A new `bench/harness/` layer, parallel to the existing `bench/oracle/` (Layer 2). `bench/harness/tasks.ts` holds the 12 task definitions with hand-verified ground truth against a new purpose-built fixture (`tests/fixtures/repos/medium/`) designed to genuinely exercise all five spec-mandated task categories (a real external repo's shape can't be guaranteed to fit them, and can't be verified without a network fetch this plan doesn't require). `codegraphRunner.ts` scores CodeGraph deterministically today. `traceScorer.ts` scores an externally-produced `AgentTrace` the same way, so both baselines produce a comparable `TaskResult`. `metrics.ts` aggregates. `report.ts` publishes `BENCHMARK.md`, honestly marking the agentic-baseline rows `PENDING` until Task 12 runs. `runLiveBaseline.ts` is the one piece that talks to a real model — built with dependency injection so its tool handlers are unit-tested without any API call.
+**Architecture:** A new `bench/harness/` layer, parallel to the existing `bench/oracle/` (Layer 2). `bench/harness/tasks.ts` holds the 12 task definitions with hand-verified ground truth against a new purpose-built fixture (`tests/fixtures/repos/medium/`) designed to genuinely exercise all five spec-mandated task categories (a real external repo's shape can't be guaranteed to fit them, and can't be verified without a network fetch this plan doesn't require). `sondeRunner.ts` scores Sonde deterministically today. `traceScorer.ts` scores an externally-produced `AgentTrace` the same way, so both baselines produce a comparable `TaskResult`. `metrics.ts` aggregates. `report.ts` publishes `BENCHMARK.md`, honestly marking the agentic-baseline rows `PENDING` until Task 12 runs. `runLiveBaseline.ts` is the one piece that talks to a real model — built with dependency injection so its tool handlers are unit-tested without any API call.
 
 **Tech Stack:** Existing stack unchanged (TypeScript strict, `better-sqlite3`, `vitest`, `tsx`). New: `@anthropic-ai/sdk` (devDependency only — used exclusively by `bench/harness/runLiveBaseline.ts`, never shipped in `dist/`) for the Tool Runner (`client.beta.messages.toolRunner`) that drives the live agentic-search baseline.
 
-**Spec:** `docs/superpowers/specs/2026-08-16-codegraph-design.md` (revision 2), primarily §10 (Testing, Layer 3), §12 (Definition of done), §16 (open planning questions). `prd.md` §19 is background only — informative on ground-truth methodology (required/helpful/distractor evidence), never the build target; the spec's narrower 12-task, 2-baseline, 5-category scope in §10 governs everywhere it's more specific than the PRD's 30-task, 5-baseline vision.
+**Spec:** `docs/superpowers/specs/2026-08-16-sonde-design.md` (revision 2), primarily §10 (Testing, Layer 3), §12 (Definition of done), §16 (open planning questions). `prd.md` §19 is background only — informative on ground-truth methodology (required/helpful/distractor evidence), never the build target; the spec's narrower 12-task, 2-baseline, 5-category scope in §10 governs everywhere it's more specific than the PRD's 30-task, 5-baseline vision.
 
 ## Global Constraints
 
@@ -40,7 +40,7 @@ bench/
   harness/
     types.ts               # NEW — BenchmarkTask, GroundTruth, AgentTrace, TaskResult
     tasks.ts                # NEW — the 12 task definitions
-    codegraphRunner.ts       # NEW — deterministic CodeGraph-side scorer
+    sondeRunner.ts       # NEW — deterministic Sonde-side scorer
     metrics.ts                 # NEW — recall/aggregate metrics, pure functions
     traceScorer.ts               # NEW — scores an externally-produced AgentTrace
     report.ts                     # NEW — publishes BENCHMARK.md
@@ -49,7 +49,7 @@ tests/
   query/impact.test.ts     # MODIFIED — asserts ImpactRow.tier
   harness/
     fixtures.test.ts         # NEW — sanity-checks the medium fixture
-    codegraphRunner.test.ts   # NEW
+    sondeRunner.test.ts   # NEW
     metrics.test.ts            # NEW
     traceScorer.test.ts         # NEW
     driftEval.test.ts            # NEW — DoD item 3
@@ -71,7 +71,7 @@ BENCHMARK.md                # NEW (generated by Task 8; agentic rows PENDING unt
 
 **Interfaces:**
 - Consumes: nothing new — `CandidateRow` already selects `${TIER_RANK_SQL} AS tierRank` (added during the earlier Task 8 review fix); this task adds the literal tier string alongside it.
-- Produces: `ImpactRow` gains `tier: "COMPILER" | "LEXICAL" | "HEURISTIC"`. Task 5 (`codegraphRunner.ts`) reads this field to compute tier-utility for impact-radius-based benchmark tasks — the four transitive-impact tasks in the benchmark have no other way to tell whether their required evidence was found via a confidently-resolved edge or a heuristic guess.
+- Produces: `ImpactRow` gains `tier: "COMPILER" | "LEXICAL" | "HEURISTIC"`. Task 5 (`sondeRunner.ts`) reads this field to compute tier-utility for impact-radius-based benchmark tasks — the four transitive-impact tasks in the benchmark have no other way to tell whether their required evidence was found via a confidently-resolved edge or a heuristic guess.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -172,7 +172,7 @@ git commit -m "feat: expose edge tier on ImpactRow"
 - Consumes: `indexRepo` (`src/index/pipeline.js`), `RepoBoundary` (`src/repo/boundary.js`), `openDb`/`migrate` (`src/store/index.js`) — all existing, unchanged.
 - Produces: a fixture repository at `tests/fixtures/repos/medium/`. Task 4 (`bench/harness/tasks.ts`) cites exact `stableKey`s from these files; Task 9's drift eval mutates copies of them.
 
-**Why a hand-built fixture, not a cloned real repo:** spec §16 leaves fixture selection open. `LanguageAdapter` — this project's own only genuinely "wide" interface candidate — has exactly one implementer (`typescriptAdapter`); grepping the codebase (done before writing this task) confirms no interface here has 5+ implementers, so CodeGraph's own repo can't host the `implementations_of`-across-a-wide-interface tasks. A cloned external repo could, but its exact symbol names can't be verified without a network fetch, and ground truth that can't be checked against the actual file contents violates this plan's own "never fabricate evidence" constraint. A small, purpose-built fixture — the same pattern the project already uses for `tests/fixtures/repos/small` and `tests/fixtures/ts/*` — lets every one of the 12 tasks target a feature (a 5-implementer interface, a 3-hop call chain, a synonym gap) by construction, verified by reading the files below.
+**Why a hand-built fixture, not a cloned real repo:** spec §16 leaves fixture selection open. `LanguageAdapter` — this project's own only genuinely "wide" interface candidate — has exactly one implementer (`typescriptAdapter`); grepping the codebase (done before writing this task) confirms no interface here has 5+ implementers, so Sonde's own repo can't host the `implementations_of`-across-a-wide-interface tasks. A cloned external repo could, but its exact symbol names can't be verified without a network fetch, and ground truth that can't be checked against the actual file contents violates this plan's own "never fabricate evidence" constraint. A small, purpose-built fixture — the same pattern the project already uses for `tests/fixtures/repos/small` and `tests/fixtures/ts/*` — lets every one of the 12 tasks target a feature (a 5-implementer interface, a 3-hop call chain, a synonym gap) by construction, verified by reading the files below.
 
 **Domain:** a task-notification system — a `Notifier` interface with five implementations, a dispatcher that calls all of them, a retry-backoff function with no lexical overlap to "retry"/"wait", and a small test suite.
 
@@ -541,7 +541,7 @@ export interface BenchmarkTask {
   category: TaskCategory;
   fixture: string; // relative to repo root, e.g. "tests/fixtures/repos/medium"
   prompt: string; // the natural-language task given to the agentic baseline
-  seed: TaskSeed; // how the CodeGraph-side runner answers the same task
+  seed: TaskSeed; // how the Sonde-side runner answers the same task
   groundTruth: GroundTruth;
   rationale: string; // published with results — spec §10's disclosed-selection-bias requirement
 }
@@ -571,7 +571,7 @@ export interface AgentTrace {
 export interface TaskResult {
   taskId: string;
   category: TaskCategory;
-  baseline: "agentic_search" | "codegraph";
+  baseline: "agentic_search" | "sonde";
   recallAtK: number; // fraction of requiredEvidence found, 0..1
   toolCalls: number;
   inputTokens: number;
@@ -689,7 +689,7 @@ export const BENCHMARK_TASKS: BenchmarkTask[] = [
       "Depth-2 fan-out from an interface method to five implementers plus " +
       "its one caller — the class of change grep answers by luck (an " +
       "identifier search for 'notify' also finds unrelated notify-shaped " +
-      "names) and CodeGraph answers by construction.",
+      "names) and Sonde answers by construction.",
   },
   {
     id: "impact-queue-enqueue",
@@ -769,7 +769,7 @@ export const BENCHMARK_TASKS: BenchmarkTask[] = [
     },
     rationale:
       "Five implementers across five files with no shared naming prefix — " +
-      "the category spec §10 calls out by name, and the reason CodeGraph's " +
+      "the category spec §10 calls out by name, and the reason Sonde's " +
       "own repository (one LanguageAdapter implementer) couldn't host it.",
   },
   {
@@ -961,25 +961,25 @@ git commit -m "feat: define the 12 adversarially-selected benchmark tasks"
 
 ---
 
-### Task 5: CodeGraph-side deterministic runner
+### Task 5: Sonde-side deterministic runner
 
 **Files:**
-- Create: `bench/harness/codegraphRunner.ts`
-- Test: `tests/harness/codegraphRunner.test.ts`
+- Create: `bench/harness/sondeRunner.ts`
+- Test: `tests/harness/sondeRunner.test.ts`
 
 **Interfaces:**
 - Consumes: `indexRepo` (`src/index/pipeline.js`), `findSymbols` (`src/query/find.js`), `queryGraph` (`src/query/traverse.js`), `getImpactRadius` (`src/query/impact.js`), `estimateJsonTokens` (`src/pack/tokens.js`), `BenchmarkTask`/`TaskResult`/`EvidenceSymbol` (Task 3).
-- Produces: `runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult`. Task 8's report calls this once per task; the resulting rows are always current (no `PENDING` state — unlike the agentic baseline, this needs no live LLM call).
+- Produces: `runSondeTask(db: Db, task: BenchmarkTask): TaskResult`. Task 8's report calls this once per task; the resulting rows are always current (no `PENDING` state — unlike the agentic baseline, this needs no live LLM call).
 
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-// tests/harness/codegraphRunner.test.ts
+// tests/harness/sondeRunner.test.ts
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { runCodegraphTask } from "../../bench/harness/codegraphRunner.js";
+import { runSondeTask } from "../../bench/harness/sondeRunner.js";
 import { indexRepo } from "../../src/index/pipeline.js";
 import { migrate, openDb, type Db } from "../../src/store/index.js";
 import { BENCHMARK_TASKS } from "../../bench/harness/tasks.js";
@@ -1001,19 +1001,19 @@ afterEach(() => {
   rmSync(tempDir, { recursive: true, force: true });
 });
 
-describe("runCodegraphTask", () => {
+describe("runSondeTask", () => {
   it("finds all five Notifier implementers with recall 1.0", () => {
     const task = BENCHMARK_TASKS.find((t) => t.id === "implementations-of-notifier")!;
-    const result = runCodegraphTask(db, task);
+    const result = runSondeTask(db, task);
 
     expect(result.recallAtK).toBe(1);
     expect(result.toolCalls).toBe(1);
-    expect(result.baseline).toBe("codegraph");
+    expect(result.baseline).toBe("sonde");
   });
 
   it("reports tier utility for a transitive impact task", () => {
     const task = BENCHMARK_TASKS.find((t) => t.id === "impact-notifier-signature")!;
-    const result = runCodegraphTask(db, task);
+    const result = runSondeTask(db, task);
 
     expect(result.recallAtK).toBeGreaterThan(0);
     expect(result.tierUtility).not.toBeNull();
@@ -1023,7 +1023,7 @@ describe("runCodegraphTask", () => {
 
   it("scores the true-negative impact task as full recall on an empty requirement", () => {
     const task = BENCHMARK_TASKS.find((t) => t.id === "impact-retry-policy")!;
-    const result = runCodegraphTask(db, task);
+    const result = runSondeTask(db, task);
 
     expect(result.recallAtK).toBe(1);
   });
@@ -1032,13 +1032,13 @@ describe("runCodegraphTask", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `nvm use && npx vitest run tests/harness/codegraphRunner.test.ts`
-Expected: FAIL — cannot resolve `bench/harness/codegraphRunner.js`.
+Run: `nvm use && npx vitest run tests/harness/sondeRunner.test.ts`
+Expected: FAIL — cannot resolve `bench/harness/sondeRunner.js`.
 
 - [ ] **Step 3: Implement**
 
 ```ts
-// bench/harness/codegraphRunner.ts
+// bench/harness/sondeRunner.ts
 import { findSymbols } from "../../src/query/find.js";
 import { getImpactRadius } from "../../src/query/impact.js";
 import { queryGraph } from "../../src/query/traverse.js";
@@ -1064,7 +1064,7 @@ function tierUtility(evidence: MatchedEvidence): number | null {
   return evidence.heuristicOrLexicalCount / evidence.matchedCount;
 }
 
-export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
+export function runSondeTask(db: Db, task: BenchmarkTask): TaskResult {
   const start = Date.now();
   let payload: unknown;
   let evidence: MatchedEvidence = { matchedKeys: new Set(), heuristicOrLexicalCount: 0, matchedCount: 0 };
@@ -1105,7 +1105,7 @@ export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
   return {
     taskId: task.id,
     category: task.category,
-    baseline: "codegraph",
+    baseline: "sonde",
     recallAtK: recall(task.groundTruth.requiredEvidence, evidence.matchedKeys),
     // One MCP/CLI call answers the whole task deterministically — unlike an
     // agentic loop, there is no exploratory back-and-forth to count.
@@ -1120,7 +1120,7 @@ export function runCodegraphTask(db: Db, task: BenchmarkTask): TaskResult {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `nvm use && npx vitest run tests/harness/codegraphRunner.test.ts`
+Run: `nvm use && npx vitest run tests/harness/sondeRunner.test.ts`
 Expected: PASS.
 
 - [ ] **Step 5: Run the full suite, typecheck, and build**
@@ -1131,8 +1131,8 @@ Expected: all PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add bench/harness/codegraphRunner.ts tests/harness/codegraphRunner.test.ts
-git commit -m "feat: add the deterministic CodeGraph-side benchmark runner"
+git add bench/harness/sondeRunner.ts tests/harness/sondeRunner.test.ts
+git commit -m "feat: add the deterministic Sonde-side benchmark runner"
 ```
 
 ---
@@ -1150,7 +1150,7 @@ git commit -m "feat: add the deterministic CodeGraph-side benchmark runner"
 ```ts
 // bench/harness/metrics.ts (interface shape referenced by Task 8)
 export interface AggregatedMetrics {
-  baseline: "agentic_search" | "codegraph";
+  baseline: "agentic_search" | "sonde";
   taskCount: number;
   meanRecallAtK: number;
   meanToolCalls: number;
@@ -1173,7 +1173,7 @@ function result(overrides: Partial<TaskResult>): TaskResult {
   return {
     taskId: "t",
     category: "transitive_impact",
-    baseline: "codegraph",
+    baseline: "sonde",
     recallAtK: 1,
     toolCalls: 1,
     inputTokens: 10,
@@ -1216,7 +1216,7 @@ describe("aggregateResults", () => {
     expect(() => aggregateResults([])).toThrow();
     expect(() =>
       aggregateResults([
-        result({ baseline: "codegraph" }),
+        result({ baseline: "sonde" }),
         result({ baseline: "agentic_search" }),
       ]),
     ).toThrow();
@@ -1236,7 +1236,7 @@ Expected: FAIL — cannot resolve `bench/harness/metrics.js`.
 import type { TaskResult } from "./types.js";
 
 export interface AggregatedMetrics {
-  baseline: "agentic_search" | "codegraph";
+  baseline: "agentic_search" | "sonde";
   taskCount: number;
   meanRecallAtK: number;
   meanToolCalls: number;
@@ -1411,11 +1411,11 @@ git commit -m "feat: add the agentic-baseline trace scorer"
 **Files:**
 - Create: `bench/harness/report.ts`
 - Modify: `package.json` (add `bench:harness` script)
-- Test: none (a script, same precedent as `bench/report.ts`, which also has no direct test — its pieces, `bench/oracle/compare.ts`/`extract.ts`, do; here that's `metrics.ts`/`codegraphRunner.ts`/`traceScorer.ts`, all tested in Tasks 5-7)
+- Test: none (a script, same precedent as `bench/report.ts`, which also has no direct test — its pieces, `bench/oracle/compare.ts`/`extract.ts`, do; here that's `metrics.ts`/`sondeRunner.ts`/`traceScorer.ts`, all tested in Tasks 5-7)
 
 **Interfaces:**
-- Consumes: `BENCHMARK_TASKS` (Task 4), `runCodegraphTask` (Task 5), `aggregateResults` (Task 6), `scoreTrace` (Task 7), `indexRepo` (`src/index/pipeline.js`).
-- Produces: `BENCHMARK.md` at the repo root, and `npm run bench:harness`. This is the DoD item 5 deliverable — running it today publishes real CodeGraph numbers and honestly-labeled `PENDING` agentic rows; running it after Task 12 publishes both.
+- Consumes: `BENCHMARK_TASKS` (Task 4), `runSondeTask` (Task 5), `aggregateResults` (Task 6), `scoreTrace` (Task 7), `indexRepo` (`src/index/pipeline.js`).
+- Produces: `BENCHMARK.md` at the repo root, and `npm run bench:harness`. This is the DoD item 5 deliverable — running it today publishes real Sonde numbers and honestly-labeled `PENDING` agentic rows; running it after Task 12 publishes both.
 
 - [ ] **Step 1: Implement**
 
@@ -1426,7 +1426,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { indexRepo } from "../../src/index/pipeline.js";
 import { migrate, openDb } from "../../src/store/index.js";
-import { runCodegraphTask } from "./codegraphRunner.js";
+import { runSondeTask } from "./sondeRunner.js";
 import { aggregateResults, type AggregatedMetrics } from "./metrics.js";
 import { scoreTrace } from "./traceScorer.js";
 import { BENCHMARK_TASKS } from "./tasks.js";
@@ -1452,7 +1452,7 @@ function summaryRow(label: string, agg: AggregatedMetrics | null): string {
     `${agg.meanWallClockMs.toFixed(0)} | ${tierCol} |`;
 }
 
-const tempDir = mkdtempSync(join(tmpdir(), "codegraph-bench-"));
+const tempDir = mkdtempSync(join(tmpdir(), "sonde-bench-"));
 const dbPath = join(tempDir, "index.sqlite");
 
 try {
@@ -1460,13 +1460,13 @@ try {
   const db = openDb(dbPath);
   migrate(db);
 
-  const codegraphResults: TaskResult[] = [];
+  const sondeResults: TaskResult[] = [];
   const agenticResults: TaskResult[] = [];
   const rows: string[] = [];
 
   for (const task of BENCHMARK_TASKS) {
-    const cg = runCodegraphTask(db, task);
-    codegraphResults.push(cg);
+    const cg = runSondeTask(db, task);
+    sondeResults.push(cg);
     const agentic = loadTrace(task.id);
     if (agentic) agenticResults.push(agentic);
 
@@ -1479,7 +1479,7 @@ try {
   db.close();
 
   const lines = [
-    "# CodeGraph vs. agentic search — 12-task benchmark",
+    "# Sonde vs. agentic search — 12-task benchmark",
     "",
     `Generated: ${new Date().toISOString()}`,
     "",
@@ -1502,7 +1502,7 @@ try {
     "| Baseline | Mean recall@k | Mean tool calls | Mean input tokens | " +
       "Mean output tokens | Mean latency (ms) | Mean tier utility |",
     "|---|---:|---:|---:|---:|---:|---:|",
-    summaryRow("CodeGraph", aggregateResults(codegraphResults)),
+    summaryRow("Sonde", aggregateResults(sondeResults)),
     summaryRow(
       "Agentic search",
       agenticResults.length > 0 ? aggregateResults(agenticResults) : null,
@@ -1510,7 +1510,7 @@ try {
     "",
     "## Per-task recall@k",
     "",
-    "| Task | Category | CodeGraph | Agentic search |",
+    "| Task | Category | Sonde | Agentic search |",
     "|---|---|---:|---:|",
     ...rows,
     "",
@@ -1532,7 +1532,7 @@ try {
 - [ ] **Step 2: Run it**
 
 Run: `nvm use && npm run bench:harness`
-Expected: exits 0, writes `BENCHMARK.md` with real `CodeGraph` numbers and an `Agentic search` row reading `PENDING — live baseline not yet run` (no trace files exist yet — that's Task 12, correctly deferred).
+Expected: exits 0, writes `BENCHMARK.md` with real `Sonde` numbers and an `Agentic search` row reading `PENDING — live baseline not yet run` (no trace files exist yet — that's Task 12, correctly deferred).
 
 - [ ] **Step 3: Run the full suite, typecheck, and build**
 
@@ -1928,9 +1928,9 @@ query against):
 
     {
       "mcpServers": {
-        "codegraph": {
+        "sonde": {
           "command": "node",
-          "args": ["/absolute/path/to/CodeGraph/dist/cli/main.js", "mcp", "serve"]
+          "args": ["/absolute/path/to/Sonde/dist/cli/main.js", "mcp", "serve"]
         }
       }
     }
@@ -2004,7 +2004,7 @@ variance is visible, not a derived constant.
 For an additional latency/scale data point beyond the medium fixture (not
 required for the 12 scored tasks, which all target the medium fixture):
 
-    git clone --depth 1 --branch v3.24.1 https://github.com/colinhacks/zod /tmp/codegraph-bench-large
+    git clone --depth 1 --branch v3.24.1 https://github.com/colinhacks/zod /tmp/sonde-bench-large
 
 Pin the tag above (or a newer one, updating this line) so results are
 reproducible run to run.
@@ -2037,14 +2037,14 @@ write the result to `bench/harness/traces/<task id>.json`.
 Only after step 4 produces real numbers:
 
 - **Ranking weights** (`src/query/rank.ts`'s `score()` constants, spec
-  §7.4): if `wide_interface` or `completeness` tasks show CodeGraph finding
+  §7.4): if `wide_interface` or `completeness` tasks show Sonde finding
   the required evidence but ranking it low within a tier (visible from
   `--explain` on the CLI, or from `tierUtility` being unexpectedly low on a
   task where most matches are HEURISTIC), that is signal to revisit the
   0.40/0.25/0.20/0.15 weights — a human judgment call informed by the
   numbers, not an automated optimizer.
 - **`AUTO_REFRESH_LIMIT`** (`src/index/drift.ts`, currently 25, spec §16.2):
-  if the live run's per-task `wallClockMs` for CodeGraph is dominated by
+  if the live run's per-task `wallClockMs` for Sonde is dominated by
   inline refresh time on a fixture with realistic drift counts, that is
   signal the limit is set too high (auto-refresh takes too long inline) or
   too low (falls back to `partial` too eagerly) — again, read the numbers
@@ -2069,6 +2069,6 @@ git commit -m "docs: add the opt-in live benchmark run and tuning procedure"
 
 **Spec coverage:** §10 Layer 3 (12 tasks, 5 categories, 2 baselines, disclosed selection criteria) — Tasks 2, 4, 8. §10's tier-utility instrumentation requirement — Tasks 1, 5, 6. DoD item 2 (two-client verification) — Task 11. DoD item 3 (zero stale bytes / zero unreported drift across the eval suite) — Task 9. DoD item 5 (published 12-task benchmark) — Task 8, completed live in Task 12. §16.2-3 (ranking/`AUTO_REFRESH_LIMIT` tuning) — documented procedure in Task 12, deliberately not executed. §2.1's two falsifiable semantic-disadvantage controls — the two `semantic_disadvantage` tasks in Task 4.
 
-**Type consistency, checked across tasks:** `BenchmarkTask`/`GroundTruth`/`AgentTrace`/`TaskResult` (Task 3) match their use in Tasks 4-8 and 10. `ImpactRow.tier` (Task 1) matches `codegraphRunner.ts`'s read of `row.tier` (Task 5). `AggregatedMetrics` (Task 6) matches `report.ts`'s `summaryRow` (Task 8).
+**Type consistency, checked across tasks:** `BenchmarkTask`/`GroundTruth`/`AgentTrace`/`TaskResult` (Task 3) match their use in Tasks 4-8 and 10. `ImpactRow.tier` (Task 1) matches `sondeRunner.ts`'s read of `row.tier` (Task 5). `AggregatedMetrics` (Task 6) matches `report.ts`'s `summaryRow` (Task 8).
 
 **Placeholder scan:** every code step above contains complete file contents or complete diffs — no `TBD`, no "add appropriate handling," no "similar to Task N" without the actual code repeated in place.

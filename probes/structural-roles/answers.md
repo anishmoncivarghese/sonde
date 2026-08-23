@@ -3,7 +3,7 @@
 **Do not open until PROTOCOL.md Task 4.** Predictions must be committed first;
 `git log` is the audit trail.
 
-Answers verified by reading fixture source, never by querying the CodeGraph
+Answers verified by reading fixture source, never by querying the Sonde
 index — so the key cannot have been selected for what the graph happens to find.
 
 ---

@@ -3,7 +3,7 @@ import type { RepoBoundary } from "./boundary.js";
 const ALWAYS_IGNORED = new Set([
   ".git",
   "node_modules",
-  ".codegraph",
+  ".sonde",
   "dist",
   "build",
   "out",
@@ -70,7 +70,7 @@ function readRules(boundary: RepoBoundary, path: string): string[] {
 
 export function buildIgnore(boundary: RepoBoundary): IgnoreMatcher {
   const rules: Rule[] = [];
-  for (const name of [".gitignore", ".codegraphignore"]) {
+  for (const name of [".gitignore", ".sondeignore"]) {
     for (const raw of readRules(boundary, name)) {
       const line = raw.trim();
       if (!line || line.startsWith("#")) {

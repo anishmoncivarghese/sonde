@@ -8,11 +8,11 @@
 
 **Goal:** Establish, without fitting the answer, whether structural graph patterns can answer the behavioural queries that embeddings measurably cannot.
 
-**Spec:** `docs/superpowers/specs/2026-08-16-codegraph-design.md` §2.2 (the measured failure of semantic retrieval).
+**Spec:** `docs/superpowers/specs/2026-08-16-sonde-design.md` §2.2 (the measured failure of semantic retrieval).
 
 ## Background: why this probe exists, and why it must be blind
 
-The benchmark's semantic tasks score 0.00 for CodeGraph. Local embeddings were built and measured against them and do not help — two models across four document configurations, with the wrong answer ranked first in three of them (spec §2.2). Embeddings are a closed question.
+The benchmark's semantic tasks score 0.00 for Sonde. Local embeddings were built and measured against them and do not help — two models across four document configurations, with the wrong answer ranked first in three of them (spec §2.2). Embeddings are a closed question.
 
 A structural hypothesis then looked promising. On the large fixture, the query *"where does this library decide which routing strategy to use at runtime?"* has the answer `SmartRouter`, and this SQL uniquely identified it:
 
@@ -222,7 +222,7 @@ git commit -m "test: score the blind structural probe"
 ### Task 5: Record the outcome where it will be read
 
 **Files:**
-- Modify: `docs/superpowers/specs/2026-08-16-codegraph-design.md` (§2.2)
+- Modify: `docs/superpowers/specs/2026-08-16-sonde-design.md` (§2.2)
 
 - [ ] **Step 1: Add the finding to the spec**
 

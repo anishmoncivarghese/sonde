@@ -1,4 +1,4 @@
-# CodeGraph v0.1 — Design
+# Sonde v0.1 — Design
 
 **Status:** Approved for planning
 **Date:** 2026-08-16
@@ -11,7 +11,7 @@
 
 `prd.md` describes a large product: roughly 100 functional requirements, eight MCP tools, multi-language adapters, hybrid retrieval, and a separate activity-analytics subsystem. It is a good vision document and a poor build target.
 
-This spec defines **CodeGraph v0.1** — the smallest system that proves the thesis, can be verified mechanically, and is worth an OSS release. Everything else in the PRD stays in the PRD.
+This spec defines **Sonde v0.1** — the smallest system that proves the thesis, can be verified mechanically, and is worth an OSS release. Everything else in the PRD stays in the PRD.
 
 ---
 
@@ -47,7 +47,7 @@ Embeddings and semantic retrieval are therefore **deferred for time, not rejecte
 
 Spec §2.1 deferred embeddings for time and demanded falsifying tasks. Those
 tasks failed as predicted, so the deferral was tested and local semantic
-retrieval was built (`src/enrich/`, `codegraph embed`). It does not close the
+retrieval was built (`src/enrich/`, `sonde embed`). It does not close the
 gap, and the capability is deliberately **not** wired into `find_symbols`.
 
 Measured on the large fixture, query *"where does this library decide which
@@ -96,11 +96,11 @@ unsolved for v0.1. The full auditable record, including failed queries, is in
 The PRD opens by promising context a text search cannot reach. **The benchmark
 does not support that promise and it has been withdrawn.** On a real
 19,409-line repository a competent agentic search loop scored 1.000 recall on
-every task — the same structural evidence CodeGraph returns.
+every task — the same structural evidence Sonde returns.
 
 What the measurements do support:
 
-| Structural tasks, large fixture | CodeGraph | Agentic search |
+| Structural tasks, large fixture | Sonde | Agentic search |
 |---|---:|---:|
 | Recall | 1.00 | 1.00 |
 | Tool calls | **1.0** | 8.0 |
@@ -133,9 +133,9 @@ first-class metrics rather than footnotes.
 
 ### 3.1 Why the ledger moved
 
-The activity ledger (PRD §20, FR-090–100) is removed from CodeGraph scope and reassigned to AgentDock (`~/agentdock`, shipping as `whyline`).
+The activity ledger (PRD §20, FR-090–100) is removed from Sonde scope and reassigned to AgentDock (`~/agentdock`, shipping as `whyline`).
 
-- **Durability class differs.** CodeGraph's index is derived and disposable — delete it, rebuild from source, lose nothing. AgentDock's ledger is authored and irreplaceable. Opposite backup, privacy, and commit policies; merging guarantees one is always wrong.
+- **Durability class differs.** Sonde's index is derived and disposable — delete it, rebuild from source, lose nothing. AgentDock's ledger is authored and irreplaceable. Opposite backup, privacy, and commit policies; merging guarantees one is always wrong.
 - **AgentDock already owns the substrate.** `src/whyline/events.py` and `ledger.py` exist. `.whyline/ledger.jsonl` already emits `SessionStarted` with session UUID, agent, and timestamp.
 - **The join key already exists.** `hook_entry.py:27` reads `payload["session_id"]` — the same UUID that names Claude Code's transcript file at `~/.claude/projects/<slug>/<session-id>.jsonl`.
 - **§20 is the only PRD section** that never mentions a symbol, an edge, or a line of source.
@@ -250,7 +250,7 @@ That was fatal to the differentiator. In a typical application those references 
 
 | Module | Responsibility |
 |---|---|
-| `repo` | Root canonicalization, `.gitignore` + `.codegraphignore`, git state, file discovery. **The security boundary** (SEC-001/002/003) lives here and nowhere else. |
+| `repo` | Root canonicalization, `.gitignore` + `.sondeignore`, git state, file discovery. **The security boundary** (SEC-001/002/003) lives here and nowhere else. |
 | `tsconfig` | `tsconfig` discovery, `extends` chains, `paths`/`baseUrl`, module specifier resolution. Owns all filesystem probing for module resolution. |
 | `store` | SQLite schema, migrations, transactions, FTS5, WAL and concurrency (§9.1). Data access only. |
 | `adapters/` | `LanguageAdapter` interface + `typescript/`. Pure per-file extraction. |
@@ -271,7 +271,7 @@ That was fatal to the differentiator. In a typical application those references 
 - **Bundled `typescript`** — for the optional resolution upgrade pass; see §5.3
 - **`js-tiktoken`** — token estimation (§7.5)
 
-Distribution target: `npx codegraph`, no install step, no account.
+Distribution target: `npx sonde`, no install step, no account.
 
 ### 5.2 The adapter contract
 
@@ -298,7 +298,7 @@ interface ExtractResult {
 
 SEC-008 forbids executing repository code during indexing. Loading the repo's own `node_modules/typescript` to gain version fidelity would do exactly that.
 
-**Decision:** CodeGraph bundles its own `typescript` and never `require`s one from the target repository. The consequence — resolution may differ from the repo's pinned TS version — is accepted and disclosed: the tsc version is reported in `doctor`, in every envelope where the upgrade pass ran, and in the published oracle report (§12).
+**Decision:** Sonde bundles its own `typescript` and never `require`s one from the target repository. The consequence — resolution may differ from the repo's pinned TS version — is accepted and disclosed: the tsc version is reported in `doctor`, in every envelope where the upgrade pass ran, and in the published oracle report (§12).
 
 ---
 
@@ -320,7 +320,7 @@ SEC-008 forbids executing repository code during indexing. Loading the repo's ow
 
 Reconciliation with PRD FR-020: `DEFINES` is subsumed by `CONTAINS` (a file contains a symbol; a class contains a method — one relation, one direction). `INHERITS` retains the PRD's name; revision 1 silently renamed it `EXTENDS`, which also made the query name ambiguous about direction (§7.2).
 
-**`CALLS` target semantics — the declaration, not the runtime candidates.** Given `interface Handler { handle() }` with 30 implementors and a call site `h.handle()`, CodeGraph emits **one** `CALLS` edge to `Handler.handle`. Runtime candidates are recovered at query time by fanning out over `IMPLEMENTS`/`INHERITS`, and that fan-out is labelled as inference rather than baked into the graph.
+**`CALLS` target semantics — the declaration, not the runtime candidates.** Given `interface Handler { handle() }` with 30 implementors and a call site `h.handle()`, Sonde emits **one** `CALLS` edge to `Handler.handle`. Runtime candidates are recovered at query time by fanning out over `IMPLEMENTS`/`INHERITS`, and that fan-out is labelled as inference rather than baked into the graph.
 
 Rationale: it matches what `tsc` answers, which is what makes the oracle (§10) measurable at all; it keeps edge count linear instead of quadratic in implementors; and it keeps the "what actually runs" inference explicit and inspectable.
 
@@ -463,7 +463,7 @@ Revision 1 claimed "the index can be arbitrarily stale and the tool still never 
 
 The decisive argument for B: **you cannot detect a missing result by verifying the results you have.** A `callers_of(X)` query returning five verified callers never stats the sixth file that added a call five minutes ago. For an impact tool, a false negative — "nothing breaks" — is the worst possible failure.
 
-CodeGraph's claim is therefore narrowed to what it can actually deliver:
+Sonde's claim is therefore narrowed to what it can actually deliver:
 
 > **Never returns stale bytes, and always reports structural drift.**
 
@@ -488,13 +488,13 @@ Revision 1 said "re-extract that one file and update the store," which left two 
 
 The `COMPILER` tier requires a `tsc` `Program`. Building one for a single-file inline refresh costs seconds, and keeping one warm for a 100k-line repo would breach PRD §17.1's 300 MB idle-memory cap.
 
-**Decision:** the inline refresh path does **not** run the compiler. Edges for a refreshed file are re-derived at `LEXICAL`/`HEURISTIC` tiers, and the envelope carries an explicit warning that affected edges were downgraded pending a full `codegraph update`. The tier system makes this honest rather than invisible — which is the entire reason it exists.
+**Decision:** the inline refresh path does **not** run the compiler. Edges for a refreshed file are re-derived at `LEXICAL`/`HEURISTIC` tiers, and the envelope carries an explicit warning that affected edges were downgraded pending a full `sonde update`. The tier system makes this honest rather than invisible — which is the entire reason it exists.
 
 ### 8.5 States
 
 `fresh` · `refreshed` · `partial` (drift over the auto-refresh limit, or a file failed to parse) · `stale` (a requested file is unreadable; metadata returned, never a cached body) · `unknown` (no index, or a schema-version mismatch)
 
-`codegraph status` reports drift and tier distribution, so decay is visible rather than silent.
+`sonde status` reports drift and tier distribution, so decay is visible rather than silent.
 
 ---
 
@@ -515,7 +515,7 @@ The `COMPILER` tier requires a `tsc` `Program`. Building one for a single-file i
 
 ### 9.1 Concurrency
 
-SQLite in WAL mode, `busy_timeout` 5s. One writer at a time. The MCP server's refresh path (§8.2) takes a write transaction; a concurrent `codegraph index` will block it, and on timeout the server answers from the existing index with `partial` rather than failing. Two MCP clients on one index are safe under WAL. The index is per-canonical-root, so worktrees of the same repo get separate indexes.
+SQLite in WAL mode, `busy_timeout` 5s. One writer at a time. The MCP server's refresh path (§8.2) takes a write transaction; a concurrent `sonde index` will block it, and on timeout the server answers from the existing index with `partial` rather than failing. Two MCP clients on one index are safe under WAL. The index is per-canonical-root, so worktrees of the same repo get separate indexes.
 
 ---
 
@@ -534,13 +534,13 @@ would measure nothing; they are exact by construction and excluded from the
 accuracy figures.
 
 Run TypeScript's language service over a fixture repo to obtain ground-truth
-references and call sites. Run CodeGraph's default path over the same repo.
+references and call sites. Run Sonde's default path over the same repo.
 Diff. Emit precision and recall **per edge kind, split by tree-sitter tier**.
 
 Four things make this non-trivial, and all four must be built before the numbers mean anything:
 
-1. **Scope filtering.** `tsc` resolves into `node_modules` and `lib.d.ts`; CodeGraph deliberately does not. The oracle must be filtered to in-repo targets, or recall is crushed by references CodeGraph should never have had.
-2. **Granularity mapping.** `tsc` returns identifier *positions*; CodeGraph stores symbol→symbol pairs. The mapper from positions to enclosing symbols must be built **independently, from `tsc`'s own AST ancestry**. Reusing CodeGraph's containment logic would produce correlated errors — the oracle would silently agree with the bug it exists to catch.
+1. **Scope filtering.** `tsc` resolves into `node_modules` and `lib.d.ts`; Sonde deliberately does not. The oracle must be filtered to in-repo targets, or recall is crushed by references Sonde should never have had.
+2. **Granularity mapping.** `tsc` returns identifier *positions*; Sonde stores symbol→symbol pairs. The mapper from positions to enclosing symbols must be built **independently, from `tsc`'s own AST ancestry**. Reusing Sonde's containment logic would produce correlated errors — the oracle would silently agree with the bug it exists to catch.
 3. **Semantics agreement.** The oracle measures declaration-target resolution, matching §6.1. Settling `CALLS` semantics is a prerequisite, not a detail.
 4. **Config pinning.** `tsc` answers vary with `paths`, `include`, `skipLibCheck`, and project references. Each fixture pins its config, and the config hash is recorded in the report.
 
@@ -562,7 +562,7 @@ Selection criteria, published with the results so the sampling bias is visible:
 - Test selection for a change (2 tasks)
 - **Semantic-disadvantage controls** (2 tasks): behavioural description with no identifier overlap, and a synonym-heavy domain query — the classes where v0.1 is *expected to lose* to embeddings, per §2.1
 
-Baselines: (a) a strong agentic search loop — grep/glob/read with a competent agent, not naive grep; (b) CodeGraph. PRD §19.1's repository-map and competitor baselines are deferred to v0.2.
+Baselines: (a) a strong agentic search loop — grep/glob/read with a competent agent, not naive grep; (b) Sonde. PRD §19.1's repository-map and competitor baselines are deferred to v0.2.
 
 Metrics: required-evidence recall@k, input tokens, tool calls, wall-clock latency, **and tier-utility** — whether the compiler/lexical/heuristic/unresolved split changes agent behaviour at all. If the tiering is the thesis, it must be instrumented.
 
@@ -594,7 +594,7 @@ The spike is deleted afterwards. Its output is a written finding, not code.
 
 ## 12. Definition of done — v0.1
 
-1. `npx codegraph index` works on a TypeScript repo with no install step
+1. `npx sonde index` works on a TypeScript repo with no install step
 2. Three MCP tools verified in Claude Code **plus one other client** (PRD §21 Phase 2 exit)
 3. Zero stale **bytes** and zero unreported **drift** across the eval suite (§8.1)
 4. **Oracle report published in the README** — precision/recall per edge kind and tier, with `tsc` version and fixture configs, including unflattering numbers
@@ -618,7 +618,7 @@ Embeddings and semantic search (**deferred for time, not rejected** — §2.1) �
 |---|---|
 | Surface area outruns maintenance again | Three tools, one adapter, five dropped tables. Scope is the mitigation. |
 | Heuristic edges too imprecise to trust | Oracle differential testing measures it before ship; tiers expose it rather than hide it. |
-| A strong agentic baseline matches CodeGraph | The honest risk. Adversarial task selection tests where a graph *should* win; parity on those is a real negative result and a reason to stop. |
+| A strong agentic baseline matches Sonde | The honest risk. Adversarial task selection tests where a graph *should* win; parity on those is a real negative result and a reason to stop. |
 | Latency loses to ripgrep (~30 ms) | Drift check is stat-only; latency is a tracked benchmark metric, not an afterthought. |
 | Oracle overfitting | Delta-gated CI, not absolute floors; independently-built position→symbol mapper. |
 | Crowded category, no adoption | Swift wedge (v0.2); published accuracy numbers; `npx` friction removal. |
@@ -637,7 +637,7 @@ Embeddings and semantic search (**deferred for time, not rejected** — §2.1) �
 - **FR-081** (full query explanation: seed retrieval, expansion, ranking factors, exclusions, budget allocation) — v0.1 ships the CLI `--explain` flag only; the MCP envelope carries `summary`/`warnings`/`diagnostics`, not a structured explanation object. Full FR-081 is v0.2.
 - **FR-082** (disable optional semantic stages) — vacuous in v0.1, which has none. Removed from the carried list rather than claimed.
 
-**Removed from CodeGraph entirely:** FR-090–100 (moved to AgentDock).
+**Removed from Sonde entirely:** FR-090–100 (moved to AgentDock).
 
 ---
 
@@ -648,7 +648,7 @@ Embeddings and semantic search (**deferred for time, not rejected** — §2.1) �
 3. Ranking weights in §7.4 — initial values are guesses, to be tuned against the benchmark
 
 The compiler-pass default is no longer open: it is opt-in through
-`codegraph index --resolve` and `codegraph update --resolve`. Default indexing
+`sonde index --resolve` and `sonde update --resolve`. Default indexing
 remains zero-setup and byte-for-byte unchanged in its tiering behavior.
 
 ---
@@ -700,7 +700,7 @@ repository (Hono v4.6.3, MIT):
 - **Oracle scoring corrected.** It recorded call sites as both `CALLS` and
   `REFERENCES`, measuring against a storage model §6.1 explicitly rejects.
   Overall oracle recall 0.444 → 0.889.
-- **Benchmark arms unified.** The CodeGraph arm required exact stable-key
+- **Benchmark arms unified.** The Sonde arm required exact stable-key
   membership while the agentic arm substring-matched prose, so the two published
   columns were not comparable and favoured the verbose arm.
 - **TSX grammar routed by extension.** `matches()` accepted `.tsx` while the

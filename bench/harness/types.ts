@@ -34,7 +34,7 @@ export interface BenchmarkTask {
   fixture: string;
   /** Natural-language task given to the agentic-search baseline. */
   prompt: string;
-  /** Deterministic CodeGraph queries for the same task. */
+  /** Deterministic Sonde queries for the same task. */
   seeds: TaskSeed[];
   groundTruth: GroundTruth;
   /** Published to disclose the adversarial task-selection rationale. */
@@ -72,7 +72,7 @@ export interface TierHitCounts {
 export interface TaskResult {
   taskId: string;
   category: TaskCategory;
-  baseline: "agentic_search" | "codegraph";
+  baseline: "agentic_search" | "sonde";
   /** Fraction of requiredEvidence found, from 0 through 1. */
   recallAtK: number;
   toolCalls: number;
@@ -85,7 +85,7 @@ export interface TaskResult {
   distractorHits: number;
   /**
    * True when the arm consumed more evidence context than the task's budget.
-   * The CodeGraph arm packs to the budget and cannot exceed it; the agentic
+   * The Sonde arm packs to the budget and cannot exceed it; the agentic
    * baseline is unconstrained and can, so this is reported rather than used to
    * discard the trace.
    */
@@ -95,7 +95,7 @@ export interface TaskResult {
   /**
    * Deterministic proxy pending a validated end-to-end success judge.
    * Requires full recall, no distractors, AND staying inside the budget — the
-   * same constraint the CodeGraph arm pays for by truncating.
+   * same constraint the Sonde arm pays for by truncating.
    */
   preliminarySuccess: boolean;
   /**

@@ -1,4 +1,4 @@
-# CodeGraph Phase 3 Review Remediation Plan
+# Sonde Phase 3 Review Remediation Plan
 
 **Goal:** Correct the benchmark-validity findings from the Task 1–11 review,
 then complete the live-baseline and two-client acceptance gates without
@@ -6,9 +6,9 @@ publishing unsupported claims.
 
 **Authoritative inputs:**
 
-- `docs/superpowers/specs/2026-08-16-codegraph-design.md`, especially §10 and
+- `docs/superpowers/specs/2026-08-16-sonde-design.md`, especially §10 and
   §12.
-- `docs/superpowers/plans/2026-08-20-codegraph-benchmark-harness.md` for the
+- `docs/superpowers/plans/2026-08-20-sonde-benchmark-harness.md` for the
   original Phase 3 implementation.
 - `.whyline/decisions.md` for the review findings and prior tradeoffs.
 
@@ -31,7 +31,7 @@ publishing unsupported claims.
 2. Replace the false `nextDelay` true-negative with a real transitive impact
    task that includes its test caller and production callers.
 3. Make the queue completeness task require both readers and writers and allow
-   its deterministic CodeGraph baseline to issue the necessary queries.
+   its deterministic Sonde baseline to issue the necessary queries.
 4. Attribute `Notifier` type references to their actual enclosing file/class,
    not unrelated functions in the same file.
 5. Extend ground-truth tests to validate declared impact depths against the
@@ -41,7 +41,7 @@ publishing unsupported claims.
 
 ## Task 2: Correct benchmark scoring
 
-1. Pack CodeGraph evidence to each task's `maxContextBudgetTokens` before
+1. Pack Sonde evidence to each task's `maxContextBudgetTokens` before
    scoring, so recall@k has an enforced context bound.
 2. Count distractor hits and publish a deterministic preliminary-success proxy:
    full required recall with zero distractors.

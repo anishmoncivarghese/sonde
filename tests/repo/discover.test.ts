@@ -13,7 +13,7 @@ beforeAll(() => {
   mkdirSync(join(root, "node_modules", "pkg"), { recursive: true });
   mkdirSync(join(root, "dist"));
   writeFileSync(join(root, ".gitignore"), "dist/\n*.log\n");
-  writeFileSync(join(root, ".codegraphignore"), "src/generated.ts\n");
+  writeFileSync(join(root, ".sondeignore"), "src/generated.ts\n");
   writeFileSync(join(root, "src", "a.ts"), "export const a = 1;");
   writeFileSync(join(root, "src", "generated.ts"), "export const g = 1;");
   writeFileSync(
@@ -48,7 +48,7 @@ describe("discover", () => {
     expect(paths()).not.toContain("debug.log");
   });
 
-  it("honours .codegraphignore", () => {
+  it("honours .sondeignore", () => {
     expect(paths()).not.toContain("src/generated.ts");
   });
 

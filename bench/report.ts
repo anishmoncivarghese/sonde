@@ -50,7 +50,7 @@ function scoreRow(kind: string, tier: string, score: KindScore): string {
 }
 
 const lines: string[] = [
-  "# CodeGraph edge accuracy vs the TypeScript compiler",
+  "# Sonde edge accuracy vs the TypeScript compiler",
   "",
   `Generated: ${new Date().toISOString()}`,
   `TypeScript: ${ts.version} (bundled; repository TypeScript is never loaded)`,
@@ -59,7 +59,7 @@ const lines: string[] = [
   "path — the zero-setup default, and the only tier whose accuracy is in question.",
   "COMPILER-tier edges come from the TypeScript compiler itself, so scoring them",
   "against the same compiler would measure nothing; they are exact by construction",
-  "and excluded from these figures. Run `codegraph index --resolve` to produce them.",
+  "and excluded from these figures. Run `sonde index --resolve` to produce them.",
   "",
   "The oracle is filtered to in-repo targets; `node_modules` and `.d.ts`",
   "declarations are excluded. Type-only references, JSX intrinsics, `export =`,",
@@ -70,19 +70,19 @@ const lines: string[] = [
   "## Why precision below 1.000 is expected here",
   "",
   "These divergences are structural, so reading a precision figure as",
-  "\"how often CodeGraph is wrong\" overstates the error rate:",
+  "\"how often Sonde is wrong\" overstates the error rate:",
   "",
   "1. **Ambiguous member calls emit every candidate.** For `x.foo()` with two",
-  "   visible `foo` declarations, CodeGraph emits both as confidence-weighted",
+  "   visible `foo` declarations, Sonde emits both as confidence-weighted",
   "   `HEURISTIC` edges. At most one matches the compiler, so the other counts",
   "   as a false positive by construction. The alternative is guessing a single",
   "   target, which invariant 1 forbids — a wrong resolved-looking edge is worse",
   "   than two honestly heuristic ones. Precision is therefore capped below",
   "   1.000 wherever the fixture contains an ambiguous call.",
-  "2. **Constructor calls are ours alone.** CodeGraph emits `CALLS` for",
+  "2. **Constructor calls are ours alone.** Sonde emits `CALLS` for",
   "   `new Foo()`; the oracle does not model them, so each one is a false",
   "   positive against ground truth that omits it.",
-  "3. **Member-level IMPLEMENTS is ours alone.** CodeGraph derives an",
+  "3. **Member-level IMPLEMENTS is ours alone.** Sonde derives an",
   "   IMPLEMENTS edge from `RegExpRouter.add` to `Router.add` once the class",
   "   declares it implements the interface. tsc reports heritage clauses at the",
   "   type level only, so every member-level edge counts as a false positive",
@@ -98,7 +98,7 @@ const lines: string[] = [
 for (const fixture of FIXTURES) {
   const root = join(process.cwd(), fixture);
   const boundary = new RepoBoundary(root);
-  const tempDirectory = mkdtempSync(join(tmpdir(), "codegraph-oracle-"));
+  const tempDirectory = mkdtempSync(join(tmpdir(), "sonde-oracle-"));
   const dbPath = join(tempDirectory, "index.sqlite");
 
   try {
@@ -119,7 +119,7 @@ for (const fixture of FIXTURES) {
       "",
       `Fixture config SHA-256: \`${configHash(boundary)}\``,
       "",
-      `Oracle edges: ${expected.length} · CodeGraph edges: ${actual.length} · ` +
+      `Oracle edges: ${expected.length} · Sonde edges: ${actual.length} · ` +
         `one oracle edge moves recall by ${step}`,
       "",
       "| Edge kind | Tier | Precision | Recall | TP | FP | FN |",

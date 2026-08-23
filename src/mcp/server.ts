@@ -79,7 +79,7 @@ function graphResponse(
 export function createServer(root: string): McpServer {
   const boundary = new RepoBoundary(root);
   const rootHash = hashRoot(boundary);
-  const server = new McpServer({ name: "codegraph", version: "0.1.0" });
+  const server = new McpServer({ name: "sonde", version: "0.1.0" });
 
   server.registerTool(
     "find_symbols",

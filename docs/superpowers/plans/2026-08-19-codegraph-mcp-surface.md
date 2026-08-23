@@ -1,4 +1,4 @@
-# CodeGraph MCP Surface (Plan 2 of 3) Implementation Plan
+# Sonde MCP Surface (Plan 2 of 3) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,7 +10,7 @@ Before any of that can work, two real gaps in Plan 1's data model have to close:
 
 **Tech Stack:** TypeScript (strict), `@modelcontextprotocol/sdk` (stdio transport), `js-tiktoken` (`o200k_base`), `zod` (MCP SDK peer dependency), the existing `better-sqlite3`/`web-tree-sitter`/`commander`/`typescript` stack. No new native compilation — all three new dependencies are pure JS/WASM.
 
-**Spec:** `docs/superpowers/specs/2026-08-16-codegraph-design.md` (revision 2), primarily §6 (data model), §7 (MCP tools), §8 (freshness), §9 (error handling).
+**Spec:** `docs/superpowers/specs/2026-08-16-sonde-design.md` (revision 2), primarily §6 (data model), §7 (MCP tools), §8 (freshness), §9 (error handling).
 
 ## Global Constraints
 
@@ -452,7 +452,7 @@ export class SchemaVersionError extends Error {
   constructor(found: number) {
     super(
       `index schema version ${found} != supported ${SCHEMA_VERSION}; ` +
-        'run "codegraph clean" then "codegraph index"',
+        'run "sonde clean" then "sonde index"',
     );
     this.name = "SchemaVersionError";
   }
@@ -639,7 +639,7 @@ git commit -m "feat: add git revision, dirty-state, and changed-file detection"
 
 **Interfaces:**
 - Consumes: `RepoBoundary` (unchanged).
-- Produces: `indexPathFor(root: string): string`. Both the CLI (already has this, inlined) and the MCP server (Task 11) must resolve to the exact same path for the exact same repository, or `codegraph index` and the MCP server would maintain two different caches for one repo. Extracting it once and importing it from both call sites is the only way to guarantee that.
+- Produces: `indexPathFor(root: string): string`. Both the CLI (already has this, inlined) and the MCP server (Task 11) must resolve to the exact same path for the exact same repository, or `sonde index` and the MCP server would maintain two different caches for one repo. Extracting it once and importing it from both call sites is the only way to guarantee that.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -674,7 +674,7 @@ describe("indexPathFor", () => {
   });
 
   it("ends in index.sqlite under the user cache directory", () => {
-    expect(indexPathFor(root)).toMatch(/\.cache[\\/]codegraph[\\/][0-9a-f]{16}[\\/]index\.sqlite$/);
+    expect(indexPathFor(root)).toMatch(/\.cache[\\/]sonde[\\/][0-9a-f]{16}[\\/]index\.sqlite$/);
   });
 });
 ```
@@ -701,7 +701,7 @@ export function indexPathFor(root: string): string {
     .update(boundary.root)
     .digest("hex")
     .slice(0, 16);
-  const directory = join(homedir(), ".cache", "codegraph", hash);
+  const directory = join(homedir(), ".cache", "sonde", hash);
   mkdirSync(directory, { recursive: true });
   return join(directory, "index.sqlite");
 }
@@ -743,7 +743,7 @@ git commit -m "refactor: extract indexPathFor into a shared module"
 
 **Interfaces:**
 - Consumes: `Db` (from `src/store/db.ts`), `symbol_fts` (Task 2), `SymbolKind` (from `src/store/repos.ts`).
-- Produces: `findSymbols(db: Db, params: FindSymbolsParams): FindResult[]`. Task 11 (MCP server) calls this directly for the `find_symbols` tool; Task 12 (CLI) calls it for `codegraph search`.
+- Produces: `findSymbols(db: Db, params: FindSymbolsParams): FindResult[]`. Task 11 (MCP server) calls this directly for the `find_symbols` tool; Task 12 (CLI) calls it for `sonde search`.
 
 ```ts
 export interface FindSymbolsParams {
@@ -1108,7 +1108,7 @@ git commit -m "feat: add the spec §7.4 ranking formula"
 
 **Interfaces:**
 - Consumes: `Db`.
-- Produces: `queryGraph(db: Db, params: TraverseParams): TraverseResult`. Task 11 (MCP server) calls this for the `query_graph` tool; Task 12 (CLI) for `codegraph query`.
+- Produces: `queryGraph(db: Db, params: TraverseParams): TraverseResult`. Task 11 (MCP server) calls this for the `query_graph` tool; Task 12 (CLI) for `sonde query`.
 
 ```ts
 export type TraversePattern =
@@ -1693,7 +1693,7 @@ Two separate, independently-testable guarantees, matching §8.1's explicit split
 
 **Guarantee A — returned bytes match disk.** Re-read the file at the symbol's stored byte range and re-hash it; if it does not match `body_hash`, the caller gets `verified: false` and must not present that body as current (it degrades to metadata-only, per §8.5's `stale` state).
 
-**Guarantee B — structural drift is always reported.** `ensureFresh` wraps `checkDrift` (already built): 0 drift → `fresh`; drift within `AUTO_REFRESH_LIMIT` → run `updateRepo` inline and report `refreshed`, with a warning that the inline path does not run the (unbuilt, in this plan) `COMPILER` upgrade, so refreshed edges stay `LEXICAL`/`HEURISTIC`; drift over the limit, or persisted parse failures → answer from the existing index and report `partial` with the drift count and the reindex command, exactly as `codegraph status` already does.
+**Guarantee B — structural drift is always reported.** `ensureFresh` wraps `checkDrift` (already built): 0 drift → `fresh`; drift within `AUTO_REFRESH_LIMIT` → run `updateRepo` inline and report `refreshed`, with a warning that the inline path does not run the (unbuilt, in this plan) `COMPILER` upgrade, so refreshed edges stay `LEXICAL`/`HEURISTIC`; drift over the limit, or persisted parse failures → answer from the existing index and report `partial` with the drift count and the reindex command, exactly as `sonde status` already does.
 
 ```ts
 export class NoIndexError extends Error {}
@@ -1848,7 +1848,7 @@ import { migrate, openDb, SchemaVersionError, Store, type Db } from "../store/in
 
 export class NoIndexError extends Error {
   constructor(dbPath: string) {
-    super(`no index at ${dbPath}; run "codegraph index" first`);
+    super(`no index at ${dbPath}; run "sonde index" first`);
     this.name = "NoIndexError";
   }
 }
@@ -1886,7 +1886,7 @@ export async function ensureFresh(root: string, dbPath: string): Promise<ReadSta
     warnings.push(
       `index is partial: ${drift.driftCount} drifted file(s) over the ` +
         `${AUTO_REFRESH_LIMIT}-file auto-refresh limit, or a prior parse failure ` +
-        `is still recorded; run "codegraph update" to refresh`,
+        `is still recorded; run "sonde update" to refresh`,
     );
     return {
       db,
@@ -2461,7 +2461,7 @@ function unknownEnvelope(root: string, message: string) {
 }
 
 export function createServer(root: string): McpServer {
-  const server = new McpServer({ name: "codegraph", version: "0.1.0" });
+  const server = new McpServer({ name: "sonde", version: "0.1.0" });
 
   server.registerTool(
     "find_symbols",
@@ -2583,7 +2583,7 @@ git commit -m "feat: wire find_symbols, query_graph, and get_impact_radius as MC
 
 **Interfaces:**
 - Consumes: `findSymbols` (Task 5), `queryGraph` (Task 7), `packImpactResponse` (Task 10), `createServer` (Task 11).
-- Produces: `codegraph search|query|impact|mcp serve`, alongside the existing `index|update|status|doctor|clean` from Plan 1.
+- Produces: `sonde search|query|impact|mcp serve`, alongside the existing `index|update|status|doctor|clean` from Plan 1.
 
 The CLI and the MCP server must answer identically for the same inputs — that is the entire reason Tasks 5–10 built plain functions instead of MCP-tool-shaped ones. These four subcommands are thin `commander` wrappers, structurally identical to the five Plan 1 already shipped.
 
@@ -2765,9 +2765,9 @@ Expected: `ORACLE.md` rewritten with current numbers (now measuring the file-sym
 
 ```markdown
 <!-- README.md -->
-# CodeGraph
+# Sonde
 
-A local code-context engine for AI coding agents. CodeGraph indexes a TypeScript
+A local code-context engine for AI coding agents. Sonde indexes a TypeScript
 repository into a symbol-level graph in SQLite and exposes three MCP tools —
 `find_symbols`, `query_graph`, `get_impact_radius` — so an agent can ask
 structural questions text search cannot answer: who calls this, what breaks if
@@ -2775,17 +2775,17 @@ I change it, which tests touch it.
 
 ## Install and run
 
-    npx codegraph index .
-    npx codegraph mcp serve .
+    npx sonde index .
+    npx sonde mcp serve .
 
-No install step, no account. Point your MCP client at `codegraph mcp serve`.
+No install step, no account. Point your MCP client at `sonde mcp serve`.
 
 ## What it guarantees
 
 - **Never returns stale bytes.** Every response re-reads and re-hashes the
   source it quotes before returning it (spec §8.1, Guarantee A).
 - **Always reports structural drift**, rather than claiming completeness it
-  cannot verify (spec §8.1, Guarantee B). `codegraph status` shows the same
+  cannot verify (spec §8.1, Guarantee B). `sonde status` shows the same
   drift and tier distribution every MCP response carries in its envelope.
 - **Every edge is tier-labelled by how it was found** — `LEXICAL` (resolved
   through the import table and lexical scope, no type inference), `HEURISTIC`
@@ -2798,7 +2798,7 @@ No install step, no account. Point your MCP client at `codegraph mcp serve`.
 
 ## Accuracy
 
-CodeGraph measures itself against the TypeScript compiler on a pinned fixture
+Sonde measures itself against the TypeScript compiler on a pinned fixture
 and publishes the result, unflattering numbers included — no other tool in
 this category does this (spec §12).
 
@@ -2810,15 +2810,15 @@ Regenerate with `npm run bench:oracle`.
 
 ## CLI
 
-    codegraph index [path]              # full index
-    codegraph update [path]             # incremental, content-hash accounted
-    codegraph status [path]             # freshness, tier distribution
-    codegraph search <query> [path]     # find_symbols from the terminal
-    codegraph query <pattern> <symbol> [path]   # query_graph from the terminal
-    codegraph impact [path] --symbol <name>     # get_impact_radius from the terminal
-    codegraph doctor [path]             # parser/database/tsc health
-    codegraph clean [path]              # remove the cached index
-    codegraph mcp serve [path]          # start the MCP server (stdio)
+    sonde index [path]              # full index
+    sonde update [path]             # incremental, content-hash accounted
+    sonde status [path]             # freshness, tier distribution
+    sonde search <query> [path]     # find_symbols from the terminal
+    sonde query <pattern> <symbol> [path]   # query_graph from the terminal
+    sonde impact [path] --symbol <name>     # get_impact_radius from the terminal
+    sonde doctor [path]             # parser/database/tsc health
+    sonde clean [path]              # remove the cached index
+    sonde mcp serve [path]          # start the MCP server (stdio)
 
 ## Known limitations (v0.1)
 
@@ -2830,7 +2830,7 @@ Regenerate with `npm run bench:oracle`.
   declaration merging are known, by-design gaps in the tree-sitter extraction
   path (see the oracle report above).
 
-See `docs/superpowers/specs/2026-08-16-codegraph-design.md` for the full design.
+See `docs/superpowers/specs/2026-08-16-sonde-design.md` for the full design.
 ```
 
 Copy the actual `ORACLE.md` contents from Step 1 into the marked section — do not hand-write placeholder numbers; the whole point of this task is publishing the real, current, possibly-unflattering measurement (spec §12, "including unflattering numbers").

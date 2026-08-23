@@ -35,7 +35,7 @@ describe("indexPathFor", () => {
 
   it("ends in index.sqlite under the user cache directory", () => {
     expect(indexPathFor(root)).toMatch(
-      /\.cache[\\/]codegraph[\\/][0-9a-f]{16}[\\/]index\.sqlite$/,
+      /\.cache[\\/]sonde[\\/][0-9a-f]{16}[\\/]index\.sqlite$/,
     );
   });
 });

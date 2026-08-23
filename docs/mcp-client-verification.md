@@ -22,8 +22,8 @@ shared with the selected client. Replace both absolute paths below.
 
 ```sh
 nvm use && npm run build
-node /absolute/path/to/CodeGraph/dist/cli/main.js index /absolute/path/to/target
-node /absolute/path/to/CodeGraph/dist/cli/main.js mcp serve --help
+node /absolute/path/to/Sonde/dist/cli/main.js index /absolute/path/to/target
+node /absolute/path/to/Sonde/dist/cli/main.js mcp serve --help
 ```
 
 Record the target revision so both clients test the same repository state:
@@ -31,7 +31,7 @@ Record the target revision so both clients test the same repository state:
 - Target repository: `tests/fixtures/repos/medium` (synthetic fixture)
 - Target revision: `9db05363b158ca68242b8ef9725f86b038dbf0f8`, plus the same temporary
   tracked-source mutation in both clients
-- CodeGraph implementation commit: `dcbdd3c`
+- Sonde implementation commit: `dcbdd3c`
 
 ## 2. Claude Code
 
@@ -41,10 +41,10 @@ avoids depending on the client process's working directory.
 ```json
 {
   "mcpServers": {
-    "codegraph": {
+    "sonde": {
       "command": "node",
       "args": [
-        "/absolute/path/to/CodeGraph/dist/cli/main.js",
+        "/absolute/path/to/Sonde/dist/cli/main.js",
         "mcp",
         "serve",
         "/absolute/path/to/target"
@@ -54,7 +54,7 @@ avoids depending on the client process's working directory.
 }
 ```
 
-Start a new Claude Code session in the target repository, confirm `codegraph`
+Start a new Claude Code session in the target repository, confirm `sonde`
 connects, and call every tool at least once.
 
 - [x] `find_symbols` with `{ "query": "Dispatcher" }` returned seven matches
@@ -76,7 +76,7 @@ second AI account or model call.
 
 ```sh
 npx @modelcontextprotocol/inspector node \
-  /absolute/path/to/CodeGraph/dist/cli/main.js mcp serve \
+  /absolute/path/to/Sonde/dist/cli/main.js mcp serve \
   /absolute/path/to/target
 ```
 

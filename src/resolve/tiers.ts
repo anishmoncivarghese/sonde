@@ -3,7 +3,7 @@ import type { Binding } from "../link/imports.js";
 import type { Tier } from "../store/repos.js";
 
 /**
- * Maximum candidates a member-access reference may resolve to before CodeGraph
+ * Maximum candidates a member-access reference may resolve to before Sonde
  * declines to guess. Mirrors the TESTS fan-out cap in spec §6.4.
  */
 export const AMBIGUITY_CAP = 8;

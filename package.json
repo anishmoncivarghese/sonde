@@ -1,12 +1,12 @@
 {
-  "name": "codegraph",
+  "name": "@anish/sonde",
   "version": "0.1.0",
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "bin": {
-    "codegraph": "./dist/cli/main.js"
+    "sonde": "./dist/cli/main.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && cp src/store/schema.sql dist/store/schema.sql",

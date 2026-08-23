@@ -42,7 +42,7 @@ export function buildOracle(fixtureRoot: string): OracleEdge[] {
       const dstFile = decl.getSourceFile().fileName;
       if (!inRepo(dstFile)) return;
 
-      // CodeGraph now mints a file-level symbol whose qualifiedName is the
+      // Sonde now mints a file-level symbol whose qualifiedName is the
       // file's own repo-relative path (spec §6.2's empty scope chain); a
       // top-level reference with no enclosing declaration attributes there,
       // so the independently-built oracle must use the same identity for a
@@ -71,7 +71,7 @@ export function buildOracle(fixtureRoot: string): OracleEdge[] {
     visit(sf);
   }
 
-  // Dedupe: CodeGraph stores symbol-to-symbol pairs, not identifier positions.
+  // Dedupe: Sonde stores symbol-to-symbol pairs, not identifier positions.
   const key = (e: OracleEdge) =>
     `${e.srcFile}|${e.srcSymbol}|${e.dstFile}|${e.dstSymbol}|${e.kind}`;
   return [...new Map(out.map(e => [key(e), e])).values()];

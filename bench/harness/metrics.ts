@@ -1,7 +1,7 @@
 import type { TaskResult } from "./types.js";
 
 export interface AggregatedMetrics {
-  baseline: "agentic_search" | "codegraph";
+  baseline: "agentic_search" | "sonde";
   taskCount: number;
   meanRecallAtK: number;
   meanToolCalls: number;

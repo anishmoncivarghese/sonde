@@ -14,7 +14,7 @@ import { join } from "node:path";
 
 import { indexRepo } from "../../src/index/pipeline.js";
 import { migrate, openDb } from "../../src/store/index.js";
-import { runCodegraphTask } from "./codegraphRunner.js";
+import { runSondeTask } from "./sondeRunner.js";
 import { aggregateResults, type AggregatedMetrics } from "./metrics.js";
 import { scoreTrace } from "./traceScorer.js";
 import { LARGE_BENCHMARK_TASKS, LARGE_FIXTURE } from "./tasksLarge.js";
@@ -43,7 +43,7 @@ function row(label: string, m: AggregatedMetrics): string {
     `${Math.round(m.meanWallClockMs)} |`;
 }
 
-const tempDirectory = mkdtempSync(join(tmpdir(), "codegraph-bench-large-"));
+const tempDirectory = mkdtempSync(join(tmpdir(), "sonde-bench-large-"));
 const dbPath = join(tempDirectory, "index.sqlite");
 
 try {
@@ -51,7 +51,7 @@ try {
   const db = openDb(dbPath);
   migrate(db);
 
-  const codegraph = LARGE_BENCHMARK_TASKS.map((task) => runCodegraphTask(db, task));
+  const sonde = LARGE_BENCHMARK_TASKS.map((task) => runSondeTask(db, task));
   const agentic: TaskResult[] = [];
   for (const task of LARGE_BENCHMARK_TASKS) {
     const trace = loadTrace(task.id);
@@ -60,7 +60,7 @@ try {
   db.close();
 
   const lines = [
-    "# CodeGraph vs. agentic search — large fixture",
+    "# Sonde vs. agentic search — large fixture",
     "",
     `Generated: ${new Date().toISOString()}`,
     "",
@@ -75,26 +75,26 @@ try {
     "beyond any task budget, so neither arm can read it exhaustively.",
     "",
     "Ground truth was verified by reading the fixture source, not generated from",
-    "CodeGraph's own output: an oracle derived from the tool under test would",
+    "Sonde's own output: an oracle derived from the tool under test would",
     "agree with its own bugs.",
     "",
     "## Summary",
     "",
     "| Baseline | Mean recall@k | Success rate | Mean distractors | Mean tool calls | Mean input tokens | Mean context tokens | Mean latency (ms) |",
     "|---|---:|---:|---:|---:|---:|---:|---:|",
-    row("CodeGraph", aggregateResults(codegraph)),
+    row("Sonde", aggregateResults(sonde)),
     agentic.length === LARGE_BENCHMARK_TASKS.length
       ? row("Agentic search", aggregateResults(agentic))
       : `| Agentic search | PENDING — ${agentic.length}/${LARGE_BENCHMARK_TASKS.length} traces | | | | | | |`,
     "",
     "## Per-task",
     "",
-    "| Task | Category | CodeGraph recall | Agentic recall | CodeGraph ctx | Agentic ctx |",
+    "| Task | Category | Sonde recall | Agentic recall | Sonde ctx | Agentic ctx |",
     "|---|---|---:|---:|---:|---:|",
   ];
 
   for (const task of LARGE_BENCHMARK_TASKS) {
-    const cg = codegraph.find((r) => r.taskId === task.id);
+    const cg = sonde.find((r) => r.taskId === task.id);
     const ag = agentic.find((r) => r.taskId === task.id);
     lines.push(
       `| ${task.id} | ${task.category} | ` +

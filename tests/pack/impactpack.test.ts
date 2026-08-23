@@ -60,7 +60,7 @@ describe("packImpactResponse", () => {
     expect(envelope.freshness.state).toBe("unknown");
     expect(envelope.results).toEqual([]);
     expect(envelope.warnings).toContainEqual(
-      expect.stringMatching(/codegraph index/),
+      expect.stringMatching(/sonde index/),
     );
   });
 

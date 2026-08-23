@@ -1,21 +1,21 @@
-# CodeGraph COMPILER Tier Implementation Plan
+# Sonde COMPILER Tier Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Upgrade cross-file edges from `HEURISTIC`/`UNRESOLVED` to `COMPILER` tier using the bundled TypeScript type checker, so `callers_of` on a common method name returns real callers instead of an empty result and an unresolved count.
 
-**Architecture:** A new opt-in pass runs after RESOLVE. It builds one `ts.Program`, walks each in-repo source file's identifiers, asks the checker for the declaration, maps that declaration back to a CodeGraph `stable_key`, and rewrites the matching edge to `tier = 'COMPILER'`. The Program is built, used, and discarded inside the pass — it is never held by the MCP server.
+**Architecture:** A new opt-in pass runs after RESOLVE. It builds one `ts.Program`, walks each in-repo source file's identifiers, asks the checker for the declaration, maps that declaration back to a Sonde `stable_key`, and rewrites the matching edge to `tier = 'COMPILER'`. The Program is built, used, and discarded inside the pass — it is never held by the MCP server.
 
 **Tech Stack:** TypeScript (strict), Node 22+, bundled `typescript`, `better-sqlite3`, `vitest`.
 
-**Spec:** `docs/superpowers/specs/2026-08-16-codegraph-design.md` (revision 3) — §4.3 tiers, §5.3 bundled compiler, §8.4 tier downgrade on refresh.
+**Spec:** `docs/superpowers/specs/2026-08-16-sonde-design.md` (revision 3) — §4.3 tiers, §5.3 bundled compiler, §8.4 tier downgrade on refresh.
 
 ## Why this is the highest-value remaining work
 
 `src/resolve/tiers.ts` caps ambiguous references at `AMBIGUITY_CAP = 8` and records the overflow as `UNRESOLVED` with `reason: "too_ambiguous"`. That cap is correct — it replaced 354,291 mostly-noise edges with 44,107 — but it means:
 
 ```
-$ codegraph query callers_of "ts:src/hono-base.ts#Hono.route" tests/fixtures/repos/large
+$ sonde query callers_of "ts:src/hono-base.ts#Hono.route" tests/fixtures/repos/large
 0 graph result(s) | compiler 0 lexical 0 heuristic 0 unresolved 53
 ```
 
@@ -55,7 +55,7 @@ This means Task 2 **may** reuse the approach in `bench/oracle/ancestry.ts`, but 
 - **Edge kinds are fixed:** `CONTAINS` | `IMPORTS` | `CALLS` | `REFERENCES` | `IMPLEMENTS` | `INHERITS` | `TESTS`. This plan adds no new kind.
 - **Never fabricate.** If the checker cannot resolve a reference, leave the existing tier alone. Never invent an edge, never downgrade a `LEXICAL` edge.
 - **Degrade with a warning, never fail silently** (invariant 8). No tsconfig, a malformed tsconfig, or a Program that throws must produce a warning in the envelope and leave the index usable — never a crash and never a silently unimproved index.
-- **Opt-in.** `codegraph index` behaviour is unchanged by default. The pass runs only under an explicit flag.
+- **Opt-in.** `sonde index` behaviour is unchanged by default. The pass runs only under an explicit flag.
 - **Commit after every task.** Conventional commits.
 
 ---
@@ -65,7 +65,7 @@ This means Task 2 **may** reuse the approach in `bench/oracle/ancestry.ts`, but 
 ```
 src/resolve/
   compilerPass.ts       # NEW. Program construction, identifier walk, edge upgrade.
-  symbolMapping.ts      # NEW. ts.Declaration -> CodeGraph stable_key.
+  symbolMapping.ts      # NEW. ts.Declaration -> Sonde stable_key.
 src/store/
   repos.ts              # MODIFY. Add upgradeEdgeTier + tier count accessors.
 src/index/
@@ -243,7 +243,7 @@ git commit -m "feat: build an optional TypeScript Program with graceful degradat
 
 ---
 
-### Task 2: Map a compiler declaration to a CodeGraph stable key
+### Task 2: Map a compiler declaration to a Sonde stable key
 
 **Files:**
 - Create: `src/resolve/symbolMapping.ts`, `tests/resolve/symbolMapping.test.ts`
@@ -406,7 +406,7 @@ Expected: PASS, 5 tests
 
 ```bash
 git add src/resolve/symbolMapping.ts tests/resolve/symbolMapping.test.ts
-git commit -m "feat: map compiler declarations to CodeGraph stable keys"
+git commit -m "feat: map compiler declarations to Sonde stable keys"
 ```
 
 ---
@@ -742,7 +742,7 @@ git commit -m "feat: upgrade edges to COMPILER tier with the type checker"
 - `indexRepo(root, dbPath, options?: { resolve?: boolean })`
 - `updateRepo(root, dbPath, options?: { resolve?: boolean })`
 - `IndexStats` gains `compilerUpgraded: number | null` — `null` means the pass did not run
-- CLI: `codegraph index --resolve`, `codegraph update --resolve`; `doctor` reports whether a Program can be built
+- CLI: `sonde index --resolve`, `sonde update --resolve`; `doctor` reports whether a Program can be built
 
 Default behaviour must not change: without `--resolve`, no Program is built.
 
@@ -846,7 +846,7 @@ git commit -m "feat: add --resolve flag for compiler-tier resolution"
 
 **Files:**
 - Modify: `bench/report.ts`
-- Modify: `README.md`, `docs/superpowers/specs/2026-08-16-codegraph-design.md`
+- Modify: `README.md`, `docs/superpowers/specs/2026-08-16-sonde-design.md`
 
 The oracle exists to measure the **tree-sitter** path. `COMPILER` edges come from `tsc`, so scoring them against `tsc` measures nothing. Say so in the report rather than letting a reader assume the numbers cover both.
 
@@ -859,7 +859,7 @@ In `bench/report.ts`, add to the preamble:
 path — the zero-setup default, and the only tier whose accuracy is in question.
 COMPILER-tier edges come from the TypeScript compiler itself, so scoring them
 against the same compiler would measure nothing; they are exact by construction
-and excluded from these figures. Run `codegraph index --resolve` to produce
+and excluded from these figures. Run `sonde index --resolve` to produce
 them.
 ```
 
@@ -897,9 +897,9 @@ git commit -m "docs: scope the oracle to the tree-sitter path and republish"
 
 ## Completion criteria
 
-- [ ] `codegraph index --resolve` produces `COMPILER`-tier edges on the large fixture
+- [ ] `sonde index --resolve` produces `COMPILER`-tier edges on the large fixture
 - [ ] `callers_of` on `Hono.route` returns a non-empty `compiler` bucket
-- [ ] `codegraph index` without the flag is byte-identical in behaviour to today
+- [ ] `sonde index` without the flag is byte-identical in behaviour to today
 - [ ] No tsconfig, or a malformed one, still indexes and warns
 - [ ] `doctor` reports compiler availability and the bundled `tsc` version
 - [ ] `ORACLE.md` states that it measures the tree-sitter path only

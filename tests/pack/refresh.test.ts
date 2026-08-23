@@ -148,7 +148,7 @@ describe("ensureFresh", () => {
         verified: [],
       });
       expect(state.warnings).toContainEqual(
-        expect.stringMatching(/codegraph update/),
+        expect.stringMatching(/sonde update/),
       );
       expect(
         state.db.prepare("SELECT COUNT(*) AS count FROM file").get(),

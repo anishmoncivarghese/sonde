@@ -2,10 +2,10 @@
  * The single evidence-matching rule, shared by both benchmark arms.
  *
  * It lives in its own module because the arms previously used different rules:
- * the CodeGraph arm required exact stable-key set membership, while the agentic
+ * the Sonde arm required exact stable-key set membership, while the agentic
  * arm substring-matched prose against the qualified name, path, or stable key.
  * That made the two columns incomparable and structurally favoured the verbose
- * arm — CodeGraph returning `ts:src/index.ts#notifiers` scored 0.00 against a
+ * arm — Sonde returning `ts:src/index.ts#notifiers` scored 0.00 against a
  * required `ts:src/index.ts#`, while an agent merely writing "src/index.ts"
  * scored 1.00. Whatever the rule is, both arms must be held to it.
  *

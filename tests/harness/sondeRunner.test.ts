@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { runCodegraphTask } from "../../bench/harness/codegraphRunner.js";
+import { runSondeTask } from "../../bench/harness/sondeRunner.js";
 import { BENCHMARK_TASKS } from "../../bench/harness/tasks.js";
 import type { BenchmarkTask } from "../../bench/harness/types.js";
 import { indexRepo } from "../../src/index/pipeline.js";
@@ -31,13 +31,13 @@ afterEach(() => {
   rmSync(tempDir, { recursive: true, force: true });
 });
 
-describe("runCodegraphTask", () => {
+describe("runSondeTask", () => {
   it("finds all five Notifier implementers with recall 1", () => {
-    const result = runCodegraphTask(db, task("implementations-of-notifier"));
+    const result = runSondeTask(db, task("implementations-of-notifier"));
 
     expect(result.recallAtK).toBe(1);
     expect(result.toolCalls).toBe(1);
-    expect(result.baseline).toBe("codegraph");
+    expect(result.baseline).toBe("sonde");
     expect(result.inputTokens).toBeGreaterThan(0);
     expect(result.outputTokens).toBeGreaterThan(0);
     expect(result.contextTokens).toBe(result.outputTokens);
@@ -53,7 +53,7 @@ describe("runCodegraphTask", () => {
   });
 
   it("reports tier utility for matched required impact evidence", () => {
-    const result = runCodegraphTask(db, task("impact-notifier-signature"));
+    const result = runSondeTask(db, task("impact-notifier-signature"));
 
     expect(result.recallAtK).toBeGreaterThan(0);
     expect(result.tierUtility).not.toBeNull();
@@ -62,19 +62,19 @@ describe("runCodegraphTask", () => {
   });
 
   it("finds the complete production-and-test retry impact chain", () => {
-    const result = runCodegraphTask(db, task("impact-retry-policy"));
+    const result = runSondeTask(db, task("impact-retry-policy"));
 
     expect(result.recallAtK).toBe(1);
     expect(result.tierUtility).not.toBeNull();
   });
 
   it("matches test-selection ground truth through canonical file keys", () => {
-    const result = runCodegraphTask(db, task("tests-for-dispatcher-change"));
+    const result = runSondeTask(db, task("tests-for-dispatcher-change"));
     expect(result.recallAtK).toBe(1);
   });
 
   it("combines both queries for the queue completeness task", () => {
-    const result = runCodegraphTask(db, task("completeness-queue-callers"));
+    const result = runSondeTask(db, task("completeness-queue-callers"));
     expect(result.recallAtK).toBe(1);
     expect(result.toolCalls).toBe(2);
     expect(result.tierUtility).toBe(1);
@@ -89,7 +89,7 @@ describe("runCodegraphTask", () => {
       groundTruth: { ...source.groundTruth, maxContextBudgetTokens: 1 },
     };
 
-    const result = runCodegraphTask(db, budgeted);
+    const result = runSondeTask(db, budgeted);
     expect(result.recallAtK).toBe(0);
     expect(result.contextTokens).toBeLessThanOrEqual(1);
     expect(result.preliminarySuccess).toBe(false);
@@ -109,7 +109,7 @@ describe("runCodegraphTask", () => {
       },
     };
 
-    const result = runCodegraphTask(db, adversarial);
+    const result = runSondeTask(db, adversarial);
     expect(result.recallAtK).toBe(1);
     expect(result.helpfulHits).toBe(1);
     expect(result.distractorHits).toBe(1);

@@ -42,7 +42,7 @@ export function scoreTrace(task: BenchmarkTask, trace: AgentTrace): TaskResult {
     );
   }
   // Recorded, not thrown. Discarding the trace kept the baseline's recall
-  // unconstrained while the CodeGraph arm paid for packing to the same budget,
+  // unconstrained while the Sonde arm paid for packing to the same budget,
   // which measured the two arms asymmetrically.
   const budget = task.groundTruth.maxContextBudgetTokens;
   const contextOverageTokens = Math.max(0, trace.contextTokens - budget);
