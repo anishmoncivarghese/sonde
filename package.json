@@ -14,7 +14,8 @@
     "bench:oracle": "node --import tsx bench/report.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "postinstall": "node scripts/fetch-grammars.mjs"
+    "postinstall": "node scripts/fetch-grammars.mjs",
+    "bench:baseline": "node --import tsx bench/harness/runBaseline.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
