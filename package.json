@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/fetch-grammars.mjs",
     "bench:baseline": "node --import tsx bench/harness/runBaseline.ts",
-    "bench:fixture": "node scripts/fetch-bench-fixture.mjs"
+    "bench:fixture": "node scripts/fetch-bench-fixture.mjs",
+    "bench:large": "node --import tsx bench/harness/reportLarge.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

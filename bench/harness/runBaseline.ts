@@ -9,16 +9,22 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { BENCHMARK_TASKS } from "./tasks.js";
+import { LARGE_BENCHMARK_TASKS } from "./tasksLarge.js";
 import { runClaudeCodeBaseline, BASELINE_MODEL, BASELINE_TOOLS } from "./claudeCodeBaseline.js";
 
 const repoRoot = process.cwd();
-const tracesDir = join(repoRoot, "bench", "harness", "traces");
+const tracesDir = join(repoRoot, "bench", "harness", useLargeDir());
+
+function useLargeDir(): string {
+  return process.argv.includes("--large") ? "traces-large" : "traces";
+}
 mkdirSync(tracesDir, { recursive: true });
 
-const only = process.argv[2];
-const tasks = only
-  ? BENCHMARK_TASKS.filter((task) => task.id === only)
-  : BENCHMARK_TASKS;
+const args = process.argv.slice(2);
+const useLarge = args.includes("--large");
+const only = args.find((arg) => !arg.startsWith("--"));
+const suite = useLarge ? LARGE_BENCHMARK_TASKS : BENCHMARK_TASKS;
+const tasks = only ? suite.filter((task) => task.id === only) : suite;
 
 if (tasks.length === 0) {
   console.error(`no benchmark task matches "${only}"`);

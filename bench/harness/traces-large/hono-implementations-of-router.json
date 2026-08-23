@@ -1,0 +1,44 @@
+{
+  "taskId": "hono-implementations-of-router",
+  "toolCalls": [
+    {
+      "tool": "Read",
+      "input": {
+        "file_path": "/private/var/folders/43/x7x092wj64d8d5j564q798640000gn-T/cg-baseline-hono-implementations-of-router-F5wDJt/src/router.ts"
+      },
+      "resultSummary": "195 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "implements Router",
+        "output_mode": "content"
+      },
+      "resultSummary": "444 result bytes"
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "^import .*Router.*from.*router'",
+        "output_mode": "content",
+        "glob": "src/router/**/router.ts"
+      },
+      "resultSummary": ""
+    },
+    {
+      "tool": "Grep",
+      "input": {
+        "pattern": "interface Router",
+        "output_mode": "content",
+        "-A": 8,
+        "path": "src/router.ts"
+      },
+      "resultSummary": "469 result bytes"
+    }
+  ],
+  "finalAnswerText": "Five classes implement `Router<T>` from `src/router.ts` (interface at `src/router.ts:29`), all importing it as `import type { ..., Router } from '../../router'`:\n\n| Class | Location |\n|---|---|\n| `LinearRouter<T>` | `src/router/linear-router/router.ts:11` |\n| `PatternRouter<T>` | `src/router/pattern-router/router.ts:6` |\n| `RegExpRouter<T>` | `src/router/reg-exp-router/router.ts:124` |\n| `SmartRouter<T>` | `src/router/smart-router/router.ts:4` |\n| `TrieRouter<T>` | `src/router/trie-router/router.ts:5` |\n\n`SmartRouter` is the composite one — it implements the same interface while delegating to the others at match time.",
+  "inputTokens": 30019,
+  "outputTokens": 751,
+  "contextTokens": 332,
+  "wallClockMs": 14075
+}
