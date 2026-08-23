@@ -1063,3 +1063,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** BENCHMARK-LARGE.md, BENCHMARK.md
 
 <!-- whyline-event: e3872f05506e4ba9aa47fe416986a8c4 -->
+
+## 2026-08-23 — Recompute index statistics that the compiler pass mutates
+
+**Because:** the pass clears unresolved records it has placed, so a count captured during RESOLVE understates the benefit of --resolve by exactly the number of references the compiler rescued, and this project treats a published number that does not mean what it says as a defect
+
+**Rejected:**
+
+- leave the count as a RESOLVE-phase figure and document it — a footnote does not rescue a headline number that is wrong
+
+**Files:** src/index/pipeline.ts
+
+<!-- whyline-event: fd1474dd5fad45e5abed374881506245 -->
