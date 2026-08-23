@@ -5,6 +5,7 @@ import type { RepoBoundary } from "../repo/boundary.js";
 import type { EdgeRow } from "../store/repos.js";
 import type { TsConfig } from "../tsconfig/load.js";
 import { SymbolTable } from "./symboltable.js";
+import { deriveMemberImplements, type SymbolLocation } from "./members.js";
 import { AMBIGUITY_CAP, assignTier } from "./tiers.js";
 
 export interface ExternalRow {
@@ -216,6 +217,20 @@ export function resolveAll(
       }
     }
   }
+
+  // Derive member-level IMPLEMENTS last, once every type-level relationship is
+  // known. Without this, impact on an interface method cannot reach the members
+  // that implement it (src/resolve/members.ts).
+  const symbolLocations = new Map<string, SymbolLocation>();
+  for (const [file, result] of files) {
+    for (const symbol of result.symbols) {
+      symbolLocations.set(symbol.stableKey, {
+        file,
+        qualifiedName: symbol.qualifiedName,
+      });
+    }
+  }
+  out.edges.push(...deriveMemberImplements(symbolLocations, out.edges));
 
   return out;
 }
