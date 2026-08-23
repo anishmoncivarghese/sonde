@@ -1,6 +1,6 @@
 # CodeGraph edge accuracy vs the TypeScript compiler
 
-Generated: 2026-08-23T18:16:41.557Z
+Generated: 2026-08-23T18:59:13.803Z
 TypeScript: 5.9.3 (bundled; repository TypeScript is never loaded)
 
 **What these numbers cover.** The oracle measures the tree-sitter resolution
