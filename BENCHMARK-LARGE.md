@@ -1,6 +1,6 @@
 # CodeGraph vs. agentic search — large fixture
 
-Generated: 2026-08-23T12:30:06.089Z
+Generated: 2026-08-23T12:33:12.366Z
 
 Fixture: Hono v4.6.3 (MIT) — 346 files indexed, 9031 symbols, 44107 edges, 8 parse failures.
 
@@ -18,16 +18,16 @@ agree with its own bugs.
 
 | Baseline | Mean recall@k | Success rate | Mean distractors | Mean tool calls | Mean input tokens | Mean context tokens | Mean latency (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| CodeGraph | 0.767 | 0.667 | 0.00 | 1.0 | 14 | 1256 | 264 |
-| Agentic search | PENDING — 1/6 traces | | | | | | |
+| CodeGraph | 0.767 | 0.667 | 0.00 | 1.0 | 14 | 1256 | 262 |
+| Agentic search | 1.000 | 0.500 | 0.00 | 8.0 | 78548 | 3621 | 38602 |
 
 ## Per-task
 
 | Task | Category | CodeGraph recall | Agentic recall | CodeGraph ctx | Agentic ctx |
 |---|---|---:|---:|---:|---:|
 | hono-implementations-of-router | wide_interface | 1.00 | 1.00 | 337 | 332 |
-| hono-impact-router-add | transitive_impact | 0.60 | PENDING | 3957 | PENDING |
-| hono-imported-by-compose | completeness | 1.00 | PENDING | 198 | PENDING |
-| hono-references-to-httpexception | completeness | 1.00 | PENDING | 1077 | PENDING |
-| hono-tests-for-compose | test_selection | 1.00 | PENDING | 1967 | PENDING |
-| hono-semantic-router-selection | semantic_disadvantage | 0.00 | PENDING | 0 | PENDING |
+| hono-impact-router-add | transitive_impact | 0.60 | 1.00 | 3957 | 9756 |
+| hono-imported-by-compose | completeness | 1.00 | 1.00 | 198 | 131 |
+| hono-references-to-httpexception | completeness | 1.00 | 1.00 | 1077 | 945 |
+| hono-tests-for-compose | test_selection | 1.00 | 1.00 | 1967 | 7772 |
+| hono-semantic-router-selection | semantic_disadvantage | 0.00 | 1.00 | 0 | 2787 |

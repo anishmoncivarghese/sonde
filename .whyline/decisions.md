@@ -929,3 +929,28 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/evidenceMatch.ts
 
 <!-- whyline-event: 4fe7de03a48b4ee4bc6dd3fefcf16443 -->
+
+## 2026-08-23 — Cap heuristic candidate fan-out at 8 and record the overflow as too_ambiguous
+
+**Because:** on a real 19k-line repository the uncapped fan-out produced 354291 edges from 9031 symbols, 73 percent heuristic noise, with the symbol get drawing 1338 inbound edges because every .get() call linked to every symbol named get; an edge at confidence 1/1338 is not evidence and asserting it violates the spirit of invariant 1
+
+**Rejected:**
+
+- keep all edges and filter at query time — the index still carries 300k edges and every consumer must remember to filter
+- leave it and document that heuristic edges on common names are low value — ships a graph that is 73 percent noise
+
+**Files:** src/resolve/tiers.ts
+
+<!-- whyline-event: 029a9f52d2bd4899b845791d12c8b193 -->
+
+## 2026-08-23 — Benchmark against a pinned real repository rather than only a hand-written fixture
+
+**Because:** the 198-line medium fixture is about 1400 tokens, so the agentic baseline read all of it, which cannot test whether structural retrieval beats exhaustive reading; the large fixture exposed the fan-out explosion, the TSX parse failures, and the interface-method impact gap, none of which were visible at 198 lines
+
+**Rejected:**
+
+- generate a large synthetic fixture — predictable naming makes grep easier than in real code and reviewers discount self-authored corpora
+
+**Files:** bench/harness/tasksLarge.ts
+
+<!-- whyline-event: 026ba72ea19d4366a6e07abb2c4dee1c -->
