@@ -88,3 +88,52 @@ describe("extractReferences", () => {
     expect(run("boot();")).toEqual([]);
   });
 });
+
+describe("type-position references (spec §6.1)", () => {
+  const refsTo = (source: string, name: string) =>
+    run(source).filter((r) => r.name === name && r.kind === "REFERENCES");
+
+  it("records a type annotation on a variable", () => {
+    expect(refsTo("const n: Notifier = make();", "Notifier")).toHaveLength(1);
+  });
+
+  it("records the element type of an array annotation", () => {
+    // The fixture's `const notifiers: Notifier[]` produced no edge at all
+    // before this, which is why references_to(Notifier) missed src/index.ts.
+    expect(refsTo("const ns: Notifier[] = [];", "Notifier")).toHaveLength(1);
+  });
+
+  it("records a parameter type annotation", () => {
+    expect(refsTo("function f(n: Notifier): void {}", "Notifier")).toHaveLength(1);
+  });
+
+  it("records a constructor property parameter type", () => {
+    // Exactly the Dispatcher shape: `private readonly notifiers: Notifier[]`.
+    const source =
+      "class Dispatcher { constructor(private readonly ns: Notifier[]) {} }";
+    expect(refsTo(source, "Notifier")).toHaveLength(1);
+  });
+
+  it("records a return type annotation", () => {
+    expect(refsTo("function f(): Notifier { return make(); }", "Notifier"))
+      .toHaveLength(1);
+  });
+
+  it("records type arguments inside a generic", () => {
+    expect(refsTo("const m: Map<string, Notifier> = new Map();", "Notifier"))
+      .toHaveLength(1);
+  });
+
+  it("does not downgrade an implements clause to a plain reference", () => {
+    // IMPLEMENTS is the more specific relationship and must not be duplicated
+    // as REFERENCES, or implementations_of and references_to double-count.
+    const source = "class A implements Notifier { notify(): void {} }";
+    const all = run(source).filter((r) => r.name === "Notifier");
+    expect(all.map((r) => r.kind)).toEqual(["IMPLEMENTS"]);
+  });
+
+  it("does not downgrade an extends clause to a plain reference", () => {
+    const all = run("class A extends Base {}").filter((r) => r.name === "Base");
+    expect(all.map((r) => r.kind)).toEqual(["INHERITS"]);
+  });
+});

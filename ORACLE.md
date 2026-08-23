@@ -1,6 +1,6 @@
 # CodeGraph edge accuracy vs the TypeScript compiler
 
-Generated: 2026-08-19T21:11:47.823Z
+Generated: 2026-08-23T07:30:41.209Z
 TypeScript: 5.9.3 (bundled; repository TypeScript is never loaded)
 
 The oracle is filtered to in-repo targets; `node_modules` and `.d.ts`
@@ -48,9 +48,9 @@ Oracle edges: 9 · CodeGraph edges: 6 · one oracle edge moves recall by 11.1%
 | INHERITS | COMPILER | 1.000 | 0.000 | 0 | 0 | 1 |
 | INHERITS | LEXICAL | 1.000 | 1.000 | 1 | 0 | 0 |
 | INHERITS | HEURISTIC | 1.000 | 0.000 | 0 | 0 | 1 |
-| REFERENCES | ALL | 1.000 | 0.000 | 0 | 0 | 5 |
+| REFERENCES | ALL | 0.667 | 0.800 | 4 | 2 | 1 |
 | REFERENCES | COMPILER | 1.000 | 0.000 | 0 | 0 | 5 |
-| REFERENCES | LEXICAL | 1.000 | 0.000 | 0 | 0 | 5 |
-| REFERENCES | HEURISTIC | 1.000 | 0.000 | 0 | 0 | 5 |
+| REFERENCES | LEXICAL | 1.000 | 0.800 | 4 | 0 | 1 |
+| REFERENCES | HEURISTIC | 0.000 | 0.000 | 0 | 2 | 5 |
 
-**Overall:** precision 0.667, recall 0.444
+**Overall:** precision 0.667, recall 0.889

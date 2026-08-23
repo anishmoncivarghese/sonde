@@ -890,3 +890,29 @@ Append-only. Written by whyline; readable without it.
 **Files:** docs/mcp-client-verification.md
 
 <!-- whyline-event: 95ef9f6b06494b35a41df0b2b9261dec -->
+
+## 2026-08-23 — Report over-budget agentic traces instead of discarding them
+
+**Because:** the CodeGraph arm packs TO the budget so its recall already pays for truncation, while the agentic arm is unconstrained; discarding over-budget traces kept the baseline's recall unconstrained and measured the two arms asymmetrically in the baseline's favour
+
+**Rejected:**
+
+- raise the task budgets until the baseline fits — rigs the benchmark in the opposite direction and abandons the minimum-sufficient-context premise
+- keep throwing on over-budget traces — discards a real answer and reports it as an error, losing the recall information entirely
+
+**Files:** bench/harness/traceScorer.ts
+
+<!-- whyline-event: 7c4331409bed4f0f8a2a477ae4569c07 -->
+
+## 2026-08-23 — Drive the agentic baseline with Claude Code headless on a subscription rather than the Anthropic API SDK
+
+**Because:** spec section 10 Layer 3 asks for a strong agentic loop and Claude Code is the alternative developers actually use, so it is a more honest bar than a hand-rolled three-tool harness, and it removes per-token billing from the benchmark
+
+**Rejected:**
+
+- the existing @anthropic-ai/sdk path — bills per token, and re-running after any CodeGraph change means paying twice
+- a local or weaker model — a weak baseline inflates CodeGraph's apparent value
+
+**Files:** bench/harness/claudeCodeBaseline.ts
+
+<!-- whyline-event: 9ebfbc82945146288117cc9009873422 -->

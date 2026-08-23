@@ -1,6 +1,6 @@
 # CodeGraph vs. agentic search — 12-task benchmark
 
-Generated: 2026-08-23T07:17:59.616Z
+Generated: 2026-08-23T07:31:22.244Z
 
 Adversarially selected per spec §10 Layer 3, not drawn uniformly — a uniform sample would show parity on tasks modern agentic search is already good at and invite the wrong conclusion. Selection criteria, disclosed as the spec requires:
 
@@ -22,7 +22,7 @@ Recall@k scores only evidence admitted by each task's disclosed context-token bu
 
 | Baseline | Mean recall@k | Preliminary success rate | Mean distractors | Mean helpful | Mean tool calls | Mean input tokens | Mean output tokens | Mean context tokens | Mean latency (ms) | Mean heuristic utility |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| CodeGraph | 0.698 | 0.667 | 0.00 | 0.17 | 1.1 | 17 | 222 | 222 | 8 | 0.302 |
+| CodeGraph | 0.698 | 0.667 | 0.00 | 0.17 | 1.1 | 17 | 238 | 238 | 2 | 0.302 |
 | Agentic search | 1.000 | 0.500 | 0.25 | 0.25 | 10.8 | 60268 | 2676 | 1490 | 40900 | n/a |
 
 ## Per-task recall@k
