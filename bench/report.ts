@@ -10,7 +10,7 @@ import { compare, type KindScore } from "./oracle/compare.js";
 import { buildOracle, type OracleEdge } from "./oracle/extract.js";
 
 const FIXTURES = ["tests/fixtures/repos/small"];
-const TIERS = ["COMPILER", "LEXICAL", "HEURISTIC"] as const;
+const TIERS = ["LEXICAL", "HEURISTIC"] as const;
 
 interface ActualEdge extends OracleEdge {
   tier: (typeof TIERS)[number];
@@ -55,6 +55,12 @@ const lines: string[] = [
   `Generated: ${new Date().toISOString()}`,
   `TypeScript: ${ts.version} (bundled; repository TypeScript is never loaded)`,
   "",
+  "**What these numbers cover.** The oracle measures the tree-sitter resolution",
+  "path — the zero-setup default, and the only tier whose accuracy is in question.",
+  "COMPILER-tier edges come from the TypeScript compiler itself, so scoring them",
+  "against the same compiler would measure nothing; they are exact by construction",
+  "and excluded from these figures. Run `codegraph index --resolve` to produce them.",
+  "",
   "The oracle is filtered to in-repo targets; `node_modules` and `.d.ts`",
   "declarations are excluded. Type-only references, JSX intrinsics, `export =`,",
   "decorators, and declaration merging are known expected divergences (spec §10).",
@@ -63,7 +69,7 @@ const lines: string[] = [
   "",
   "## Why precision below 1.000 is expected here",
   "",
-  "Two of these divergences are structural, so reading a precision figure as",
+  "These divergences are structural, so reading a precision figure as",
   "\"how often CodeGraph is wrong\" overstates the error rate:",
   "",
   "1. **Ambiguous member calls emit every candidate.** For `x.foo()` with two",

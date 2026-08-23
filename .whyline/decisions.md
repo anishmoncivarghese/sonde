@@ -1039,3 +1039,27 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/resolve/symbolMapping.ts, src/pack/envelope.ts, src/index/pipeline.ts
 
 <!-- whyline-event: afbdda9eb41b4b7cacf8897145907914 -->
+
+## 2026-08-23 — Scope the tsc oracle to the tree-sitter path only
+
+**Because:** COMPILER-tier edges come from tsc, so scoring them against tsc measures nothing; the oracle's value is measuring the heuristic path, which is the zero-setup default and the only tier whose accuracy is in question
+
+**Rejected:**
+
+- score both tiers together — mixes an exact-by-construction tier into an accuracy figure and inflates it
+
+**Files:** bench/report.ts
+
+<!-- whyline-event: cef0cc07c801454e80bb3d221985bb21 -->
+
+## 2026-08-23 — Keep published retrieval benchmarks on the zero-setup default path
+
+**Because:** Compiler resolution is explicitly opt-in and changes index cost; the rerun showed unchanged recall, with hono-impact-router-add and completeness tasks already at 1.00
+
+**Rejected:**
+
+- enable --resolve only for the CodeGraph benchmark arm — changes the measured product mode and confounds retrieval gains with a 10.1 second indexing premium
+
+**Files:** BENCHMARK-LARGE.md, BENCHMARK.md
+
+<!-- whyline-event: e3872f05506e4ba9aa47fe416986a8c4 -->

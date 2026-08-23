@@ -1,6 +1,6 @@
 # CodeGraph vs. agentic search — large fixture
 
-Generated: 2026-08-23T12:39:31.823Z
+Generated: 2026-08-23T18:14:53.824Z
 
 Fixture: Hono v4.6.3 (MIT) — 346 files indexed, 9031 symbols, 44144 edges, 8 parse failures.
 
@@ -18,7 +18,7 @@ agree with its own bugs.
 
 | Baseline | Mean recall@k | Success rate | Mean distractors | Mean tool calls | Mean input tokens | Mean context tokens | Mean latency (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| CodeGraph | 0.833 | 0.833 | 0.00 | 1.0 | 14 | 1262 | 263 |
+| CodeGraph | 0.833 | 0.833 | 0.00 | 1.0 | 14 | 1262 | 245 |
 | Agentic search | 1.000 | 0.500 | 0.00 | 8.0 | 78548 | 3621 | 38602 |
 
 ## Per-task

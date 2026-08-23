@@ -2,7 +2,7 @@
 
 **Status:** Approved for planning
 **Date:** 2026-08-16
-**Revision:** 3 (revised after independent technical review and real-repository benchmarking; see §17 for the changelog)
+**Revision:** 4 (revised after implementing and measuring the opt-in compiler tier; see §17 for the changelog)
 **Supersedes for v0.1 scope:** `prd.md` (the PRD remains the long-range vision; this document defines what gets built first)
 
 ---
@@ -206,11 +206,18 @@ The cap is about evidence quality, not syntax: it applies to any heuristic
 resolution, not only member access. Applying it to member access alone left
 type-position references — which carry no receiver — uncapped.
 
-**The trade-off is deliberate and visible.** `callers_of` on a common method
-name now returns zero edges and a non-zero unresolved count rather than a
-thousand weak ones. Without type inference, member-access resolution on common
-names is not solvable; the cap makes that gap legible instead of papering over
-it, and it is the clearest argument for implementing the `COMPILER` tier.
+**The trade-off is deliberate and visible.** On the zero-setup tree-sitter path,
+`callers_of` on a common method name returns zero edges and a non-zero unresolved
+count rather than a thousand weak ones. Without type inference, member-access
+resolution on common names is not solvable; the cap makes that gap legible
+instead of papering over it.
+
+The opt-in compiler pass closes part of that gap with exact edges rather than
+relaxing the cap. Measured on Hono v4.6.3, `callers_of Hono.route` changed from
+zero graph results and 53 unresolved `route` references to eight `COMPILER`
+callers and 44 unresolved references. Default indexing took 3.58 s;
+`--resolve` took 13.70 s. The cost and remaining unresolved evidence are both
+reported rather than hidden.
 
 Sort order is `COMPILER > LEXICAL > HEURISTIC`. Tier is always the primary sort key; `confidence` is a tiebreaker within `HEURISTIC` only (§6.3).
 
@@ -505,7 +512,15 @@ SQLite in WAL mode, `busy_timeout` 5s. One writer at a time. The MCP server's re
 
 ### Layer 2 — Oracle differential testing
 
-Run TypeScript's language service over a fixture repo to obtain ground-truth references and call sites. Run CodeGraph over the same repo. Diff. Emit precision and recall **per edge kind, split by tier**.
+The oracle measures the **tree-sitter resolution path only**: the zero-setup
+default, and the only tier whose accuracy is in question. `COMPILER` edges come
+from the TypeScript compiler itself, so scoring them against that same compiler
+would measure nothing; they are exact by construction and excluded from the
+accuracy figures.
+
+Run TypeScript's language service over a fixture repo to obtain ground-truth
+references and call sites. Run CodeGraph's default path over the same repo.
+Diff. Emit precision and recall **per edge kind, split by tree-sitter tier**.
 
 Four things make this non-trivial, and all four must be built before the numbers mean anything:
 
@@ -616,11 +631,30 @@ Embeddings and semantic search (**deferred for time, not rejected** — §2.1) �
 1. Fixture repo selection (small / medium / large, permissive licenses)
 2. `AUTO_REFRESH_LIMIT` default — 25 is a guess and should be set from measured refresh latency
 3. Ranking weights in §7.4 — initial values are guesses, to be tuned against the benchmark
-4. Whether the `COMPILER` upgrade pass runs by default at index time or only on explicit `codegraph update --resolve`
+
+The compiler-pass default is no longer open: it is opt-in through
+`codegraph index --resolve` and `codegraph update --resolve`. Default indexing
+remains zero-setup and byte-for-byte unchanged in its tiering behavior.
 
 ---
 
 ## 17. Revision history
+
+**Revision 4 (2026-08-23)** — after implementing and measuring the compiler
+tier:
+
+- **Optional `--resolve` pass implemented.** A bundled TypeScript Program maps
+  declarations back to adapter-identical stable keys and promotes or inserts
+  exact `COMPILER` edges after the deterministic index commits.
+- **The ambiguity-cap gap was measured closed in part.** `Hono.route` now has
+  eight compiler callers under `--resolve`, while 44 unresolved `route`
+  references remain visible.
+- **Compiler provenance is durable.** The bundled tsc version is reported by
+  `doctor` and every envelope backed by a resolved index; inline refresh clears
+  it and warns about the tier downgrade.
+- **Oracle scope narrowed explicitly.** Accuracy figures cover the tree-sitter
+  path only; comparing compiler-derived edges back to the same compiler is not
+  an independent validation.
 
 **Revision 2 (2026-08-16)** — after independent technical review. Material changes:
 
