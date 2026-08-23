@@ -954,3 +954,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** bench/harness/tasksLarge.ts
 
 <!-- whyline-event: 026ba72ea19d4366a6e07abb2c4dee1c -->
+
+## 2026-08-23 — Build the local embedding infrastructure but leave semantic retrieval unwired
+
+**Because:** on the large fixture two different models across four document configurations failed to identify SmartRouter as the answer to a behavioural routing query, ranking it 147th of 9031 in one configuration and behind the wrong router in three others; the property that distinguishes it is structural delegation rather than lexical, which embedding similarity cannot see
+
+**Rejected:**
+
+- wire semantic search into find_symbols anyway — would claim a capability the measurements do not support
+- keep trying further embedding models — two very different models already agree, and continuing is the one-more-round rationalization
+
+**Files:** src/enrich/semantic.ts
+
+<!-- whyline-event: 8aab615b14b24e4ebb61eb4b2526f725 -->

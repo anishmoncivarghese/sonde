@@ -43,6 +43,33 @@ The MCP server still functioned. The CLI shim the hooks invoked was never on `PA
 
 Embeddings and semantic retrieval are therefore **deferred for time, not rejected on evidence** (§13). To keep that decision falsifiable, the benchmark (§10, Layer 3) must include at least two task classes where lexical + structural retrieval is *expected to lose* to semantic retrieval — a behavioural-description query with no identifier overlap, and a synonym-heavy domain query. If v0.1 loses those, embeddings move up the roadmap on evidence.
 
+### 2.2 Embeddings: the falsification fired, then the remedy failed
+
+Spec §2.1 deferred embeddings for time and demanded falsifying tasks. Those
+tasks failed as predicted, so the deferral was tested and local semantic
+retrieval was built (`src/enrich/`, `codegraph embed`). It does not close the
+gap, and the capability is deliberately **not** wired into `find_symbols`.
+
+Measured on the large fixture, query *"where does this library decide which
+routing strategy to use at runtime?"* whose answer is `SmartRouter`:
+
+| Model | Document | Result |
+|---|---|---|
+| all-MiniLM-L6-v2 | name + path + signature | `SmartRouter` ranks **147th** of 9,031 |
+| all-MiniLM-L6-v2 | source body | `SmartRouter` 0.281 < `TrieRouter` 0.285 |
+| jina-embeddings-v2-base-code | source body | `LinearRouter` 0.623 > `SmartRouter` 0.563 |
+| jina-embeddings-v2-base-code | name + path + signature | `SmartRouter` 4th of 5 routers |
+
+Two very different models, four configurations, and the wrong router on top in
+three of them. The five routers are near-identical in surface form, and the
+fact that distinguishes `SmartRouter` — it holds the others and delegates — is
+a *structural* property, not a lexical one. Embedding similarity cannot see it.
+
+**Scope of this claim.** One task, one corpus. It does not show embeddings are
+useless; a query whose answer has distinctive vocabulary may well work. It does
+show that swapping in a semantic retriever is not a general remedy for the
+task class, and that the roadmap should not assume otherwise.
+
 *(That installation was fully removed on 2026-08-16 — hooks, MCP registrations, generated skill, global instruction file, and all six per-repo data directories.)*
 
 ---
