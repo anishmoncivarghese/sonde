@@ -101,3 +101,37 @@ type surfaces dominate cross-file member-use counts.
 
 Per the fixed protocol, this is neither a PASS nor a softened positive result.
 It is **INCONCLUSIVE**, and no structural-role feature is built from it.
+
+---
+
+## Controller note added after scoring: Q2 was unwinnable
+
+Q2's accepted answer, `Context` in `src/context.ts`, **is not in the index at
+all**, so no query could have found it. `src/context.ts` fails to parse, and
+`src/index/pipeline.ts:83` discards every symbol from any file carrying a parse
+diagnostic:
+
+```ts
+if (result.diagnostics.length > 0) {
+  failed.set(file.path, result.diagnostics);   // whole file discarded
+} else {
+  extracted.set(file.path, result);
+}
+```
+
+Eight of Hono's 346 files contribute zero symbols for this reason, including
+`src/context.ts`, `src/types.ts`, and `src/utils/body.ts`. The implementer had
+no way to know: a query for the per-request carrier returns plausible wrong
+answers (`ClientResponse`, `HonoRequest`) rather than nothing, because a
+different `Context` exists at `src/jsx/context.ts`.
+
+The question was authored against fixture source, not against the index, which
+is what let a symbol the tool cannot see become an accepted answer.
+
+**Effect on the verdict: none.** Excluding Q2 gives 2 hits of 4 (50%), still
+inside the 30-59% INCONCLUSIVE band. Q1 (`compose`) and Q5 (`notFoundHandler`)
+were genuine misses — both live in cleanly-parsed files and were verified
+present in the index. The reusability condition also fails independently: the
+lifecycle-carrier shape was reused for Q2 and Q4 and hit only once.
+
+The probe stands. The defect it exposed is tracked separately.
