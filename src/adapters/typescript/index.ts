@@ -3,7 +3,7 @@ import type { Tree } from "web-tree-sitter";
 import { EXTRACTOR_VERSION } from "../../version.js";
 import type { ExtractResult, LanguageAdapter, SymbolRecord } from "../types.js";
 import { extractModuleTables } from "./modules.js";
-import { getTsParserSync } from "./parser.js";
+import { parserFor } from "./parser.js";
 import { extractReferences } from "./references.js";
 import { extractSymbols, stableKey } from "./symbols.js";
 
@@ -31,7 +31,7 @@ export const typescriptAdapter: LanguageAdapter = {
     /\.(ts|tsx|mts|cts)$/.test(path) && !/\.d\.(ts|mts|cts)$/.test(path),
   extract(path, bytes): ExtractResult {
     const source = Buffer.from(bytes).toString("utf8");
-    const tree = getTsParserSync().parse(source);
+    const tree = parserFor(path).parse(source);
     if (!tree) {
       return {
         symbols: [],

@@ -2,7 +2,7 @@
 
 **Status:** Approved for planning
 **Date:** 2026-08-16
-**Revision:** 2 (revised after independent technical review; see §17 for the changelog)
+**Revision:** 3 (revised after independent technical review and real-repository benchmarking; see §17 for the changelog)
 **Supersedes for v0.1 scope:** `prd.md` (the PRD remains the long-range vision; this document defines what gets built first)
 
 ---
@@ -133,6 +133,29 @@ For each reference: consult the file's import table, then the linked export map,
 | `UNRESOLVED` | Genuinely unplaceable; `reason` recorded | Unknown |
 
 **The critical correction from revision 1:** member-access calls (`x.foo()`) are **never** `LEXICAL`. Given `x.foo()` where exactly one `foo` is visible in the file, revision 1 classed that as resolved-and-certain. But `x` could be any of a dozen types with a `foo` method. That is the canonical tree-sitter call-graph failure, and tiering it as compiler-grade truth would have quietly poisoned every downstream claim. Without types, member access is `HEURISTIC`. Always.
+
+**Ambiguity cap (added revision 3).** A reference resolving to more than
+`AMBIGUITY_CAP` (8) candidates produces **no edges** and one `UNRESOLVED` record
+with `reason: "too_ambiguous"` and the candidate count.
+
+This was found by benchmarking against a real 19k-line repository, where the
+198-line fixture had hidden it completely. Emitting one edge per candidate
+produced 354,291 edges from 9,031 symbols — 73% of the graph was heuristic
+noise, and the symbol `get` drew 1,338 inbound edges because every `.get()` call
+in the repository linked to every symbol named `get`. An edge with confidence
+1/1338 is not evidence; asserting those relationships violates the spirit of
+invariant 1 even though each edge is honestly tiered. The cap reduced the graph
+to 44,107 edges (an 88% reduction) with no loss on resolvable queries.
+
+The cap is about evidence quality, not syntax: it applies to any heuristic
+resolution, not only member access. Applying it to member access alone left
+type-position references — which carry no receiver — uncapped.
+
+**The trade-off is deliberate and visible.** `callers_of` on a common method
+name now returns zero edges and a non-zero unresolved count rather than a
+thousand weak ones. Without type inference, member-access resolution on common
+names is not solvable; the cap makes that gap legible instead of papering over
+it, and it is the clearest argument for implementing the `COMPILER` tier.
 
 Sort order is `COMPILER > LEXICAL > HEURISTIC`. Tier is always the primary sort key; `confidence` is a tiebreaker within `HEURISTIC` only (§6.3).
 
@@ -560,3 +583,22 @@ Embeddings and semantic search (**deferred for time, not rejected** — §2.1) �
 - **§10 Layer 3** cut from 30 tasks to 12 adversarially-selected ones against a stronger baseline; tier-utility added as a metric.
 - **§11** Swift spike gained Part B, the resolution paper exercise — the original could not answer its own question.
 - **§15** stopped claiming FR-081/082 as implemented.
+
+**Revision 3 (2026-08-23)** — after benchmarking against a real 19k-line
+repository (Hono v4.6.3, MIT):
+
+- **§4.3 ambiguity cap added.** Heuristic candidate fan-out produced 354,291
+  edges from 9,031 symbols, 73% of them noise. Capped at 8 candidates; graph
+  reduced 88% with no loss on resolvable queries.
+- **`REFERENCES` extraction extended to type positions.** Type annotations,
+  array element types, parameter and return types, and generic arguments were
+  producing no edge at all, so `references_to` missed every type-only use.
+- **Oracle scoring corrected.** It recorded call sites as both `CALLS` and
+  `REFERENCES`, measuring against a storage model §6.1 explicitly rejects.
+  Overall oracle recall 0.444 → 0.889.
+- **Benchmark arms unified.** The CodeGraph arm required exact stable-key
+  membership while the agentic arm substring-matched prose, so the two published
+  columns were not comparable and favoured the verbose arm.
+- **TSX grammar routed by extension.** `matches()` accepted `.tsx` while the
+  parser only ever loaded the TypeScript grammar; 38 of 346 files failed to
+  parse. Remaining failures: 8.

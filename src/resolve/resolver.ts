@@ -5,7 +5,7 @@ import type { RepoBoundary } from "../repo/boundary.js";
 import type { EdgeRow } from "../store/repos.js";
 import type { TsConfig } from "../tsconfig/load.js";
 import { SymbolTable } from "./symboltable.js";
-import { assignTier } from "./tiers.js";
+import { AMBIGUITY_CAP, assignTier } from "./tiers.js";
 
 export interface ExternalRow {
   srcKey: string;
@@ -187,15 +187,19 @@ export function resolveAll(
           kind: ref.kind,
           siteLine: ref.siteLine,
           candidateCount: candidates.length,
-          reason: history?.parseFailedNames?.has(historicalName)
-            ? "parse_failed"
-            : history?.previousNames.has(historicalName)
-              ? "target_removed"
-              : binding && "unresolved" in binding
-                ? binding.unresolved
-                : binding && "file" in binding
-                  ? "binding_target_missing"
-                  : "no_candidate",
+          // A capped member call is not "no candidate" — it is too many. Naming
+          // it distinctly keeps the unresolved count diagnosable.
+          reason: candidates.length > AMBIGUITY_CAP
+            ? "too_ambiguous"
+            : history?.parseFailedNames?.has(historicalName)
+              ? "parse_failed"
+              : history?.previousNames.has(historicalName)
+                ? "target_removed"
+                : binding && "unresolved" in binding
+                  ? binding.unresolved
+                  : binding && "file" in binding
+                    ? "binding_target_missing"
+                    : "no_candidate",
         });
         continue;
       }
