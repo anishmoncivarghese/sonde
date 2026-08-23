@@ -92,7 +92,10 @@ describe("renderBenchmarkReport", () => {
     expect(() => renderBenchmarkReport(invalid, [], generatedAt))
       .toThrow(/recallAtK/i);
 
-    const overBudget = [
+    // An over-budget result is reported, not rejected — but its overage fields
+    // must stay consistent with the contextTokens it claims, or a hand-edited
+    // result could silently launder a budget overrun into a success.
+    const inconsistentOverage = [
       {
         ...codegraphResults[0]!,
         contextTokens:
@@ -100,7 +103,21 @@ describe("renderBenchmarkReport", () => {
       },
       ...codegraphResults.slice(1),
     ];
-    expect(() => renderBenchmarkReport(overBudget, [], generatedAt))
-      .toThrow(/contextTokens/i);
+    expect(() => renderBenchmarkReport(inconsistentOverage, [], generatedAt))
+      .toThrow(/contextOverageTokens/i);
+
+    const consistentOverage = [
+      {
+        ...codegraphResults[0]!,
+        contextTokens:
+          BENCHMARK_TASKS[0]!.groundTruth.maxContextBudgetTokens + 1,
+        contextOverageTokens: 1,
+        budgetExceeded: true,
+        preliminarySuccess: false,
+      },
+      ...codegraphResults.slice(1),
+    ];
+    expect(() => renderBenchmarkReport(consistentOverage, [], generatedAt))
+      .not.toThrow();
   });
 });
