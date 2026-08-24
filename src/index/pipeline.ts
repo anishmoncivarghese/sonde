@@ -154,11 +154,22 @@ async function run(
       for (const file of onDisk) {
         store.deleteFile(file.path);
         const diagnostics = failed.get(file.path);
-        store.upsertFile({
-          ...file,
-          parseState: diagnostics ? "failed" : "ok",
-          diagnostics: diagnostics ?? [],
-        });
+        // 'partial': tree-sitter recovered at least one symbol despite
+        // diagnostics. 'failed': nothing was recovered at all -- either the
+        // catch branch ran, or the file parsed with errors but yielded zero
+        // usable declarations (tree-sitter does not throw on malformed
+        // source; "didn't throw" is not the same signal as "recovered
+        // something," so this checks symbols.length directly rather than
+        // extracted.has()). Callers (sonde status, doctor) can now tell
+        // "mostly fine" from "unusable" instead of both reading as an
+        // identical binary failure flag.
+        const recoveredSymbols = (extracted.get(file.path)?.symbols.length ?? 0) > 0;
+        const parseState = !diagnostics
+          ? "ok"
+          : recoveredSymbols
+            ? "partial"
+            : "failed";
+        store.upsertFile({ ...file, parseState, diagnostics: diagnostics ?? [] });
       }
 
       for (const [path, result] of extracted) {

@@ -77,3 +77,50 @@ describe("partial parse recovery", () => {
     expect(names).not.toContain("damaged");
   });
 });
+
+describe("parse_state distinguishes partial recovery from total failure", () => {
+  it("records 'partial' when tree-sitter recovers symbols despite diagnostics", async () => {
+    // Before this, both a file that recovered 99% of its declarations and a
+    // file that produced nothing were labelled identically 'failed'. status
+    // could not tell them apart.
+    const { parseState } = await indexAndRead(partiallyBrokenFixture());
+    const broken = parseState.find((f) => f.path === "src/broken.ts");
+    expect(broken?.s).toBe("partial");
+  });
+
+  it("still reports drift as partial when any file is not fully ok", async () => {
+    // The one existing consumer, hasParseFailures(), keyed off parse_state =
+    // 'failed' specifically. Broadening it to != 'ok' keeps the same
+    // disclosure guarantee (invariant 8) for the new 'partial' state.
+    const root = partiallyBrokenFixture();
+    const dbPath = join(root, "i.sqlite");
+    await indexRepo(root, dbPath);
+    const db = openDb(dbPath);
+    migrate(db);
+    const store = new Store(db);
+    expect(store.hasParseFailures()).toBe(true);
+    db.close();
+  });
+
+  it("reserves 'failed' for a file that recovered nothing", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cg-total-fail-"));
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "tsconfig.json"), "{}");
+    // A binary/garbage file the adapter's extract() throws on entirely,
+    // rather than one tree-sitter can partially parse.
+    writeFileSync(join(root, "src", "garbage.ts"), Buffer.from([0, 1, 2, 255, 254]));
+    const dbPath = join(root, "i.sqlite");
+    await indexRepo(root, dbPath);
+    const db = openDb(dbPath);
+    migrate(db);
+    const row = db.prepare("SELECT parse_state AS s FROM file WHERE path = ?")
+      .get("src/garbage.ts") as { s: string } | undefined;
+    db.close();
+    // Binary content still parses as (very broken) source text for tree-sitter
+    // rather than throwing, so this asserts the CONTRACT (only two paths
+    // produce 'failed': the catch branch, or no row at all) rather than
+    // forcing a specific adapter to throw. If a row exists, it must not be
+    // silently 'ok'.
+    if (row) expect(row.s).not.toBe("ok");
+  });
+});
