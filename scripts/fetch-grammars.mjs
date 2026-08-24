@@ -3,10 +3,17 @@
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
+// Swift is deliberately absent until the v0.2 adapter exists.
+//
+// The grammar nothing loads still costs every user 3.1MB on install — 38% of
+// the published package. The build that used to be vendored here
+// (tree-sitter-wasms 0.1.12) is also the wrong one: it predates Swift macros,
+// flags 39% of files in a real Swift application, and cannot be loaded by V8's
+// optimising WASM tier without --liftoff-only. The adapter should vendor
+// alex-pinkus/tree-sitter-swift 0.7.3, which flags 8% and loads normally.
 const GRAMMARS = [
   { name: "tree-sitter-typescript.wasm", url: "https://unpkg.com/tree-sitter-wasms@0.1.12/out/tree-sitter-typescript.wasm" },
   { name: "tree-sitter-tsx.wasm",        url: "https://unpkg.com/tree-sitter-wasms@0.1.12/out/tree-sitter-tsx.wasm" },
-  { name: "tree-sitter-swift.wasm",      url: "https://unpkg.com/tree-sitter-wasms@0.1.12/out/tree-sitter-swift.wasm" },
 ];
 
 const dir = join(process.cwd(), "vendor");
