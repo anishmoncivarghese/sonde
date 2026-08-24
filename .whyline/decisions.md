@@ -1213,3 +1213,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/cli/mcpConfig.ts, src/repo/boundary.ts
 
 <!-- whyline-event: 7ba0a8a0ace349a4bd632b0d1443afe1 -->
+
+## 2026-08-24 — Resolve confirmation EOF through readline iteration
+
+**Because:** On Node 24, readline/promises question() stayed pending after an empty piped stream ended; iterating the interface yields the first answer but cleanly falls through false on EOF, satisfying the plan without a timeout.
+
+**Rejected:**
+
+- Keep question() exactly as drafted — the required EOF test timed out after five seconds.
+- Add a timeout race — it would delay non-interactive init and mask stream handling rather than fix it.
+
+**Files:** src/cli/prompt.ts
+
+<!-- whyline-event: 408a9dfa1e674e569ebfbb1c1750e56e -->
