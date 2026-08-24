@@ -2,8 +2,10 @@
 
 Target: `alex-pinkus/tree-sitter-swift`
 
-Status: prepared locally; do not post until the repository owner explicitly
-approves the public GitHub action.
+Status: posted 2026-08-24 with the repository owner's explicit approval.
+
+- https://github.com/alex-pinkus/tree-sitter-swift/issues/610
+- https://github.com/alex-pinkus/tree-sitter-swift/issues/611
 
 Both reproductions were verified with the 0.7.3 release WASM grammar through
 `web-tree-sitter` 0.25.10. These are parser-only checks; no Swift or repository
