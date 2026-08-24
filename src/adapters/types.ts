@@ -21,13 +21,20 @@ export interface SymbolRecord {
   visibility?: SymbolVisibility;
 }
 
+export interface ScopeHint {
+  module: string | null;
+  file: string;
+  visibility: SymbolVisibility | null;
+  receiver: string | null;
+}
+
 /** A reference the adapter saw but cannot resolve — resolution is not the adapter's job. */
 export interface ReferenceRecord {
   fromSymbolKey: string;   // enclosing NAMED symbol (spec §6.2)
   name: string;            // the identifier as written
   receiver: string | null; // for `x.foo()`, "x"; null for a bare `foo()`
   /** Optional language-specific module/target/access scope for candidate narrowing. */
-  scopeHint?: string | null;
+  scopeHint?: ScopeHint;
   kind: "CALLS" | "REFERENCES" | "IMPLEMENTS" | "INHERITS";
   siteLine: number;
 }

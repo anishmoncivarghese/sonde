@@ -1124,3 +1124,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/swift/symbols.ts, src/adapters/types.ts
 
 <!-- whyline-event: fd67ec193eac461488bd988087e290c1 -->
+
+## 2026-08-24 — Carry structured Swift scope evidence on each reference while leaving TypeScript hints absent
+
+**Because:** Swift resolution needs independently inspectable file, SwiftPM target, enclosing visibility, and receiver evidence before candidate fan-out, while an optional object preserves existing TypeScript extraction and tier behavior
+
+**Rejected:**
+
+- encode scope as an opaque string — narrowing rules would need fragile parsing and could not audit which source fact removed a candidate
+
+**Files:** src/adapters/types.ts, src/adapters/swift/references.ts, src/adapters/swift/modules.ts
+
+<!-- whyline-event: c24110a91c9f4ae6878be39853797817 -->
