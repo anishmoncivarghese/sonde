@@ -1200,3 +1200,67 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/registry.ts, src/adapters/swift/index.ts, src/index/pipeline.ts, src/index/drift.ts, src/repo/discover.ts
 
 <!-- whyline-event: 509c1c6d6581441c9ee63d47cc50c852 -->
+
+## 2026-08-24 — Keep sonde init config I/O behind RepoBoundary
+
+**Because:** The init plan's raw fs helpers would violate SEC-001/002/003; passing RepoBoundary into the helpers preserves containment and only treating ENOENT as absent prevents unreadable configs from being overwritten.
+
+**Rejected:**
+
+- Use readFileSync/writeFileSync in mcpConfig.ts — repository paths would escape the canonical boundary invariant.
+- Catch every read error as a missing file — permission and path errors could lead init to overwrite an existing config.
+
+**Files:** src/cli/mcpConfig.ts, src/repo/boundary.ts
+
+<!-- whyline-event: 7ba0a8a0ace349a4bd632b0d1443afe1 -->
+
+## 2026-08-24 — Resolve confirmation EOF through readline iteration
+
+**Because:** On Node 24, readline/promises question() stayed pending after an empty piped stream ended; iterating the interface yields the first answer but cleanly falls through false on EOF, satisfying the plan without a timeout.
+
+**Rejected:**
+
+- Keep question() exactly as drafted — the required EOF test timed out after five seconds.
+- Add a timeout race — it would delay non-interactive init and mask stream handling rather than fix it.
+
+**Files:** src/cli/prompt.ts
+
+<!-- whyline-event: 408a9dfa1e674e569ebfbb1c1750e56e -->
+
+## 2026-08-24 — Compose sonde init from the existing index pipeline and conservative config actions
+
+**Because:** Calling indexRepo once with the index command's resolve option keeps graph output identical, while create/merge/noop/conflict/invalid states make every shared-config outcome explicit and the human output preserves compiler-tier degradation warnings.
+
+**Rejected:**
+
+- Fork onboarding-specific indexing — it would let init drift from sonde index behavior.
+- Use the plan's shorter human messages — init --resolve would silently hide an unavailable compiler tier, violating the visible-degradation invariant.
+
+**Files:** src/cli/main.ts, tests/cli/init.test.ts
+
+<!-- whyline-event: 41604a33ed654325b5d4a21e02b1bc11 -->
+
+## 2026-08-24 — Make sonde init the primary onboarding path while retaining the manual equivalent
+
+**Because:** One command now performs both required project setup steps, while documenting the exact index command and .mcp.json entry keeps the convenience transparent and recoverable.
+
+**Rejected:**
+
+- Document only the convenience command — users would not know what shared configuration init changes.
+- Keep index plus manual MCP setup as the primary path — it preserves the onboarding failure mode this feature removes.
+
+**Files:** README.md
+
+<!-- whyline-event: f7f901d04d624685850c7ad955150be9 -->
+
+## 2026-08-24 — Approved feat/sonde-init after independent review
+
+**Because:** Reviewed diff, ran typecheck+403 tests myself, read all 4 whyline entries Codex recorded, and smoke-tested init/init--yes/idempotent-rerun against a real throwaway repo; every deviation from the written plan (RepoBoundary.writeFile, ENOENT-narrowing, readline iteration for EOF safety, reusing compilerIndexSummary) is a justified improvement, not a shortcut
+
+**Rejected:**
+
+- Trusting Codex's completion report without independent verification — violates this session's established review discipline
+
+**Files:** src/cli/main.ts, src/cli/mcpConfig.ts, src/cli/prompt.ts, src/repo/boundary.ts
+
+<!-- whyline-event: e7d3851d01ef4d3397ab197b98b9edef -->

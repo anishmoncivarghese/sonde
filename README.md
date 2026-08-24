@@ -44,21 +44,26 @@ Full results in [BENCHMARK-LARGE.md](BENCHMARK-LARGE.md) and
 ## Install and run
 
 ```sh
-npx @cheppulabs/sonde index .
-npx @cheppulabs/sonde index . --resolve  # optional: slower, compiler-exact edges
-npx @cheppulabs/sonde mcp serve .
+npm install -g @cheppulabs/sonde
+cd your-project
+sonde init
 ```
 
-Installed globally, the command is just `sonde` — the scope only appears in
-the package name, because the bare `sonde` name was already taken on npm.
+`sonde init` indexes the repository and registers sonde as an MCP server in
+this project's `.mcp.json`, asking before it writes anything (skip the prompt
+with `sonde init --yes`). It never touches an `.mcp.json` it can't safely merge
+into — an existing `sonde` entry that differs from what `init` would write is
+left alone and reported, not overwritten.
+
+Equivalent by hand, if you'd rather see every step:
 
 ```sh
-npm install -g @cheppulabs/sonde
 sonde index .
+# then add to .mcp.json:
+# { "mcpServers": { "sonde": { "command": "sonde", "args": ["mcp", "serve", "."] } } }
 ```
 
-No account or hosted service is required. Point your MCP client at
-`sonde mcp serve`.
+No account or hosted service is required.
 
 ## What it guarantees
 
@@ -157,6 +162,7 @@ Regenerate with `npm run bench:oracle`.
 ## CLI
 
 ```text
+sonde init [path] [--resolve] [--yes]      # index and register project MCP config
 sonde index [path] [--resolve]             # full index; optional compiler pass
 sonde update [path] [--resolve]            # update; optional compiler pass
 sonde status [path]                        # freshness and tier distribution
@@ -170,7 +176,7 @@ sonde mcp serve [path]                     # MCP server over stdio
 ```
 
 `impact` also accepts repeatable `--symbol` options and
-`--token-budget <n>`. The `index`, `update`, `status`, `search`, `query`,
+`--token-budget <n>`. The `init`, `index`, `update`, `status`, `search`, `query`,
 `impact`, `doctor`, and `clean` commands accept `--json`.
 
 ## Known limitations (v0.2.0)

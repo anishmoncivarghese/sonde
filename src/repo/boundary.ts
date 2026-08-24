@@ -3,6 +3,7 @@ import {
   readdirSync,
   realpathSync,
   statSync,
+  writeFileSync,
   type Dirent,
   type Stats,
 } from "node:fs";
@@ -61,6 +62,10 @@ export class RepoBoundary {
       throw new PathEscapeError(relativePath);
     }
     return readFileSync(absolute);
+  }
+
+  writeFile(relativePath: string, content: string | Uint8Array): void {
+    writeFileSync(this.resolve(relativePath), content);
   }
 
   readDirectory(relativePath: string): Dirent[] {
