@@ -6,7 +6,7 @@ import type { EdgeRow } from "../store/repos.js";
 import type { TsConfig } from "../tsconfig/load.js";
 import { SymbolTable } from "./symboltable.js";
 import { deriveMemberImplements, type SymbolLocation } from "./members.js";
-import { AMBIGUITY_CAP, assignTier } from "./tiers.js";
+import { AMBIGUITY_CAP, assignTier, narrowCandidates } from "./tiers.js";
 
 export interface ExternalRow {
   srcKey: string;
@@ -149,7 +149,20 @@ export function resolveAll(
         candidates = table.candidatesInFile(candidateFile, candidateName);
       }
 
-      const { tier, confidence } = assignTier(ref, candidates, binding);
+      const beforeNarrowing = candidates;
+      const importedModules = new Set(
+        result.imports.map(
+          (imported) =>
+            imported.specifier.split(".")[0] ?? imported.specifier,
+        ),
+      );
+      candidates = narrowCandidates(ref, candidates, importedModules);
+      const { tier, confidence } = assignTier(
+        ref,
+        candidates,
+        binding,
+        candidates.length !== beforeNarrowing.length,
+      );
 
       // EXTERNAL is separate from genuinely unplaceable references so the
       // unresolved count remains a meaningful completeness signal (spec §4.4).

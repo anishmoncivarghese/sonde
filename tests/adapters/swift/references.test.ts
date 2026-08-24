@@ -33,6 +33,17 @@ describe("extractSwiftReferences", () => {
     expect(r.scopeHint?.module).toBe("App");
   });
 
+  it("carries only an explicitly written local receiver type", () => {
+    const explicit = run(
+      "func a() { let gateway: Gateway = makeGateway(); gateway.save() }",
+    ).find((x) => x.name === "save")!;
+    const inferred = run(
+      "func a() { let gateway = makeGateway(); gateway.save() }",
+    ).find((x) => x.name === "save")!;
+    expect(explicit.scopeHint?.receiverType).toBe("Gateway");
+    expect(inferred.scopeHint?.receiverType).toBeNull();
+  });
+
   it("records protocol conformance", () => {
     const r = run("class A: Gateway {}").find((x) => x.name === "Gateway")!;
     expect(["IMPLEMENTS", "INHERITS"]).toContain(r.kind);

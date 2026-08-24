@@ -1136,3 +1136,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/types.ts, src/adapters/swift/references.ts, src/adapters/swift/modules.ts
 
 <!-- whyline-event: c24110a91c9f4ae6878be39853797817 -->
+
+## 2026-08-24 — Stop the Swift adapter at a FAIL gate with SwiftPM narrowing untested
+
+**Because:** on an anonymized 376-file, 39,136-line Xcode corpus, file visibility and explicit receiver annotations reduced UNRESOLVED only from 66.57 percent to 65.09 percent, above the fixed 50 percent FAIL threshold, while zero references carried SwiftPM module evidence
+
+**Rejected:**
+
+- continue to assemble and route the adapter — Task 4 is an explicit gate and rules 1 and 3 did not produce a usefully resolved graph
+- conclude Swift requires SourceKit-LSP — rule 2 had no signal, so a representative SwiftPM corpus is still required for that stronger claim
+
+**Files:** probes/swift-narrowing/FINDINGS.md, src/resolve/tiers.ts
+
+<!-- whyline-event: bf8c7ac2f3a44abf8fdf1cf86a494408 -->

@@ -26,6 +26,8 @@ export interface ScopeHint {
   file: string;
   visibility: SymbolVisibility | null;
   receiver: string | null;
+  /** Receiver type only when written explicitly in source; never inferred. */
+  receiverType: string | null;
 }
 
 /** A reference the adapter saw but cannot resolve — resolution is not the adapter's job. */

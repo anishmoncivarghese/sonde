@@ -1,4 +1,7 @@
-import type { ReferenceRecord } from "../adapters/types.js";
+import type {
+  ReferenceRecord,
+  SymbolVisibility,
+} from "../adapters/types.js";
 import type { Binding } from "../link/imports.js";
 import type { Tier } from "../store/repos.js";
 
@@ -10,6 +13,78 @@ export const AMBIGUITY_CAP = 8;
 
 export interface Candidate {
   stableKey: string;
+  qualifiedName?: string;
+  visibility?: SymbolVisibility;
+}
+
+function swiftLocation(stableKey: string): {
+  file: string;
+  module: string | null;
+} | null {
+  if (!stableKey.startsWith("swift:")) return null;
+  const separator = stableKey.indexOf("#", "swift:".length);
+  if (separator < 0) return null;
+  const file = stableKey.slice("swift:".length, separator);
+  const parts = file.split("/");
+  const module =
+    (parts[0] === "Sources" || parts[0] === "Tests") && parts.length >= 3
+      ? (parts[1] ?? null)
+      : null;
+  return { file, module };
+}
+
+function ownerName(candidate: Candidate): string | null {
+  const qualifiedName = candidate.qualifiedName;
+  if (!qualifiedName) return null;
+  const separator = qualifiedName.lastIndexOf(".");
+  return separator < 0 ? null : qualifiedName.slice(0, separator);
+}
+
+/**
+ * Remove only candidates excluded by explicit Swift source evidence.
+ * An absent scope hint is the TypeScript path and returns the original array.
+ */
+export function narrowCandidates<T extends Candidate>(
+  ref: ReferenceRecord,
+  candidates: T[],
+  importedModules: ReadonlySet<string> = new Set(),
+): T[] {
+  const hint = ref.scopeHint;
+  if (!hint) return candidates;
+
+  let narrowed = candidates.filter((candidate) => {
+    const location = swiftLocation(candidate.stableKey);
+    if (!location) return true;
+    if (
+      (candidate.visibility === "private" ||
+        candidate.visibility === "fileprivate") &&
+      location.file !== hint.file
+    ) {
+      return false;
+    }
+    if (
+      ref.receiver === null &&
+      hint.module !== null &&
+      location.module !== null &&
+      location.module !== hint.module &&
+      !importedModules.has(location.module)
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  if (ref.receiver !== null && hint.receiverType !== null) {
+    const writtenType = hint.receiverType.split(".").at(-1) ?? hint.receiverType;
+    narrowed = narrowed.filter((candidate) => {
+      const owner = ownerName(candidate);
+      return (
+        owner === writtenType || owner?.endsWith(`.${writtenType}`) === true
+      );
+    });
+  }
+
+  return narrowed;
 }
 
 /**
@@ -22,6 +97,7 @@ export function assignTier(
   ref: ReferenceRecord,
   candidates: Candidate[],
   binding: Binding | null,
+  narrowedByScope = false,
 ): { tier: Tier; confidence: number } {
   if (binding && "external" in binding) {
     return { tier: "EXTERNAL", confidence: 1 };
@@ -55,7 +131,7 @@ export function assignTier(
   if (binding && "file" in binding) {
     return { tier: "LEXICAL", confidence: 1 };
   }
-  if (candidates.length === 1) {
+  if (candidates.length === 1 && !narrowedByScope) {
     return { tier: "LEXICAL", confidence: 1 };
   }
 

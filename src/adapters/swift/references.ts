@@ -17,14 +17,68 @@ function swiftPmTarget(path: string): string | null {
 function enclosing(
   symbols: SymbolRecord[],
   offset: number,
+  excluded?: SyntaxNode,
 ): SymbolRecord | null {
   let best: SymbolRecord | null = null;
   for (const symbol of symbols) {
+    if (
+      excluded &&
+      symbol.startByte === excluded.startIndex &&
+      symbol.endByte === excluded.endIndex
+    ) {
+      continue;
+    }
     if (offset >= symbol.startByte && offset < symbol.endByte) {
       if (!best || symbol.startByte > best.startByte) best = symbol;
     }
   }
   return best;
+}
+
+interface TypedBinding {
+  ownerKey: string;
+  name: string;
+  typeName: string;
+  startByte: number;
+}
+
+function simpleBindingName(node: SyntaxNode): string | null {
+  const field = node.childForFieldName("name");
+  const direct = field?.descendantsOfType("simple_identifier").find(Boolean);
+  if (direct) return direct.text;
+  return node.namedChildren.find((child) => child?.type === "simple_identifier")
+    ?.text ?? null;
+}
+
+function writtenTypeName(node: SyntaxNode): string | null {
+  const typeIdentifiers = node
+    .descendantsOfType("type_identifier")
+    .filter(Boolean);
+  return typeIdentifiers.at(-1)?.text ?? null;
+}
+
+function typedBindings(tree: Tree, symbols: SymbolRecord[]): TypedBinding[] {
+  const bindings: TypedBinding[] = [];
+  const visit = (node: SyntaxNode): void => {
+    if (node.type === "property_declaration" || node.type === "parameter") {
+      const name = simpleBindingName(node);
+      const typeName = writtenTypeName(node);
+      const owner = enclosing(symbols, node.startIndex, node);
+      if (name && typeName && owner) {
+        bindings.push({
+          ownerKey: owner.stableKey,
+          name,
+          typeName,
+          startByte: node.startIndex,
+        });
+      }
+    }
+    for (const child of node.namedChildren) {
+      if (child) visit(child);
+    }
+  };
+  visit(tree.rootNode);
+  return bindings;
 }
 
 function navigationParts(
@@ -69,6 +123,7 @@ export function extractSwiftReferences(
   symbols: SymbolRecord[],
 ): ReferenceRecord[] {
   const references: ReferenceRecord[] = [];
+  const bindings = typedBindings(tree, symbols);
 
   const add = (
     node: SyntaxNode,
@@ -78,11 +133,24 @@ export function extractSwiftReferences(
   ): void => {
     const owner = enclosing(symbols, node.startIndex);
     if (!owner) return;
+    const receiverType =
+      receiver && /^[A-Za-z_][A-Za-z0-9_]*$/.test(receiver)
+        ? bindings
+            .filter(
+              (binding) =>
+                binding.ownerKey === owner.stableKey &&
+                binding.name === receiver &&
+                binding.startByte <= node.startIndex,
+            )
+            .sort((left, right) => right.startByte - left.startByte)[0]
+            ?.typeName ?? null
+        : null;
     const scopeHint: ScopeHint = {
       module: swiftPmTarget(path),
       file: path,
       visibility: owner.visibility ?? null,
       receiver,
+      receiverType,
     };
     references.push({
       fromSymbolKey: owner.stableKey,
