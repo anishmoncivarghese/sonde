@@ -350,11 +350,215 @@ Point `probes/swift-narrowing/measure.ts` at a real Swift application (376 files
 
 **If the verdict is MARGINAL or FAIL, stop here and report.** The remaining tasks assume a resolvable graph, and the honest outcome is that Swift needs SourceKit-LSP — which is a different plan, not a harder version of this one.
 
+## Addendum, added 2026-08-24: Task 4 conflated EXTERNAL and UNRESOLVED
+
+Task 4 returned **FAIL** (65.09% unresolved). That verdict stands and is not
+being revisited here. But a controller review of the same data
+(`probes/swift-narrowing/FINDINGS.md`, "Controller note added after scoring")
+found that **86.1% of the 12,591 `UNRESOLVED` references had zero candidates**,
+and sampling those names shows why: `String`, `Date`, `UUID`, `View`, `Button`,
+`VStack`, `HStack`, `Image`, `ForEach`, `Color` — Swift standard library,
+SwiftUI, Foundation, and CloudKit vocabulary. None of it is declared anywhere
+in the corpus, and the Swift adapter has no `EXTERNAL` outcome (spec §4.4), so
+every SDK reference falls through to `UNRESOLVED` alongside genuine same-module
+ambiguity. Only 13.9% (1,750 references) is the kind of over-the-cap ambiguity
+narrowing was built to address.
+
+Recomputed with zero-candidate references correctly excluded as `EXTERNAL`:
+18.2% unresolved / 81.8% placed — a PASS under the same fixed thresholds. That
+number is a retroactive estimate over already-collected data, explicitly not
+authoritative. Tasks 5 and 6 below build the real classification and get a
+fresh, honest number.
+
+**This does not change AMBIGUITY_CAP, `narrowCandidates`, or the Task 4
+thresholds.** It adds the tier outcome that was missing from the plan.
+
 ---
 
-### Task 5: Assemble the adapter and route `.swift`
+### Task 5: Swift SDK symbol table and EXTERNAL classification
 
-**Only if Task 4 returned PASS.**
+**Files:**
+- Create: `src/adapters/swift/sdkSymbols.ts`, `tests/adapters/swift/sdkSymbols.test.ts`
+- Modify: `src/resolve/tiers.ts`, `tests/resolve/tiers.test.ts`
+- Modify: `src/resolve/resolver.ts` (the `tier === "EXTERNAL"` branch currently
+  casts `binding as { external: string; name: string }` — see
+  `src/resolve/resolver.ts` around the comment `// EXTERNAL is separate from
+  genuinely unplaceable references`. That cast assumes a TypeScript import
+  `Binding`. An SDK-table match has no `Binding` — `binding` is `null` for
+  Swift references today. Handle both sources of `EXTERNAL` explicitly rather
+  than relying on the cast silently producing `undefined`.)
+
+**Interfaces:**
+- Consumes: `AMBIGUITY_CAP`, `assignTier` (§4.3, already in `tiers.ts`)
+- Produces:
+  - `const SWIFT_SDK_SYMBOLS: ReadonlyMap<string, string>` — symbol name to a
+    short framework label (e.g. `"View" -> "SwiftUI"`, `"Date" -> "Foundation"`).
+    The label becomes `packageOrLib` on the `external_ref` row, the same field
+    TypeScript populates from an import specifier.
+  - `assignTier` gains an `EXTERNAL` outcome for a zero-candidate Swift
+    reference whose name is in the table. A Swift reference is any reference
+    carrying `scopeHint` — TypeScript references never set it, so this is a
+    safe discriminator without adding a language field.
+
+**Why a name-only table cannot hide a real local declaration.** This
+classification only ever runs when `candidates.length === 0` — nothing in the
+indexed corpus declares that name. So a name landing in the table can only
+affect references that already have no local candidate; it can never cause a
+genuinely-local symbol to be misclassified, because a local symbol always
+produces at least one candidate first. Coverage does not need to be exhaustive
+or perfectly precise: an unmatched zero-candidate reference simply stays
+`UNRESOLVED`, exactly as today.
+
+**Seed table — corpus-derived, not guessed.** These are the 256 names (of ~500
+distinct zero-candidate names, covering 97.1% of all zero-candidate
+references) that appeared at least 3 times as a zero-candidate reference on a
+real 376-file Swift application. Verify each before adding — a handful look
+like they could be project-defined (`ZoneConfiguration`, `NotificationInfo`,
+`Reference`, `component`, `ID`, `set`, `add`, `max`, `min`, `range`,
+`component`, `write`, `object`, `dictionary`, `prepare`, `submit`,
+`invalidate`, `unlock`, `resume`, `unhandled`) — drop any that are not
+confidently system vocabulary rather than guess:
+
+```
+String, font, Date, foregroundStyle, UUID, View, fetch, insert, Button, frame,
+VStack, HStack, Data, append, Bool, Spacer, Image, ID, Int, Sendable, Task,
+RoundedRectangle, opacity, NSNumber, contains, CKRecord, ForEach, Color,
+trimmingCharacters, Section, navigationTitle, ToolbarItem, ModelContainer,
+weight, Capsule, Void, navigationBarTitleDisplayMode, set, Equatable, overlay,
+ModelConfiguration, buttonStyle, Array, addingTimeInterval, listRowBackground,
+stroke, Double, dateComponents, flatMap, Label, max, print, Circle, disabled,
+lineLimit, toolbar, fontWeight, URL, sheet, multilineTextAlignment, CGFloat,
+Error, NavigationStack, Divider, CKContainer, removeObject, environment,
+TextField, Set, resume, ScrollView, ZStack, modifyRecordZones, CKRecordZone,
+ModelContext, Calendar, deleteRecord, PrivateKey, component, TimeZone,
+Rectangle, min, clipShape, CaseIterable, add, forEach, defer, enumerated,
+uppercased, removeValue, reduce, onChange, Picker, Logger, CKDatabase,
+Reference, scrollContentBackground, Form, DateFormatter, UInt8, stringArray,
+DateComponents, pickerStyle, isDateInToday, Codable, compactMap, month,
+NotificationInfo, Identifiable, system, isDate, contentShape, abs, Binding,
+Any, withCheckedThrowingContinuation, Group, alert, modifyRecords, appending,
+strokeBorder, ZoneConfiguration, CKFetchRecordZoneChangesOperation,
+ProgressView, hasPrefix, CKRecordValue, unarchivedObject, archivedData,
+CKRecordZoneSubscription, Toggle, List, UNMutableNotificationContent,
+animation, CKShare, SymmetricKey, split, UNNotificationRequest,
+setTaskCompleted, year, accessibilityLabel, ContentUnavailableView,
+TimeInterval, unlock, withUnsafeBytes, SecItemDelete, joined, fatalError,
+JSONDecoder, removeAll, withAnimation, listRowInsets, EdgeInsets,
+confirmationDialog, NavigationLink, StrokeStyle, CLLocationCoordinate2D,
+Never, JSONEncoder, DatePicker, onTapGesture, GeometryReader, NumberFormatter,
+Dictionary, timeIntervalSince, write, removeFirst, prepare, submit,
+presentationDetents, navigationDestination, LinearGradient, UInt64,
+keyboardType, rotationEffect, CLLocation, SortDescriptor, kerning, Query,
+checkCancellation, Float, object, BGAppRefreshTaskRequest, rounded, UIImage,
+fixedSize, Hashable, bold, suffix, lineSpacing, minimumScaleFactor, italic,
+resizable, textInputAutocapitalization, async, tabItem, SecItemAdd, unhandled,
+Curve25519, KeyAgreement, shadow, range, EKEventStore,
+requestFullAccessToEvents, jpegData, CGSize, Stepper, swipeActions,
+LazyVGrid, GridItem, trim, HKHealthStore, isHealthDataAvailable, TabView,
+sharedInstance, UInt32, scaledToFit, Slider, completionHandler,
+notificationOccurred, requestAuthorization, CFTypeRef, SecItemCopyMatching,
+EmptyView, URLComponents, URLQueryItem, dictionary, EKEvent,
+UNCalendarNotificationTrigger, removePendingNotificationRequests,
+subtracting, NSPredicate, CKQuerySubscription, TextEditor, ScrollViewReader,
+scrollTo, UIGraphicsImageRenderer, draw, CGRect, LazyVStack, strikethrough,
+safeAreaInset, focused, withCheckedContinuation, ignoresSafeArea, canOpenURL,
+HKQuantityType, tabViewStyle, SFSpeechRecognizer, setActive, invalidate,
+SealedBox, NSLock, base64EncodedString, textSelection, Menu, allSatisfy
+```
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+// tests/adapters/swift/sdkSymbols.test.ts
+import { describe, expect, it } from "vitest";
+import { SWIFT_SDK_SYMBOLS } from "../../../src/adapters/swift/sdkSymbols.js";
+
+describe("SWIFT_SDK_SYMBOLS", () => {
+  it("classifies well-known SwiftUI and Foundation vocabulary", () => {
+    expect(SWIFT_SDK_SYMBOLS.get("View")).toBe("SwiftUI");
+    expect(SWIFT_SDK_SYMBOLS.get("Date")).toBe("Foundation");
+    expect(SWIFT_SDK_SYMBOLS.get("String")).toBeDefined();
+  });
+
+  it("does not claim an obviously project-shaped name", () => {
+    expect(SWIFT_SDK_SYMBOLS.has("NotificationInfo")).toBe(false);
+  });
+});
+```
+
+- [ ] **Step 2: Run it and confirm it fails**
+
+- [ ] **Step 3: Build the table**, grouping by framework, dropping any name you
+  could not confidently verify as system vocabulary during Step 1's review.
+
+- [ ] **Step 4: Extend `assignTier`**
+
+```ts
+// tiers.ts — inside the candidates.length === 0 branch, before the plain
+// UNRESOLVED return. ref.scopeHint is the Swift discriminator: TypeScript
+// references never set it.
+if (ref.scopeHint) {
+  const framework = SWIFT_SDK_SYMBOLS.get(ref.name);
+  if (framework) {
+    return { tier: "EXTERNAL", confidence: 1 };
+    // resolver.ts must set packageOrLib from this table lookup, not from
+    // `binding`, when binding is null — see the Files note above.
+  }
+}
+```
+
+Match this to `assignTier`'s actual current shape rather than pasting
+verbatim; the important part is the discriminator (`ref.scopeHint` present)
+and that it runs only in the zero-candidate branch.
+
+- [ ] **Step 5: Fix the resolver's EXTERNAL branch** so `packageOrLib` is
+  sourced correctly for both origins — a TypeScript import binding, and a
+  Swift SDK-table match — instead of relying on an unchecked cast.
+
+- [ ] **Step 6: Add resolver-level tests** confirming a zero-candidate Swift
+  reference to `"View"` produces an `external_ref` row with `packageOrLib:
+  "SwiftUI"`, not an `unresolved_ref` row.
+
+- [ ] **Step 7: Run the full suite** — TypeScript behaviour and both benchmark
+  suites must be unaffected; this only changes the zero-candidate path and only
+  when `scopeHint` is present.
+
+- [ ] **Step 8: Commit** — `feat: classify known Swift SDK references as EXTERNAL`
+
+### Task 6: Re-run the Task 4 gate
+
+**Files:** Modify `probes/swift-narrowing/FINDINGS.md`
+
+This must be a fresh, honest run with `probes/swift-narrowing/measure.ts` (or
+its logical successor after Task 5's changes) against the same corpus at the
+same size (376 files / 39,136 lines) — not a recomputation from Task 4's
+stored numbers, and not the retroactive 18.2% estimate above, which was never
+more than a hypothesis for why this task exists.
+
+- [ ] **Step 1: Run the measurement** and record the real tier distribution.
+  Expect it to land somewhere better than 65.09% and worse than the 18.2%
+  estimate — the estimate assumed perfect table coverage, and Step 3 of Task 5
+  deliberately dropped uncertain names.
+
+- [ ] **Step 2: Append the result to `FINDINGS.md`** as a new dated section.
+  **Do not edit or remove the original Task 4 verdict or the controller note**
+  — this is a new measurement under a corrected adapter, not a correction of
+  the old one.
+
+- [ ] **Step 3: Apply the Task 4 thresholds, unchanged**, exactly as committed
+  in `04c316b`. No threshold may move because Task 5 happened.
+
+- [ ] **Step 4: Commit** — `test: re-run the Swift narrowing gate with EXTERNAL classification`
+
+**If this returns PASS:** continue to Task 7. **If MARGINAL or FAIL:** stop and
+report — the same rule Task 4 followed the first time.
+
+---
+
+
+### Task 7: Assemble the adapter and route `.swift`
+
+**Only if Task 6 returned PASS.**
 
 **Files:** Create `src/adapters/swift/index.ts`, `tests/adapters/swift/adapter.test.ts`; modify `src/adapters/registry.ts`, `src/index/pipeline.ts`
 
@@ -366,7 +570,10 @@ Point `probes/swift-narrowing/measure.ts` at a real Swift application (376 files
 
 ---
 
-### Task 6: Report the upstream grammar bugs
+
+---
+
+### Task 8: Report the upstream grammar bugs
 
 **Files:** Create `docs/upstream-issues.md`
 
@@ -393,7 +600,9 @@ func f() async { if let r = try? await g() { print(r) } }
 - [ ] Swift symbols carry visibility; extension members attribute to the extended type
 - [ ] References carry `scopeHint`; TypeScript is unaffected
 - [ ] **Task 4 verdict recorded against thresholds fixed beforehand**
-- [ ] If PASS: `.swift` indexes end to end and `implementations_of` works on protocols
+- [ ] **Task 5: zero-candidate SDK references classified EXTERNAL, not UNRESOLVED**
+- [ ] **Task 6: gate re-run fresh against the unchanged Task 4 thresholds, appended not overwritten**
+- [ ] If Task 6 PASS: `.swift` indexes end to end and `implementations_of` works on protocols
 - [ ] TypeScript tier distribution and both benchmarks unchanged
 - [ ] `npm run typecheck && npm test` clean
 
