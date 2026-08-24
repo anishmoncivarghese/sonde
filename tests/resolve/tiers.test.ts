@@ -50,6 +50,37 @@ describe("assignTier", () => {
     expect(assignTier(ref(), [], null).tier).toBe("UNRESOLVED");
   });
 
+  it("assigns EXTERNAL to a known zero-candidate Swift SDK reference", () => {
+    expect(assignTier(ref({
+      name: "View",
+      scopeHint: {
+        module: null,
+        file: "App.swift",
+        visibility: null,
+        receiver: null,
+        receiverType: null,
+      },
+    }), [], null).tier).toBe("EXTERNAL");
+  });
+
+  it("does not classify TypeScript references from the Swift SDK table", () => {
+    expect(assignTier(ref({ name: "View" }), [], null).tier).toBe("UNRESOLVED");
+  });
+
+  it("prefers a local Swift declaration over the SDK table", () => {
+    const swiftView = ref({
+      name: "View",
+      scopeHint: {
+        module: null,
+        file: "View.swift",
+        visibility: null,
+        receiver: null,
+        receiverType: null,
+      },
+    });
+    expect(assignTier(swiftView, candidates(1), null).tier).toBe("LEXICAL");
+  });
+
   it("keeps an unverified internal import unresolved despite global candidates", () => {
     const binding = { unresolved: "unexported_import" } as Binding;
     expect(assignTier(ref(), candidates(1), binding).tier).toBe("UNRESOLVED");

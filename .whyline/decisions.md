@@ -1149,3 +1149,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** probes/swift-narrowing/FINDINGS.md, src/resolve/tiers.ts
 
 <!-- whyline-event: bf8c7ac2f3a44abf8fdf1cf86a494408 -->
+
+## 2026-08-24 — Classify only zero-candidate Swift references from a curated SDK table as EXTERNAL
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-swift-adapter-task-5
+
+**Because:** This restores spec 4.4 completeness semantics without hiding local declarations; scopeHint isolates Swift and resolver records the verified framework source explicitly.
+
+**Rejected:**
+
+- Classify every zero-candidate Swift reference as EXTERNAL — that would conceal genuinely missing or unsupported targets.
+- Include project-shaped or framework-ambiguous seed names — a guessed framework would fabricate provenance, so uncertain names remain UNRESOLVED.
+
+**Files:** src/adapters/swift/sdkSymbols.ts, src/resolve/tiers.ts, src/resolve/resolver.ts
+
+<!-- whyline-event: b39ed66f775148f4b43db43222a93510 -->

@@ -2,6 +2,7 @@ import type {
   ReferenceRecord,
   SymbolVisibility,
 } from "../adapters/types.js";
+import { SWIFT_SDK_SYMBOLS } from "../adapters/swift/sdkSymbols.js";
 import type { Binding } from "../link/imports.js";
 import type { Tier } from "../store/repos.js";
 
@@ -106,6 +107,9 @@ export function assignTier(
     return { tier: "UNRESOLVED", confidence: 0 };
   }
   if (candidates.length === 0) {
+    if (ref.scopeHint && SWIFT_SDK_SYMBOLS.has(ref.name)) {
+      return { tier: "EXTERNAL", confidence: 1 };
+    }
     return { tier: "UNRESOLVED", confidence: 0 };
   }
 

@@ -1,4 +1,5 @@
 import type { ExtractResult, ReferenceRecord } from "../adapters/types.js";
+import { SWIFT_SDK_SYMBOLS } from "../adapters/swift/sdkSymbols.js";
 import type { ExportMap } from "../link/exportmap.js";
 import { bindImports, type Binding } from "../link/imports.js";
 import type { RepoBoundary } from "../repo/boundary.js";
@@ -167,10 +168,19 @@ export function resolveAll(
       // EXTERNAL is separate from genuinely unplaceable references so the
       // unresolved count remains a meaningful completeness signal (spec §4.4).
       if (tier === "EXTERNAL") {
-        const externalBinding = binding as { external: string; name: string };
-        const historicalName = externalBinding.name === "*"
+        const externalBinding = binding && "external" in binding
+          ? binding
+          : null;
+        const sdkFramework = ref.scopeHint
+          ? SWIFT_SDK_SYMBOLS.get(ref.name)
+          : undefined;
+        const packageOrLib = externalBinding?.external ?? sdkFramework;
+        if (!packageOrLib) {
+          throw new Error(`EXTERNAL reference has no source: ${ref.name}`);
+        }
+        const historicalName = externalBinding?.name === "*"
           ? ref.name
-          : externalBinding.name;
+          : (externalBinding?.name ?? ref.name);
         if (history?.deletedNames?.has(historicalName)) {
           out.unresolved.push({
             srcKey: ref.fromSymbolKey,
@@ -185,7 +195,7 @@ export function resolveAll(
         out.external.push({
           srcKey: ref.fromSymbolKey,
           name: ref.name,
-          packageOrLib: externalBinding.external,
+          packageOrLib,
           siteLine: ref.siteLine,
         });
         continue;
