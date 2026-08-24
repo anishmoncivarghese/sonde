@@ -29,7 +29,7 @@ import {
   SchemaVersionError,
   Store,
 } from "../store/index.js";
-import { SCHEMA_VERSION } from "../version.js";
+import { PACKAGE_VERSION, SCHEMA_VERSION } from "../version.js";
 
 interface CountRow {
   symbols: number;
@@ -80,7 +80,7 @@ function unknownEnvelope(path: string, message: string) {
 }
 
 const program = new Command();
-program.name("sonde").version("0.1.0");
+program.name("sonde").version(PACKAGE_VERSION);
 
 program
   .command("index")

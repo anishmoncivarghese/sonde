@@ -10,6 +10,7 @@ import { queryGraph, type TraverseResult } from "../query/traverse.js";
 import { RepoBoundary } from "../repo/boundary.js";
 import { gitState, type GitState } from "../repo/git.js";
 import { SchemaVersionError } from "../store/index.js";
+import { PACKAGE_VERSION } from "../version.js";
 import {
   findSymbolsSchema,
   getImpactRadiusSchema,
@@ -79,7 +80,7 @@ function graphResponse(
 export function createServer(root: string): McpServer {
   const boundary = new RepoBoundary(root);
   const rootHash = hashRoot(boundary);
-  const server = new McpServer({ name: "sonde", version: "0.1.0" });
+  const server = new McpServer({ name: "sonde", version: PACKAGE_VERSION });
 
   server.registerTool(
     "find_symbols",
