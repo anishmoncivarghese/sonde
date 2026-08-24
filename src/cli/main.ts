@@ -30,6 +30,13 @@ import {
   Store,
 } from "../store/index.js";
 import { PACKAGE_VERSION, SCHEMA_VERSION } from "../version.js";
+import {
+  planMcpMerge,
+  readMcpConfigIfPresent,
+  sondeMcpEntry,
+  writeMcpConfig,
+} from "./mcpConfig.js";
+import { confirm } from "./prompt.js";
 
 interface CountRow {
   symbols: number;
@@ -81,6 +88,93 @@ function unknownEnvelope(path: string, message: string) {
 
 const program = new Command();
 program.name("sonde").version(PACKAGE_VERSION);
+
+program
+  .command("init")
+  .argument("[path]", "repository root", ".")
+  .option(
+    "--resolve",
+    "resolve edges with the TypeScript compiler (slower, more precise)",
+  )
+  .option("-y, --yes", "write .mcp.json without asking for confirmation")
+  .option("--json", "structured output")
+  .action(async (
+    path: string,
+    options: { resolve?: boolean; yes?: boolean; json?: boolean },
+  ) => {
+    const indexStats = await indexRepo(path, indexPathFor(path), {
+      resolve: options.resolve,
+    });
+    const indexSummary =
+      `indexed ${indexStats.filesIndexed} files` +
+      compilerIndexSummary(
+        options.resolve === true,
+        indexStats.compilerUpgraded,
+      );
+
+    const boundary = new RepoBoundary(path);
+    const mcpPath = boundary.resolve(".mcp.json");
+    const existing = readMcpConfigIfPresent(boundary);
+    const plan = planMcpMerge(existing);
+
+    if (plan.action === "invalid-json") {
+      console.error(
+        `${indexSummary}. ${mcpPath} exists but is not valid JSON (${plan.error}); ` +
+          "leaving it untouched. Fix or remove it, then run 'sonde init' again.",
+      );
+      process.exitCode = 1;
+      emit(options.json === true, { index: indexStats, mcpConfig: plan }, "");
+      return;
+    }
+
+    if (plan.action === "noop") {
+      emit(
+        options.json === true,
+        { index: indexStats, mcpConfig: plan },
+        `${indexSummary}. sonde is already configured in .mcp.json.`,
+      );
+      return;
+    }
+
+    if (plan.action === "conflict") {
+      emit(
+        options.json === true,
+        { index: indexStats, mcpConfig: plan },
+        `${indexSummary}. .mcp.json already has a ` +
+          "different 'sonde' entry -- leaving it as-is. Expected:\n" +
+          `  ${JSON.stringify(sondeMcpEntry())}\n` +
+          `Found:\n  ${JSON.stringify(plan.existing)}`,
+      );
+      return;
+    }
+
+    const verb = plan.action === "create" ? "Create" : "Update";
+    const proceed =
+      options.yes === true ||
+      (await confirm(
+        `${verb} ${mcpPath} to register sonde as an MCP server?`,
+        process.stdin,
+        process.stdout,
+      ));
+
+    if (!proceed) {
+      emit(
+        options.json === true,
+        { index: indexStats, mcpConfig: { action: "declined" } },
+        `${indexSummary}. Skipped .mcp.json ` +
+          "(not confirmed). Run 'sonde init --yes' to write it without asking.",
+      );
+      return;
+    }
+
+    writeMcpConfig(boundary, plan.content);
+    emit(
+      options.json === true,
+      { index: indexStats, mcpConfig: plan },
+      `${indexSummary}. ${verb}d ` +
+        `${mcpPath}. Restart your MCP client to pick it up.`,
+    );
+  });
 
 program
   .command("index")

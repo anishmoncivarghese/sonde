@@ -1226,3 +1226,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/cli/prompt.ts
 
 <!-- whyline-event: 408a9dfa1e674e569ebfbb1c1750e56e -->
+
+## 2026-08-24 — Compose sonde init from the existing index pipeline and conservative config actions
+
+**Because:** Calling indexRepo once with the index command's resolve option keeps graph output identical, while create/merge/noop/conflict/invalid states make every shared-config outcome explicit and the human output preserves compiler-tier degradation warnings.
+
+**Rejected:**
+
+- Fork onboarding-specific indexing — it would let init drift from sonde index behavior.
+- Use the plan's shorter human messages — init --resolve would silently hide an unavailable compiler tier, violating the visible-degradation invariant.
+
+**Files:** src/cli/main.ts, tests/cli/init.test.ts
+
+<!-- whyline-event: 41604a33ed654325b5d4a21e02b1bc11 -->
