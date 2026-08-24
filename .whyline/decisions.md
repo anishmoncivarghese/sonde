@@ -1100,3 +1100,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/index/pipeline.ts
 
 <!-- whyline-event: 3611ba3fa33f42d59e9abf84a3e665b0 -->
+
+## 2026-08-24 — Pin every vendored grammar by release URL and SHA-256
+
+**Because:** the Swift adapter depends on a measured 0.7.3 grammar build, and verifying cached as well as downloaded bytes prevents silent parser drift from changing published graph accuracy
+
+**Rejected:**
+
+- verify only the Swift grammar — the same integrity risk applies to the existing TypeScript and TSX grammars
+
+**Files:** scripts/fetch-grammars.mjs, src/adapters/swift/parser.ts
+
+<!-- whyline-event: 6783d35bf8294a928a03d7fceda5ae00 -->
