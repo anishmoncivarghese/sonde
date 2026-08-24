@@ -1,5 +1,9 @@
 # Sonde
 
+[![ci](https://github.com/anishmoncivarghese/sonde/actions/workflows/ci.yml/badge.svg)](https://github.com/anishmoncivarghese/sonde/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/%40cheppulabs%2Fsonde.svg)](https://www.npmjs.com/package/@cheppulabs/sonde)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 A local code-context engine for AI coding agents. Sonde indexes a
 TypeScript repository into a symbol-level graph in SQLite and exposes three MCP
 tools — `find_symbols`, `query_graph`, and `get_impact_radius` — so an agent can
@@ -196,11 +200,10 @@ sonde mcp serve [path]                     # MCP server over stdio
 - Compiler resolution uses bundled TypeScript 5.9.3, not the repository's own
   compiler, so version skew is possible and disclosed in `doctor` and response
   envelopes.
-- **A file with a parse error still contributes whatever tree-sitter
-  recovered from it** — this is deliberate (see the design spec §8) — but
-  `sonde status` currently reports that file as `failed`, the same label a
-  fully-unparseable file gets. The declarations are real; the label
-  understates how much of the file is usable.
+- A file with a parse error still contributes whatever tree-sitter
+  recovered from it — this is deliberate (see the design spec §8). Its
+  `parse_state` is `partial` when real declarations were recovered despite
+  the error, or `failed` only when nothing usable came out of it at all.
 - `TESTS` edges indicate structural relatedness only; they never prove coverage.
 - Type-only references, JSX intrinsics, `export =`/`import =`, decorators, and
   declaration merging are known gaps in the tree-sitter extraction path.

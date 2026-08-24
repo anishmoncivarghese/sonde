@@ -154,11 +154,24 @@ async function run(
       for (const file of onDisk) {
         store.deleteFile(file.path);
         const diagnostics = failed.get(file.path);
-        store.upsertFile({
-          ...file,
-          parseState: diagnostics ? "failed" : "ok",
-          diagnostics: diagnostics ?? [],
-        });
+        // 'partial': tree-sitter recovered at least one REAL declaration
+        // despite diagnostics. 'failed': nothing was recovered at all --
+        // either the catch branch ran, or the file parsed with errors but
+        // yielded no usable declarations. The adapter's own file-level
+        // symbol (kind: "file") is unconditionally present in every
+        // ExtractResult regardless of content quality, so symbols.length
+        // alone is always >= 1 and cannot distinguish the two cases; this
+        // excludes it explicitly. tree-sitter does not throw on malformed
+        // source either, so "the try branch didn't throw" was never the
+        // right signal to begin with.
+        const recoveredSymbols = (extracted.get(file.path)?.symbols ?? [])
+          .some((symbol) => symbol.kind !== "file");
+        const parseState = !diagnostics
+          ? "ok"
+          : recoveredSymbols
+            ? "partial"
+            : "failed";
+        store.upsertFile({ ...file, parseState, diagnostics: diagnostics ?? [] });
       }
 
       for (const [path, result] of extracted) {

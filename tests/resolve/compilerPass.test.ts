@@ -144,3 +144,56 @@ describe("runCompilerPass", () => {
     db.close();
   });
 });
+
+describe("enclosingKey file-level fallback", () => {
+  it("upgrades a reference buried in an anonymous test callback", async () => {
+    // app.route(...) inside `describe(() => { it(async () => {...}) })` has no
+    // NAMED enclosing symbol. The tree-sitter path attributes such references
+    // to the file symbol (stableKey(path, []) = "ts:path#"); the compiler
+    // pass's enclosingKey stopped at the SourceFile boundary and returned
+    // null instead, so srcKey was null and the whole upgrade was silently
+    // skipped — regardless of whether tsc resolved the call perfectly. This
+    // affects any repository whose tests nest calls inside anonymous
+    // describe/it callbacks, which is most of them.
+    const root = mkdtempSync(join(tmpdir(), "cg-pass-file-"));
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "src", "app.ts"),
+      "export class App { route(path: string): App { return this; } }");
+    writeFileSync(join(root, "src", "app.test.ts"),
+      "import { App } from './app.js';\n" +
+      "describe('App', () => {\n" +
+      "  it('routes', () => {\n" +
+      "    const app = new App();\n" +
+      "    app.route('/api');\n" +
+      "  });\n" +
+      "});\n");
+    writeFileSync(join(root, "tsconfig.json"), JSON.stringify({
+      compilerOptions: { strict: true, module: "esnext", target: "es2022", moduleResolution: "bundler" },
+      include: ["src"],
+    }));
+
+    const dbPath = join(root, "index.sqlite");
+    await indexRepo(root, dbPath);
+    const db = openDb(dbPath);
+    migrate(db);
+    const store = new Store(db);
+
+    const result = runCompilerPass(root, store);
+    expect(result).not.toBeNull();
+
+    const compilerEdges = db.prepare(
+      `SELECT s.stable_key AS src, d.stable_key AS dst FROM edge e
+       JOIN symbol s ON s.id = e.src_symbol_id
+       JOIN symbol d ON d.id = e.dst_symbol_id
+       WHERE e.tier = 'COMPILER' AND e.kind = 'CALLS'`,
+    ).all() as Array<{ src: string; dst: string }>;
+
+    expect(compilerEdges).toContainEqual(
+      expect.objectContaining({
+        src: "ts:src/app.test.ts#",
+        dst: "ts:src/app.ts#App.route",
+      }),
+    );
+    db.close();
+  });
+});

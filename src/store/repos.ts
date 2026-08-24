@@ -92,7 +92,7 @@ export class Store {
   upsertFile(
     file: FileRecord & {
       language?: string;
-      parseState?: "ok" | "failed";
+      parseState?: "ok" | "partial" | "failed";
       diagnostics?: unknown[];
     },
   ): void {
@@ -142,7 +142,7 @@ export class Store {
   hasParseFailures(): boolean {
     const row = this.db
       .prepare(
-        "SELECT 1 AS present FROM file WHERE parse_state = 'failed' LIMIT 1",
+        "SELECT 1 AS present FROM file WHERE parse_state != 'ok' LIMIT 1",
       )
       .get() as { present: number } | undefined;
     return row !== undefined;
