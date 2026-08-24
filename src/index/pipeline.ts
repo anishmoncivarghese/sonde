@@ -154,16 +154,18 @@ async function run(
       for (const file of onDisk) {
         store.deleteFile(file.path);
         const diagnostics = failed.get(file.path);
-        // 'partial': tree-sitter recovered at least one symbol despite
-        // diagnostics. 'failed': nothing was recovered at all -- either the
-        // catch branch ran, or the file parsed with errors but yielded zero
-        // usable declarations (tree-sitter does not throw on malformed
-        // source; "didn't throw" is not the same signal as "recovered
-        // something," so this checks symbols.length directly rather than
-        // extracted.has()). Callers (sonde status, doctor) can now tell
-        // "mostly fine" from "unusable" instead of both reading as an
-        // identical binary failure flag.
-        const recoveredSymbols = (extracted.get(file.path)?.symbols.length ?? 0) > 0;
+        // 'partial': tree-sitter recovered at least one REAL declaration
+        // despite diagnostics. 'failed': nothing was recovered at all --
+        // either the catch branch ran, or the file parsed with errors but
+        // yielded no usable declarations. The adapter's own file-level
+        // symbol (kind: "file") is unconditionally present in every
+        // ExtractResult regardless of content quality, so symbols.length
+        // alone is always >= 1 and cannot distinguish the two cases; this
+        // excludes it explicitly. tree-sitter does not throw on malformed
+        // source either, so "the try branch didn't throw" was never the
+        // right signal to begin with.
+        const recoveredSymbols = (extracted.get(file.path)?.symbols ?? [])
+          .some((symbol) => symbol.kind !== "file");
         const parseState = !diagnostics
           ? "ok"
           : recoveredSymbols
