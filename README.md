@@ -40,9 +40,17 @@ Full results in [BENCHMARK-LARGE.md](BENCHMARK-LARGE.md) and
 ## Install and run
 
 ```sh
-npx sonde index .
-npx sonde index . --resolve  # optional: slower, compiler-exact edges
-npx sonde mcp serve .
+npx @cheppulabs/sonde index .
+npx @cheppulabs/sonde index . --resolve  # optional: slower, compiler-exact edges
+npx @cheppulabs/sonde mcp serve .
+```
+
+Installed globally, the command is just `sonde` — the scope only appears in
+the package name, because the bare `sonde` name was already taken on npm.
+
+```sh
+npm install -g @cheppulabs/sonde
+sonde index .
 ```
 
 No account or hosted service is required. Point your MCP client at
