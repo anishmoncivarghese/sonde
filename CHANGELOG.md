@@ -5,6 +5,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-08-24
+
 ### Fixed
 
 - The TypeScript compiler-resolution pass (`--resolve`) silently skipped any
@@ -19,6 +21,14 @@ All notable changes to this project are documented here. Format follows
   indistinguishable from a file that recovered nothing. Added `'partial'`:
   on the real Hono corpus, 7 of 8 flagged files are genuinely `partial`
   (real declarations recovered) and only 1 is truly `failed`.
+
+### Added
+
+- `CHANGELOG.md`.
+- A tag-triggered npm publish workflow (`.github/workflows/publish.yml`)
+  with a guard that fails the build if the pushed tag does not match
+  `package.json`'s version, rather than silently publishing a mismatch.
+- CI, npm version, and license badges in the README.
 
 ## [0.2.0] — 2026-08-24
 
