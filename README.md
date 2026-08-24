@@ -179,7 +179,7 @@ sonde mcp serve [path]                     # MCP server over stdio
 `--token-budget <n>`. The `init`, `index`, `update`, `status`, `search`, `query`,
 `impact`, `doctor`, and `clean` commands accept `--json`.
 
-## Known limitations (v0.2.0)
+## Known limitations (v0.2.1)
 
 - **Node 22+ is required.** `better-sqlite3` needs it; installing on an older
   Node prints an `EBADENGINE` warning but still completes. If `sonde` then
