@@ -1166,3 +1166,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/swift/sdkSymbols.ts, src/resolve/tiers.ts, src/resolve/resolver.ts
 
 <!-- whyline-event: b39ed66f775148f4b43db43222a93510 -->
+
+## 2026-08-24 — Accept the fresh Swift narrowing gate as PASS on rules 1 and 3 alone
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-swift-adapter-task-6
+
+**Because:** The corrected run classified 10,091 SDK references as EXTERNAL and measured 25.16 percent UNRESOLVED with 74.84 percent placed across 8,823 in-repo references, satisfying the unchanged gate while rule 2 had no signal.
+
+**Rejected:**
+
+- Use the controller note's 18.2 percent estimate — it assumed perfect SDK-table coverage and was not a fresh measurement.
+- Parse Xcode project metadata for module boundaries — that would change the evidence source and test rule 2 through an unplanned workaround.
+
+**Files:** probes/swift-narrowing/measure.ts, probes/swift-narrowing/FINDINGS.md
+
+<!-- whyline-event: 30a33f2ed2ca44a4bf71b921cfa4164d -->

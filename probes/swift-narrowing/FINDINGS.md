@@ -128,3 +128,58 @@ library and major SDK symbol names — Foundation, SwiftUI, UIKit, CloudKit,
 SwiftData, Combine — not a guess dressed as one), then re-run Task 4 fresh
 against the fixed thresholds already committed here. Only that re-run is
 authoritative.
+
+---
+
+## Fresh Task 6 measurement with EXTERNAL classification — 2026-08-24
+
+This is a new run of the committed probe against the same anonymized real
+Swift application: **376 Swift files / 39,136 lines**. The corpus name and
+filesystem path remain deliberately omitted. Its extraction totals are
+unchanged: 7,979 symbols, 18,914 references, and 30 files with parse
+diagnostics.
+
+The corrected adapter classified 10,091 references (53.35% of all references)
+as `EXTERNAL` through the curated Swift SDK table. Those references are shown
+in the complete tier distribution, but excluded from the fixed narrowing
+gate's denominator just as TypeScript package references are. The remaining
+8,823 references are the in-repository population whose placement the gate
+measures.
+
+### Fresh tier distribution
+
+| Tier | Before | Share of all | Before gate share | After | Share of all | After gate share |
+|---|---:|---:|---:|---:|---:|---:|
+| `LEXICAL` | 2,950 | 15.60% | 33.44% | 2,949 | 15.59% | 33.42% |
+| `HEURISTIC` | 3,373 | 17.83% | 38.23% | 3,654 | 19.32% | 41.41% |
+| `EXTERNAL` | 10,091 | 53.35% | — | 10,091 | 53.35% | — |
+| `UNRESOLVED` | 2,500 | 13.22% | 28.34% | 2,220 | 11.74% | **25.16%** |
+| **Placed (`LEXICAL + HEURISTIC`)** | **6,323** | **33.43%** | **71.67%** | **6,603** | **34.91%** | **74.84%** |
+
+Narrowing again reduced candidate instances from 52,339 to 42,761, affecting
+1,801 references and removing 9,578 candidates. Rule 1 removed 9,332
+candidates across 1,768 references. Rule 3 removed 246 candidates across 76
+references and had an explicit receiver-type signal on 298 references.
+
+Rule 2 again had no signal: zero references carried a module hint because this
+is an Xcode project rather than a SwiftPM package. The probe did not parse
+Xcode project metadata to manufacture a substitute target boundary.
+
+The curated table intentionally left uncertain names unclassified. It matched
+10,091 of the 10,841 zero-candidate references identified by the controller
+note (93.08%); the other 750 remain honestly `UNRESOLVED`. Combined with the
+1,470 references still above `AMBIGUITY_CAP`, that produces the fresh 2,220
+unresolved total. This is why the authoritative result is worse than the
+controller note's perfect-coverage estimate.
+
+## Verdict: PASS on rules 1 and 3 alone
+
+The thresholds committed in `04c316b` remain unchanged: PASS requires
+`UNRESOLVED <= 30%` and `LEXICAL + HEURISTIC >= 70%` over in-repository
+references. The fresh after-narrowing result is **25.16% unresolved** and
+**74.84% placed**, so Task 6 passes.
+
+This is stronger than the gate requested because rule 2 was untested: explicit
+file visibility and receiver annotations produced a passing graph without any
+SwiftPM target signal. It does not measure how much additional improvement
+SwiftPM target narrowing would provide on a representative SwiftPM corpus.

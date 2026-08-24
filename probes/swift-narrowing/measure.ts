@@ -20,6 +20,7 @@ interface ExtractedFile {
 interface Distribution {
   LEXICAL: number;
   HEURISTIC: number;
+  EXTERNAL: number;
   UNRESOLVED: number;
 }
 
@@ -44,7 +45,14 @@ function discoverSwift(boundary: RepoBoundary): string[] {
 }
 
 function emptyDistribution(): Distribution {
-  return { LEXICAL: 0, HEURISTIC: 0, UNRESOLVED: 0 };
+  return { LEXICAL: 0, HEURISTIC: 0, EXTERNAL: 0, UNRESOLVED: 0 };
+}
+
+function increment(
+  distribution: Distribution,
+  tier: keyof Distribution,
+): void {
+  distribution[tier] += 1;
 }
 
 function percent(count: number, total: number): number {
@@ -120,12 +128,8 @@ for (const file of extracted) {
     const candidates = symbolsByName.get(reference.name) ?? [];
     candidatesBefore += candidates.length;
     const baseline = assignTier(reference, candidates, null).tier;
-    if (
-      baseline === "LEXICAL" ||
-      baseline === "HEURISTIC" ||
-      baseline === "UNRESOLVED"
-    ) {
-      before[baseline] += 1;
+    if (baseline !== "COMPILER") {
+      increment(before, baseline);
     }
 
     const withoutReceiverType = reference.scopeHint
@@ -159,18 +163,21 @@ for (const file of extracted) {
     const wasNarrowed = narrowed.length !== candidates.length;
     if (wasNarrowed) referencesNarrowed += 1;
     const narrowedTier = assignTier(reference, narrowed, null, wasNarrowed).tier;
-    if (
-      narrowedTier === "LEXICAL" ||
-      narrowedTier === "HEURISTIC" ||
-      narrowedTier === "UNRESOLVED"
-    ) {
-      after[narrowedTier] += 1;
+    if (narrowedTier !== "COMPILER") {
+      increment(after, narrowedTier);
     }
   }
 }
 
-const unresolvedShare = percent(after.UNRESOLVED, referenceCount);
-const placedShare = percent(after.LEXICAL + after.HEURISTIC, referenceCount);
+const beforeInRepoReferences =
+  before.LEXICAL + before.HEURISTIC + before.UNRESOLVED;
+const afterInRepoReferences =
+  after.LEXICAL + after.HEURISTIC + after.UNRESOLVED;
+const unresolvedShare = percent(after.UNRESOLVED, afterInRepoReferences);
+const placedShare = percent(
+  after.LEXICAL + after.HEURISTIC,
+  afterInRepoReferences,
+);
 const verdict = unresolvedShare <= 30 && placedShare >= 70
   ? "PASS"
   : unresolvedShare <= 50
@@ -210,17 +217,21 @@ console.log(
     },
     before: {
       counts: before,
-      percentages: {
-        LEXICAL: percent(before.LEXICAL, referenceCount),
-        HEURISTIC: percent(before.HEURISTIC, referenceCount),
-        UNRESOLVED: percent(before.UNRESOLVED, referenceCount),
+      externalShareOfAll: percent(before.EXTERNAL, referenceCount),
+      inRepoReferences: beforeInRepoReferences,
+      gatePercentages: {
+        LEXICAL: percent(before.LEXICAL, beforeInRepoReferences),
+        HEURISTIC: percent(before.HEURISTIC, beforeInRepoReferences),
+        UNRESOLVED: percent(before.UNRESOLVED, beforeInRepoReferences),
       },
     },
     after: {
       counts: after,
-      percentages: {
-        LEXICAL: percent(after.LEXICAL, referenceCount),
-        HEURISTIC: percent(after.HEURISTIC, referenceCount),
+      externalShareOfAll: percent(after.EXTERNAL, referenceCount),
+      inRepoReferences: afterInRepoReferences,
+      gatePercentages: {
+        LEXICAL: percent(after.LEXICAL, afterInRepoReferences),
+        HEURISTIC: percent(after.HEURISTIC, afterInRepoReferences),
         UNRESOLVED: unresolvedShare,
       },
     },
