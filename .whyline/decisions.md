@@ -1112,3 +1112,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** scripts/fetch-grammars.mjs, src/adapters/swift/parser.ts
 
 <!-- whyline-event: 6783d35bf8294a928a03d7fceda5ae00 -->
+
+## 2026-08-24 — Attribute Swift extension members to the extended type and preserve declared visibility
+
+**Because:** Swift extensions add members to an existing nominal type, so Foo.bar is the stable identity, while private/fileprivate extension defaults are source evidence required by the narrowing gate
+
+**Rejected:**
+
+- mint extension containers as symbols — extension is not a named runtime declaration and would produce unstable or misleading scope chains
+
+**Files:** src/adapters/swift/symbols.ts, src/adapters/types.ts
+
+<!-- whyline-event: fd67ec193eac461488bd988087e290c1 -->

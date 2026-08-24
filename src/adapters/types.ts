@@ -1,5 +1,12 @@
 import type { SymbolKind } from "../store/repos.js";
 
+export type SymbolVisibility =
+  | "private"
+  | "fileprivate"
+  | "internal"
+  | "public"
+  | "open";
+
 export interface SymbolRecord {
   stableKey: string;
   qualifiedName: string;
@@ -11,6 +18,7 @@ export interface SymbolRecord {
   bodyHash: string | null;
   exported: boolean;
   isTest: boolean;
+  visibility?: SymbolVisibility;
 }
 
 /** A reference the adapter saw but cannot resolve — resolution is not the adapter's job. */
