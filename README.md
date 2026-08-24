@@ -1,5 +1,9 @@
 # Sonde
 
+[![ci](https://github.com/anishmoncivarghese/sonde/actions/workflows/ci.yml/badge.svg)](https://github.com/anishmoncivarghese/sonde/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/%40cheppulabs%2Fsonde.svg)](https://www.npmjs.com/package/@cheppulabs/sonde)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 A local code-context engine for AI coding agents. Sonde indexes a
 TypeScript repository into a symbol-level graph in SQLite and exposes three MCP
 tools — `find_symbols`, `query_graph`, and `get_impact_radius` — so an agent can
