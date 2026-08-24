@@ -1239,3 +1239,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/cli/main.ts, tests/cli/init.test.ts
 
 <!-- whyline-event: 41604a33ed654325b5d4a21e02b1bc11 -->
+
+## 2026-08-24 — Make sonde init the primary onboarding path while retaining the manual equivalent
+
+**Because:** One command now performs both required project setup steps, while documenting the exact index command and .mcp.json entry keeps the convenience transparent and recoverable.
+
+**Rejected:**
+
+- Document only the convenience command — users would not know what shared configuration init changes.
+- Keep index plus manual MCP setup as the primary path — it preserves the onboarding failure mode this feature removes.
+
+**Files:** README.md
+
+<!-- whyline-event: f7f901d04d624685850c7ad955150be9 -->
