@@ -5,6 +5,18 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-08-24
+
+### Added
+
+- `sonde init [path]` — collapses first-time setup (`sonde index` plus
+  hand-editing `.mcp.json`) into one command. Merge-safe: creates
+  `.mcp.json` if absent, merges in the `sonde` server entry if the file
+  exists without one, no-ops if already configured identically, and refuses
+  to overwrite a conflicting or invalid config rather than guessing.
+  `--yes` skips the confirmation prompt; `--resolve` and `--json` behave as
+  they do for `index`.
+
 ### Changed
 
 - The npm publish workflow no longer auto-triggers on a pushed tag. npm's
@@ -75,4 +87,4 @@ First public release, published to npm as `@cheppulabs/sonde`.
 
 ### Known limitations
 
-See the [README](README.md#known-limitations-v020) for the current, maintained list.
+See the [README](README.md#known-limitations-v021) for the current, maintained list.
