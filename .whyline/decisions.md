@@ -366,7 +366,7 @@ Append-only. Written by whyline; readable without it.
 - One combined plan for MCP tools and the benchmark — benchmark needs fixture-repo selection (an open spec question) resolved first, and would bloat one document past useful review size
 - Scope query_graph's imports_of/imported_by around the missing IMPORTS edge instead of fixing it — diverges from the spec's stated data model (§6) where IMPORTS is a stored edge like any other, and leaves file-level containment permanently unanswerable
 
-**Files:** docs/superpowers/plans/2026-08-19-codegraph-mcp-surface.md
+**Files:** docs/superpowers/plans/2026-08-19-sonde-mcp-surface.md
 
 <!-- whyline-event: 2d10334fdeb74a1cb52b20dbe93a47f5 -->
 
@@ -811,7 +811,7 @@ Append-only. Written by whyline; readable without it.
 - Run the live baseline first — it would spend budget against tasks already proven to score incorrect answers
 - Patch only the failing examples — dead budgets and tautological tier utility are methodology defects requiring shared scoring changes
 
-**Files:** docs/superpowers/plans/2026-08-21-codegraph-phase3-remediation.md
+**Files:** docs/superpowers/plans/2026-08-21-sonde-phase3-remediation.md
 
 <!-- whyline-event: 313caca5093d473693ea29829bfa40ce -->
 
