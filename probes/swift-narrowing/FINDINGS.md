@@ -66,3 +66,65 @@ corpus is required before that stronger conclusion is safe.
 Strict typechecking and the complete 368-test suite passed after the narrowing
 change, including the contract that references without `scopeHint` preserve
 the TypeScript candidate list and tier behavior.
+
+---
+
+## Controller note added after scoring: the measurement conflates two categories
+
+The verdict above is correct given how the measurement was built, and it is
+**not overridden here** — Task 4's own thresholds were fixed before the run and
+apply as recorded. This note identifies a gap in the *plan*, not a re-judging
+of the result.
+
+The gap: the plan's Task 3 never gave Swift an `EXTERNAL` outcome. Spec §4.4
+requires one — a reference resolving outside the indexed repository must be
+classified `EXTERNAL`, never counted toward `UNRESOLVED`, because otherwise the
+completeness signal the tier system exists to provide becomes meaningless
+(this is the exact failure §4.4 was written to prevent for TypeScript, where
+`node_modules` references would otherwise flood the unresolved count). Swift's
+adapter has no equivalent: every reference to the standard library, SwiftUI,
+Foundation, or any other SDK falls through to zero candidates and is scored
+`UNRESOLVED`, identically to a genuine same-module ambiguity.
+
+A read-only breakdown of the already-recorded 18,914 references (recomputed
+from the committed extractors, not from a new run) splits the 12,591
+`UNRESOLVED` count:
+
+| Cause | Count | Share of UNRESOLVED |
+|---|---:|---:|
+| Zero candidates anywhere in the corpus | 10,841 | 86.1% |
+| More than `AMBIGUITY_CAP` (8) same-named candidates | 1,750 | 13.9% |
+
+The zero-candidate names were sampled, not assumed. The 30 most frequent are
+`String`, `font`, `Date`, `foregroundStyle`, `UUID`, `View`, `fetch`, `insert`,
+`Button`, `frame`, `VStack`, `HStack`, `Data`, `append`, `Bool`, `Spacer`,
+`Image`, `ID`, `Int`, `Sendable`, `Task`, `RoundedRectangle`, `opacity`,
+`NSNumber`, `contains`, `CKRecord`, `ForEach`, `Color`, `trimmingCharacters`,
+`Section` — Swift standard library, SwiftUI, Foundation, and CloudKit
+vocabulary. None of these are declared anywhere in the corpus, and none of the
+three narrowing rules could ever have addressed them: narrowing only removes
+candidates from a non-empty set.
+
+Recomputing the gate with zero-candidate references excluded from the
+denominator (i.e. correctly treated as `EXTERNAL`, matching TypeScript's
+treatment of `node_modules`) rather than counted as `UNRESOLVED`:
+
+| | Value |
+|---|---:|
+| In-repo references (18,914 − 10,841) | 8,073 |
+| Still over the ambiguity cap after narrowing | 1,470 |
+| `UNRESOLVED` share | 18.2% |
+| Placed (`LEXICAL` + `HEURISTIC`) share | 81.8% |
+
+That would be a **PASS** under the thresholds fixed in this file.
+
+**This is not a re-score and it does not change the recorded verdict.** It is
+a retroactive count over already-collected data, not a fresh, honestly-run
+measurement against a rule that did not exist when Task 4 ran — the same
+category of thing as recomputing an oracle report after fixing a scoring bug,
+not as loosening a threshold after seeing a result. Treat it as a hypothesis:
+build a real `EXTERNAL` classifier for Swift (a curated table of standard
+library and major SDK symbol names — Foundation, SwiftUI, UIKit, CloudKit,
+SwiftData, Combine — not a guess dressed as one), then re-run Task 4 fresh
+against the fixed thresholds already committed here. Only that re-run is
+authoritative.

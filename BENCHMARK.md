@@ -1,6 +1,6 @@
 # Sonde vs. agentic search — 12-task benchmark
 
-Generated: 2026-08-23T18:59:15.394Z
+Generated: 2026-08-24T08:16:51.314Z
 
 Adversarially selected per spec §10 Layer 3, not drawn uniformly — a uniform sample would show parity on tasks modern agentic search is already good at and invite the wrong conclusion. Selection criteria, disclosed as the spec requires:
 
