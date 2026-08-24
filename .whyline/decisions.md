@@ -1200,3 +1200,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/registry.ts, src/adapters/swift/index.ts, src/index/pipeline.ts, src/index/drift.ts, src/repo/discover.ts
 
 <!-- whyline-event: 509c1c6d6581441c9ee63d47cc50c852 -->
+
+## 2026-08-24 — Keep sonde init config I/O behind RepoBoundary
+
+**Because:** The init plan's raw fs helpers would violate SEC-001/002/003; passing RepoBoundary into the helpers preserves containment and only treating ENOENT as absent prevents unreadable configs from being overwritten.
+
+**Rejected:**
+
+- Use readFileSync/writeFileSync in mcpConfig.ts — repository paths would escape the canonical boundary invariant.
+- Catch every read error as a missing file — permission and path errors could lead init to overwrite an existing config.
+
+**Files:** src/cli/mcpConfig.ts, src/repo/boundary.ts
+
+<!-- whyline-event: 7ba0a8a0ace349a4bd632b0d1443afe1 -->
