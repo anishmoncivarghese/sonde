@@ -175,6 +175,35 @@ describe("resolveAll", () => {
     expect(result.unresolved).toEqual([]);
   });
 
+  it("classifies a zero-candidate Swift SDK reference separately", () => {
+    const caller = symbol("Sources/App/ContentView.swift", "ContentView", {
+      stableKey: "swift:Sources/App/ContentView.swift#ContentView",
+    });
+    const files = new Map<string, ExtractResult>([[
+      "Sources/App/ContentView.swift",
+      extracted([caller], [reference("View", {
+        fromSymbolKey: caller.stableKey,
+        kind: "REFERENCES",
+        scopeHint: {
+          module: "App",
+          file: "Sources/App/ContentView.swift",
+          visibility: null,
+          receiver: null,
+          receiverType: null,
+        },
+      })]),
+    ]]);
+
+    const result = resolveAll(files, new Map(), cfg, boundary);
+
+    expect(result.external).toContainEqual(expect.objectContaining({
+      srcKey: caller.stableKey,
+      name: "View",
+      packageOrLib: "SwiftUI",
+    }));
+    expect(result.unresolved).toEqual([]);
+  });
+
   it("keeps member calls heuristic and emits one edge per candidate", () => {
     const first = symbol("src/lib.ts", "First.foo");
     const second = symbol("src/other.ts", "Second.foo");

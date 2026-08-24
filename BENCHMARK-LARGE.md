@@ -1,6 +1,6 @@
 # Sonde vs. agentic search — large fixture
 
-Generated: 2026-08-23T18:59:21.423Z
+Generated: 2026-08-24T09:01:32.545Z
 
 Fixture: Hono v4.6.3 (MIT) — 346 files indexed, 9348 symbols, 50517 edges, 8 parse failures.
 
@@ -18,7 +18,7 @@ agree with its own bugs.
 
 | Baseline | Mean recall@k | Success rate | Mean distractors | Mean tool calls | Mean input tokens | Mean context tokens | Mean latency (ms) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Sonde | 0.833 | 0.833 | 0.00 | 1.0 | 14 | 1263 | 280 |
+| Sonde | 0.833 | 0.833 | 0.00 | 1.0 | 14 | 1263 | 262 |
 | Agentic search | 1.000 | 0.500 | 0.00 | 8.0 | 78548 | 3621 | 38602 |
 
 ## Per-task

@@ -1,5 +1,12 @@
 import type { SymbolKind } from "../store/repos.js";
 
+export type SymbolVisibility =
+  | "private"
+  | "fileprivate"
+  | "internal"
+  | "public"
+  | "open";
+
 export interface SymbolRecord {
   stableKey: string;
   qualifiedName: string;
@@ -11,6 +18,16 @@ export interface SymbolRecord {
   bodyHash: string | null;
   exported: boolean;
   isTest: boolean;
+  visibility?: SymbolVisibility;
+}
+
+export interface ScopeHint {
+  module: string | null;
+  file: string;
+  visibility: SymbolVisibility | null;
+  receiver: string | null;
+  /** Receiver type only when written explicitly in source; never inferred. */
+  receiverType: string | null;
 }
 
 /** A reference the adapter saw but cannot resolve — resolution is not the adapter's job. */
@@ -19,7 +36,7 @@ export interface ReferenceRecord {
   name: string;            // the identifier as written
   receiver: string | null; // for `x.foo()`, "x"; null for a bare `foo()`
   /** Optional language-specific module/target/access scope for candidate narrowing. */
-  scopeHint?: string | null;
+  scopeHint?: ScopeHint;
   kind: "CALLS" | "REFERENCES" | "IMPLEMENTS" | "INHERITS";
   siteLine: number;
 }

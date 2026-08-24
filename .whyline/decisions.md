@@ -1100,3 +1100,103 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/index/pipeline.ts
 
 <!-- whyline-event: 3611ba3fa33f42d59e9abf84a3e665b0 -->
+
+## 2026-08-24 — Pin every vendored grammar by release URL and SHA-256
+
+**Because:** the Swift adapter depends on a measured 0.7.3 grammar build, and verifying cached as well as downloaded bytes prevents silent parser drift from changing published graph accuracy
+
+**Rejected:**
+
+- verify only the Swift grammar — the same integrity risk applies to the existing TypeScript and TSX grammars
+
+**Files:** scripts/fetch-grammars.mjs, src/adapters/swift/parser.ts
+
+<!-- whyline-event: 6783d35bf8294a928a03d7fceda5ae00 -->
+
+## 2026-08-24 — Attribute Swift extension members to the extended type and preserve declared visibility
+
+**Because:** Swift extensions add members to an existing nominal type, so Foo.bar is the stable identity, while private/fileprivate extension defaults are source evidence required by the narrowing gate
+
+**Rejected:**
+
+- mint extension containers as symbols — extension is not a named runtime declaration and would produce unstable or misleading scope chains
+
+**Files:** src/adapters/swift/symbols.ts, src/adapters/types.ts
+
+<!-- whyline-event: fd67ec193eac461488bd988087e290c1 -->
+
+## 2026-08-24 — Carry structured Swift scope evidence on each reference while leaving TypeScript hints absent
+
+**Because:** Swift resolution needs independently inspectable file, SwiftPM target, enclosing visibility, and receiver evidence before candidate fan-out, while an optional object preserves existing TypeScript extraction and tier behavior
+
+**Rejected:**
+
+- encode scope as an opaque string — narrowing rules would need fragile parsing and could not audit which source fact removed a candidate
+
+**Files:** src/adapters/types.ts, src/adapters/swift/references.ts, src/adapters/swift/modules.ts
+
+<!-- whyline-event: c24110a91c9f4ae6878be39853797817 -->
+
+## 2026-08-24 — Stop the Swift adapter at a FAIL gate with SwiftPM narrowing untested
+
+**Because:** on an anonymized 376-file, 39,136-line Xcode corpus, file visibility and explicit receiver annotations reduced UNRESOLVED only from 66.57 percent to 65.09 percent, above the fixed 50 percent FAIL threshold, while zero references carried SwiftPM module evidence
+
+**Rejected:**
+
+- continue to assemble and route the adapter — Task 4 is an explicit gate and rules 1 and 3 did not produce a usefully resolved graph
+- conclude Swift requires SourceKit-LSP — rule 2 had no signal, so a representative SwiftPM corpus is still required for that stronger claim
+
+**Files:** probes/swift-narrowing/FINDINGS.md, src/resolve/tiers.ts
+
+<!-- whyline-event: bf8c7ac2f3a44abf8fdf1cf86a494408 -->
+
+## 2026-08-24 — Classify only zero-candidate Swift references from a curated SDK table as EXTERNAL
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-swift-adapter-task-5
+
+**Because:** This restores spec 4.4 completeness semantics without hiding local declarations; scopeHint isolates Swift and resolver records the verified framework source explicitly.
+
+**Rejected:**
+
+- Classify every zero-candidate Swift reference as EXTERNAL — that would conceal genuinely missing or unsupported targets.
+- Include project-shaped or framework-ambiguous seed names — a guessed framework would fabricate provenance, so uncertain names remain UNRESOLVED.
+
+**Files:** src/adapters/swift/sdkSymbols.ts, src/resolve/tiers.ts, src/resolve/resolver.ts
+
+<!-- whyline-event: b39ed66f775148f4b43db43222a93510 -->
+
+## 2026-08-24 — Accept the fresh Swift narrowing gate as PASS on rules 1 and 3 alone
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-swift-adapter-task-6
+
+**Because:** The corrected run classified 10,091 SDK references as EXTERNAL and measured 25.16 percent UNRESOLVED with 74.84 percent placed across 8,823 in-repo references, satisfying the unchanged gate while rule 2 had no signal.
+
+**Rejected:**
+
+- Use the controller note's 18.2 percent estimate — it assumed perfect SDK-table coverage and was not a fresh measurement.
+- Parse Xcode project metadata for module boundaries — that would change the evidence source and test rule 2 through an unplanned workaround.
+
+**Files:** probes/swift-narrowing/measure.ts, probes/swift-narrowing/FINDINGS.md
+
+<!-- whyline-event: 30a33f2ed2ca44a4bf71b921cfa4164d -->
+
+## 2026-08-24 — Route discovery, extraction, and drift through a shared adapter registry with lazy parser warmup
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-swift-adapter-task-7
+
+**Because:** Swift files must remain indexable and fresh end to end, while TypeScript-only repositories should initialize only the existing TypeScript parser and retain identical results.
+
+**Rejected:**
+
+- Change only the extraction loop — discovery would omit Swift and drift would report indexed Swift files as deleted.
+- Initialize every language parser for every repository — it adds avoidable Swift grammar work to TypeScript-only indexing.
+
+**Files:** src/adapters/registry.ts, src/adapters/swift/index.ts, src/index/pipeline.ts, src/index/drift.ts, src/repo/discover.ts
+
+<!-- whyline-event: 509c1c6d6581441c9ee63d47cc50c852 -->

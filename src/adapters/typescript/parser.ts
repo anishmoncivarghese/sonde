@@ -1,4 +1,5 @@
 import { Parser, Language } from "web-tree-sitter";
+import { ensureTreeSitterRuntime } from "../treeSitterRuntime.js";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,7 +38,7 @@ async function loadGrammar(name: GrammarName): Promise<Parser> {
 /** Load every grammar once. Must be awaited before any synchronous extract(). */
 export async function getTsParser(): Promise<Parser> {
   initPromise ??= (async () => {
-    await Parser.init();
+    await ensureTreeSitterRuntime();
     for (const name of Object.keys(GRAMMARS) as GrammarName[]) {
       cached.set(name, await loadGrammar(name));
     }
