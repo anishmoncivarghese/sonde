@@ -1,5 +1,5 @@
 import { existsSync, realpathSync } from "node:fs";
-import { join, resolve, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import ts from "typescript";
 import type { Store } from "../store/index.js";
 import type { EdgeKind } from "../store/repos.js";
@@ -85,7 +85,17 @@ function isDeclarationName(node: ts.Identifier): boolean {
   return ts.getNameOfDeclaration(node.parent as ts.Declaration) === node;
 }
 
-/** The enclosing named symbol of a reference, in adapter key form. */
+/**
+ * The enclosing named symbol of a reference, in adapter key form.
+ *
+ * Falls back to the file-level symbol (stableKey(path, []) = "ts:path#")
+ * when no named ancestor exists, matching the tree-sitter path exactly. Code
+ * inside `describe(() => { it(() => { ... }) })` has no named enclosing
+ * symbol at all — stopping at the SourceFile boundary and returning null,
+ * as this used to, silently dropped every reference in test files shaped
+ * like that: srcKey came back null, so the upgrade/insert was skipped
+ * regardless of whether tsc had resolved the call perfectly.
+ */
 function enclosingKey(
   node: ts.Node,
   context: CompilerContext,
@@ -99,7 +109,12 @@ function enclosingKey(
     if (key) return key;
     current = current.parent;
   }
-  return null;
+  const sourceFile = node.getSourceFile();
+  if (!context.inRepo(sourceFile.fileName)) return null;
+  const relativePath = relative(context.root, sourceFile.fileName)
+    .split(sep)
+    .join("/");
+  return `ts:${relativePath}#`;
 }
 
 function edgeKindFor(node: ts.Node): EdgeKind {
