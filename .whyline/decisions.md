@@ -1264,3 +1264,30 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/cli/main.ts, src/cli/mcpConfig.ts, src/cli/prompt.ts, src/repo/boundary.ts
 
 <!-- whyline-event: e7d3851d01ef4d3397ab197b98b9edef -->
+
+## 2026-08-24 — Gate the Python adapter on Swift's exact thresholds, with EXTERNAL classified from day one
+
+**Because:** Reusing the already-published Swift bar (UNRESOLVED <=30%, placed >=70% over in-repo refs) removes any suspicion of fitting the threshold to the result, and building EXTERNAL up front avoids the methodology error that made Swift's first gate read FAIL at 65% when the corrected run measured PASS at 25%
+
+**Rejected:**
+
+- Inventing a Python-specific threshold — unfalsifiable, and invites moving the goalposts after seeing results
+- A pyright-backed COMPILER tier in v1 — the gate exists to test whether the zero-setup tier stands alone; adding a toolchain first would hide that answer
+- A symbols-only adapter — sonde init would print a non-zero file count while query_graph and get_impact_radius stayed broken, trading an honest zero for a misleading number
+
+**Files:** docs/superpowers/specs/2026-08-25-python-adapter-design.md
+
+<!-- whyline-event: c02eb5e1a9d24bd4a75c8488491a1177 -->
+
+## 2026-08-24 — Select pydantic over httpx as the Python gate corpus after measuring candidates
+
+**Because:** httpx was chosen on my incorrect ~150-file estimate but holds only 60 .py files (23 in-package), close enough to agentdock's 55 that it adds no independent signal; pydantic's 435 files are comparable to Swift's 376-file gate corpus and its heavy type-hint usage exercises typed-import resolution
+
+**Rejected:**
+
+- httpx — too small to be a second signal once actually counted
+- django (2,929 files) — maximum signal but older, more dynamic patterns would make a FAIL hard to attribute
+
+**Files:** docs/superpowers/specs/2026-08-25-python-adapter-design.md
+
+<!-- whyline-event: 34c957aff5054507b3216c2e5ddb7d34 -->
