@@ -1,8 +1,18 @@
 name: publish
 
+# Manual only. This project publishes by hand (npm login + npm publish in a
+# terminal) because npm requires either a live 2FA prompt or a granular
+# access token, and the shortest-lived tokens npm currently offers for CI
+# publishing expire in 7 days -- a rotation chore nobody wants to own for a
+# low-frequency release cadence. This workflow exists so the automated path
+# is ready whenever that tradeoff changes, without auto-triggering (and
+# auto-failing, with no NPM_TOKEN secret configured) on every tag push.
 on:
-  push:
-    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish -- must exactly match package.json"
+        required: true
 
 jobs:
   publish:
@@ -20,12 +30,11 @@ jobs:
 
       - run: npm ci
 
-      - name: verify package.json version matches the pushed tag
+      - name: verify the typed version matches package.json
         run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
           PKG_VERSION=$(node -p "require('./package.json').version")
-          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION"
+          if [ "${{ inputs.version }}" != "$PKG_VERSION" ]; then
+            echo "::error::input version ${{ inputs.version }} does not match package.json version $PKG_VERSION"
             exit 1
           fi
 

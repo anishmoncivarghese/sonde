@@ -5,6 +5,17 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The npm publish workflow no longer auto-triggers on a pushed tag. npm's
+  shortest-lived tokens that can bypass 2FA for CI publishing currently
+  expire in 7 days, which is a rotation chore not worth owning at this
+  release cadence — the workflow auto-firing with no token configured would
+  have produced a failing run on every future release regardless. It is now
+  `workflow_dispatch`-only: trigger it by hand from the Actions tab when (and
+  if) a longer-lived token is ever configured. Releases continue to be
+  published manually (`npm publish --access public`) in the meantime.
+
 ## [0.2.1] — 2026-08-24
 
 ### Fixed
