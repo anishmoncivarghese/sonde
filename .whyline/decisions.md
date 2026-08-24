@@ -1252,3 +1252,15 @@ Append-only. Written by whyline; readable without it.
 **Files:** README.md
 
 <!-- whyline-event: f7f901d04d624685850c7ad955150be9 -->
+
+## 2026-08-24 — Approved feat/sonde-init after independent review
+
+**Because:** Reviewed diff, ran typecheck+403 tests myself, read all 4 whyline entries Codex recorded, and smoke-tested init/init--yes/idempotent-rerun against a real throwaway repo; every deviation from the written plan (RepoBoundary.writeFile, ENOENT-narrowing, readline iteration for EOF safety, reusing compilerIndexSummary) is a justified improvement, not a shortcut
+
+**Rejected:**
+
+- Trusting Codex's completion report without independent verification — violates this session's established review discipline
+
+**Files:** src/cli/main.ts, src/cli/mcpConfig.ts, src/cli/prompt.ts, src/repo/boundary.ts
+
+<!-- whyline-event: e7d3851d01ef4d3397ab197b98b9edef -->
