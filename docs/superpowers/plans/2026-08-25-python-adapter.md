@@ -10,6 +10,22 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-25-python-adapter-design.md`
 
+## Handoff note — read this first
+
+This plan was written by Claude and **has not been independently reviewed**. It was self-reviewed, which is weaker. Treat its assertions as claims to verify, not facts.
+
+**Before writing code, verify these three things.** Each one is load-bearing, and if any is false the plan's structure is wrong rather than merely imprecise:
+
+1. **The Swift SDK contamination** (drives Task 4). Check `src/resolve/tiers.ts` — the zero-candidate branch of `assignTier` — and the `EXTERNAL` branch of `src/resolve/resolver.ts` near the `sdkFramework` assignment. The claim is that both fall back to `SWIFT_SDK_SYMBOLS` for *any* reference carrying a `scopeHint`, regardless of language. If true, a Python reference named `append` or `Task` would be attributed to a Swift framework, and since `EXTERNAL` is excluded from the gate denominator this biases the Task 10 measurement **toward PASS**. If this claim is false, say so and skip Task 4.
+2. **The discovery gap** (drives Task 11 Step 3). Check the `SOURCE_EXTENSIONS` set in `src/repo/discover.ts`. The claim is that `.py` is absent, so registering the adapter alone leaves `sonde index` reporting 0 files while every unit test passes.
+3. **The `SymbolKind` union** in `src/store/repos.ts`. Task 2 uses `"class"`, `"method"`, `"function"`, `"variable"`, and `"file"`. If any is missing, substitute the nearest existing kind and note the substitution in the commit body rather than widening the union.
+
+**The code blocks in this plan are a starting point, not a specification.** Where a block disagrees with the real type signatures, the real signatures win — fix the code and note it. The **tests** are the contract: do not weaken an assertion to make it pass. Each encodes a spec requirement, cited in the task.
+
+**Two hard stops.** Task 9 commits the gate thresholds in a commit containing nothing else, before any number exists. Task 10 ends by reporting the verdict and stopping; Task 11 runs only on a PASS. On MARGINAL or FAIL, Python stays unregistered and `sonde init` keeps honestly reporting 0 files on Python repositories — that is a correct outcome, not a failure of the work.
+
+**Verified before writing** (do not re-derive; do report if any turns out false): the tree-sitter-python node types and field names, the grammar URL and sha256, and the codebase seams — all listed under **Verified Facts** below.
+
 ## Global Constraints
 
 Copied verbatim from the spec and `AGENTS.md`. Every task's requirements implicitly include this section.
