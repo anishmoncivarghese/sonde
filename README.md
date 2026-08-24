@@ -169,22 +169,48 @@ sonde mcp serve [path]                     # MCP server over stdio
 `--token-budget <n>`. The `index`, `update`, `status`, `search`, `query`,
 `impact`, `doctor`, and `clean` commands accept `--json`.
 
-## Known limitations (v0.1)
+## Known limitations (v0.2.0)
 
-- TypeScript/TSX only; no Swift, Python, or other language adapter.
-- Compiler resolution is opt-in because it is materially slower and uses more
-  transient memory. On the 19,409-line Hono fixture, default indexing took
-  3.58 s; `--resolve` took 13.70 s, added 10,329 exact placements/promotions,
-  and changed `callers_of Hono.route` from zero graph results to eight compiler
-  callers. The Program is discarded after indexing; inline refresh stays
-  compiler-free and explicitly downgrades affected evidence until a full
-  `sonde update --resolve`.
+- **Node 22+ is required.** `better-sqlite3` needs it; installing on an older
+  Node prints an `EBADENGINE` warning but still completes. If `sonde` then
+  fails to run, this is why — upgrade Node rather than ignore the warning.
+- **TypeScript and Swift only; no Python or other language adapter.**
+- **Swift resolution is heuristic, not compiler-backed, and one narrowing
+  rule is unvalidated.** References are narrowed by file visibility and
+  explicit local type annotations, not full type inference. On a real
+  376-file Swift application this reached 74.84% placed / 25.16% unresolved
+  — see [`probes/swift-narrowing/FINDINGS.md`](probes/swift-narrowing/FINDINGS.md)
+  for the full measurement. The third narrowing rule (SwiftPM target
+  boundaries) has never been tested: the validating corpus was an Xcode
+  project, which has no `Package.swift` layout to supply that signal. The
+  curated Swift SDK symbol table is also deliberately conservative — several
+  ambiguous names were dropped rather than guessed, so some legitimate SDK
+  references may still show as `UNRESOLVED` rather than `EXTERNAL`.
+- Compiler resolution for TypeScript (`--resolve`) is opt-in because it is
+  materially slower and uses more transient memory. On the 19,409-line Hono
+  fixture, default indexing took 3.58 s; `--resolve` took 13.70 s, added
+  10,329 exact placements/promotions, and changed `callers_of Hono.route`
+  from zero graph results to eight compiler callers. The Program is discarded
+  after indexing; inline refresh stays compiler-free and explicitly
+  downgrades affected evidence until a full `sonde update --resolve`.
 - Compiler resolution uses bundled TypeScript 5.9.3, not the repository's own
   compiler, so version skew is possible and disclosed in `doctor` and response
   envelopes.
+- **A file with a parse error still contributes whatever tree-sitter
+  recovered from it** — this is deliberate (see the design spec §8) — but
+  `sonde status` currently reports that file as `failed`, the same label a
+  fully-unparseable file gets. The declarations are real; the label
+  understates how much of the file is usable.
 - `TESTS` edges indicate structural relatedness only; they never prove coverage.
 - Type-only references, JSX intrinsics, `export =`/`import =`, decorators, and
   declaration merging are known gaps in the tree-sitter extraction path.
+- **No rename inference.** Renaming a file changes every stable key derived
+  from its path; anything holding an old key (a saved query, an agent's prior
+  turn) will silently stop resolving rather than following the rename.
+- Semantic/behavioural search is not available. It was built and measured —
+  two embedding models, four document configurations — and none of them beat
+  lexical/structural retrieval on the task class it was meant to help with.
+  See design spec §2.2 for the numbers. It is not wired into `find_symbols`.
 
 See
 [`docs/superpowers/specs/2026-08-16-sonde-design.md`](docs/superpowers/specs/2026-08-16-sonde-design.md)
