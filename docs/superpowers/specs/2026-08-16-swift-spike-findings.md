@@ -1,12 +1,12 @@
 # Swift adapter spike findings
 
 Date: 2026-08-17  
-Target: `/Users/anish/Duet`  
+Target: a real Swift application (376 files, 39,136 lines), referred to below as the Swift corpus  
 Grammar: `tree-sitter-wasms@0.1.12/tree-sitter-swift.wasm`
 
 ## Method
 
-Part A parsed the lexicographically first 200 of 376 Swift files in Duet. The
+Part A parsed the lexicographically first 200 of 376 Swift files in the corpus. The
 probe used only file bytes and Tree-sitter syntax, matching the proposed pure
 adapter boundary. Node 24.15.0 exhausted memory while V8 optimized the 3 MB
 Swift WASM grammar, before parsing began. Re-running with `node --liftoff-only`

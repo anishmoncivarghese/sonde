@@ -8,7 +8,7 @@ Append-only. Written by whyline; readable without it.
 
 **Rejected:**
 
-- Reuse the parent /Users/anish repository — its broad dirty worktree would make the M0 result uninterpretable
+- Reuse the parent home-directory repository — its broad dirty worktree would make the M0 result uninterpretable
 
 **Files:** AGENTS.md
 
@@ -36,7 +36,7 @@ Append-only. Written by whyline; readable without it.
 - repair hooks to use uvx — pays a per-tool-call latency tax for a tool slated for replacement
 - remove hooks but keep the MCP server — leaves agents pointed at empty graphs with no refresh path
 
-**Files:** /Users/anish/.claude/settings.json
+**Files:** ~/.claude/settings.json
 
 <!-- whyline-event: 38efa40293e345f9af6fca78519b7d30 -->
 
@@ -165,7 +165,7 @@ Append-only. Written by whyline; readable without it.
 
 ## 2026-08-17 — Require a Swift grammar/runtime fix before the v0.2 adapter
 
-**Because:** the pinned grammar marked 47 of 200 Duet files as erroneous, a 23.5% rate against the 5% gate, and Node 24 needed baseline WASM compilation to avoid optimizer OOM
+**Because:** the pinned grammar marked 47 of 200 Swift-corpus files as erroneous, a 23.5% rate against the 5% gate, and Node 24 needed baseline WASM compilation to avoid optimizer OOM
 
 **Rejected:**
 

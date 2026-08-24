@@ -25,11 +25,15 @@ Its measured state at the time of writing:
 
 | Repo | nodes | edges | embeddings | last indexed |
 |---|---:|---:|---:|---|
-| `~/Duet` | 581 | 2823 | 0 | 2026-05-30 |
-| `~/` | 13 | 152 | 0 | 2026-04-17 |
-| `DocBridge/docsift` | 0 | 0 | 0 | never |
-| `Documents/ProductivityApp` | 0 | 0 | 0 | 2026-04-18 |
-| `interactive flow` | 0 | 0 | 0 | never |
+| `repo-a` (Swift app) | 581 | 2823 | 0 | 2026-05-30 |
+| `repo-b` (home directory) | 13 | 152 | 0 | 2026-04-17 |
+| `repo-c` | 0 | 0 | 0 | never |
+| `repo-d` | 0 | 0 | 0 | 2026-04-18 |
+| `repo-e` | 0 | 0 | 0 | never |
+
+Repository names are anonymised; they were private projects. Nothing in the
+argument depends on which they were — the evidence is that four of five indexes
+were empty and enrichment had never run in any of them.
 
 The MCP server still functioned. The CLI shim the hooks invoked was never on `PATH`, so **every refresh hook exited 127 on every tool call, from installation onward**, while the global instruction kept directing agents to the resulting empty indexes.
 
@@ -576,7 +580,7 @@ Fixture repos (small / medium / large, permissive licenses) are selected during 
 
 A **throwaway** validation, not an adapter. Two parts, roughly two days total.
 
-**Part A — extraction (half day).** Parse a slice of `~/Duet` with tree-sitter Swift. Symbols and references only.
+**Part A — extraction (half day).** Parse a slice of a real Swift application with tree-sitter Swift. Symbols and references only.
 
 Pass criteria: protocol conformances and `extension` blocks are attributable to a declaring type from a single file's syntax alone; result builders and property wrappers do not prevent symbol-boundary detection; `ExtractResult` needs no Swift-specific fields.
 
@@ -584,7 +588,7 @@ Pass criteria: protocol conformances and `extension` blocks are attributable to 
 
 Swift's module-wide `internal` default means **there are no import statements to narrow candidates within a module.** §4.3's entire narrowing strategy — import table, then export map — has *zero signal* for same-module references. Part A would pass all three criteria while the architecture is in trouble.
 
-Take 20 real references from the Duet slice and work out, by hand, what §4.3 would produce with no import scope available. Record the tier distribution.
+Take 20 real references from that slice and work out, by hand, what §4.3 would produce with no import scope available. Record the tier distribution.
 
 **Fail response:** if the answer is "everything is `HEURISTIC` with a large `candidate_count`," then Swift needs a module-scope substitute — SwiftPM target boundaries and file-level `fileprivate`/`private` narrowing — designed **before** the TypeScript adapter hardens around an import-centric assumption. That is why this runs in Phase 1 rather than v0.2.
 

@@ -1142,7 +1142,7 @@ import { Parser, Language } from "web-tree-sitter";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-const DUET = process.argv[2] ?? "/Users/anish/Duet";
+const CORPUS = process.argv[2] ?? "/path/to/swift-app";
 
 await Parser.init();
 const lang = await Language.load(join(process.cwd(), "vendor", "tree-sitter-swift.wasm"));
@@ -1158,7 +1158,7 @@ const walk = d => {
     else if (e.name.endsWith(".swift")) files.push(p);
   }
 };
-walk(DUET);
+walk(CORPUS);
 
 const stats = {
   files: 0, parsed: 0, errors: 0,
@@ -1206,7 +1206,7 @@ console.log(JSON.stringify(stats, null, 2));
 
 - [ ] **Step 2: Run Part A**
 
-Run: `node spikes/swift/extract.mjs /Users/anish/Duet`
+Run: `node spikes/swift/extract.mjs /path/to/swift-app`
 Expected: JSON stats. Record them.
 
 Evaluate the three pass criteria from spec §11:
@@ -1218,7 +1218,7 @@ Evaluate the three pass criteria from spec §11:
 
 This is the part that matters. Swift's module-wide `internal` default means **there are no imports to narrow same-module references** (spec §11).
 
-Pick 20 real references from the Duet slice — a mix of bare calls, member calls, and protocol method calls. For each, hand-compute what `src/resolve/tiers.ts` (Task 11) would assign given: no import table, a global symbol table for the module, and the §4.3 rules.
+Pick 20 real references from the corpus slice — a mix of bare calls, member calls, and protocol method calls. For each, hand-compute what `src/resolve/tiers.ts` (Task 11) would assign given: no import table, a global symbol table for the module, and the §4.3 rules.
 
 Record in a table: reference text, candidate count, tier that would be assigned.
 
