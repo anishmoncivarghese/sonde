@@ -1,4 +1,5 @@
 import { Parser, Language } from "web-tree-sitter";
+import { ensureTreeSitterRuntime } from "../treeSitterRuntime.js";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,7 +11,7 @@ let cached: Parser | null = null;
 /** Load the Swift grammar once before any synchronous extraction. */
 export async function getSwiftParser(): Promise<Parser> {
   initPromise ??= (async () => {
-    await Parser.init();
+    await ensureTreeSitterRuntime();
     const here = dirname(fileURLToPath(import.meta.url));
     const language = await Language.load(join(here, "../../../vendor/", GRAMMAR));
     const parser = new Parser();

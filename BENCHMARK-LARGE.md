@@ -1,6 +1,6 @@
 # Sonde vs. agentic search — large fixture
 
-Generated: 2026-08-24T08:16:57.217Z
+Generated: 2026-08-24T09:01:32.545Z
 
 Fixture: Hono v4.6.3 (MIT) — 346 files indexed, 9348 symbols, 50517 edges, 8 parse failures.
 
