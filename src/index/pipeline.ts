@@ -1,6 +1,12 @@
-import type { Diagnostic, ExtractResult } from "../adapters/types.js";
-import { typescriptAdapter } from "../adapters/typescript/index.js";
-import { getTsParser } from "../adapters/typescript/parser.js";
+import {
+  adapterForPath,
+  initializeAdapters,
+} from "../adapters/registry.js";
+import type {
+  Diagnostic,
+  ExtractResult,
+  LanguageAdapter,
+} from "../adapters/types.js";
 import { buildExportMap } from "../link/exportmap.js";
 import { RepoBoundary } from "../repo/boundary.js";
 import { discover, type FileRecord } from "../repo/discover.js";
@@ -38,7 +44,6 @@ async function run(
   incremental: boolean,
   options: IndexOptions,
 ): Promise<IndexStats> {
-  await getTsParser();
   const boundary = new RepoBoundary(root);
   const cfg = loadTsConfig(boundary);
   const db = openDb(dbPath);
@@ -46,9 +51,14 @@ async function run(
   try {
     migrate(db);
     const store = new Store(db);
-    const onDisk = discover(boundary).filter((file) =>
-      typescriptAdapter.matches(file.path),
-    );
+    const adaptersByPath = new Map<string, LanguageAdapter>();
+    const onDisk = discover(boundary).filter((file) => {
+      const adapter = adapterForPath(file.path);
+      if (!adapter) return false;
+      adaptersByPath.set(file.path, adapter);
+      return true;
+    });
+    await initializeAdapters(adaptersByPath.values());
     const known = new Map(store.allFiles().map((file) => [file.path, file]));
     const priorSymbols = store.allSymbolLocations();
 
@@ -76,7 +86,9 @@ async function run(
     // link graph even though content-hash accounting marks them as skipped.
     for (const file of onDisk) {
       try {
-        const result = typescriptAdapter.extract(
+        const adapter = adaptersByPath.get(file.path);
+        if (!adapter) continue;
+        const result = adapter.extract(
           file.path,
           boundary.readFile(file.path),
         );

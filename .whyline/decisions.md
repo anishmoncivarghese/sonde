@@ -1183,3 +1183,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** probes/swift-narrowing/measure.ts, probes/swift-narrowing/FINDINGS.md
 
 <!-- whyline-event: 30a33f2ed2ca44a4bf71b921cfa4164d -->
+
+## 2026-08-24 — Route discovery, extraction, and drift through a shared adapter registry with lazy parser warmup
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-swift-adapter-task-7
+
+**Because:** Swift files must remain indexable and fresh end to end, while TypeScript-only repositories should initialize only the existing TypeScript parser and retain identical results.
+
+**Rejected:**
+
+- Change only the extraction loop — discovery would omit Swift and drift would report indexed Swift files as deleted.
+- Initialize every language parser for every repository — it adds avoidable Swift grammar work to TypeScript-only indexing.
+
+**Files:** src/adapters/registry.ts, src/adapters/swift/index.ts, src/index/pipeline.ts, src/index/drift.ts, src/repo/discover.ts
+
+<!-- whyline-event: 509c1c6d6581441c9ee63d47cc50c852 -->

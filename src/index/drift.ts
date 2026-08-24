@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { typescriptAdapter } from "../adapters/typescript/index.js";
+import { adapterForPath } from "../adapters/registry.js";
 import type { RepoBoundary } from "../repo/boundary.js";
 import { discover } from "../repo/discover.js";
 import type { Store } from "../store/index.js";
@@ -24,7 +24,7 @@ export function checkDrift(
 ): DriftReport {
   const known = new Map(store.allFiles().map((file) => [file.path, file]));
   const onDisk = discover(boundary, { hashContent: false }).filter((file) =>
-    typescriptAdapter.matches(file.path),
+    adapterForPath(file.path) !== null,
   );
   const diskByPath = new Map(onDisk.map((file) => [file.path, file]));
   const driftedPaths: string[] = [];
