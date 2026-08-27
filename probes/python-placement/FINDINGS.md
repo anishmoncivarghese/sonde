@@ -423,3 +423,61 @@ gate's corrected methodology.
   ]
 }
 ```
+
+---
+
+## Reviewer note: the builtin gap does not explain the FAIL — 2026-08-28
+
+Added after scoring, by a reviewer independent of the implementer. It follows
+`probes/swift-narrowing/FINDINGS.md`'s convention: the recorded verdict above is
+**not** re-scored here, and no threshold is touched.
+
+Swift's first gate recorded FAIL at 65.09% and was later shown to be a
+methodology artifact — SDK references had nowhere to go but `UNRESOLVED`, and a
+correct `EXTERNAL` classifier turned the same corpus into a PASS at 25.16%. The
+builtin gap identified above is the same *category* of error, so the obvious
+question is whether this FAIL is the same kind of artifact.
+
+It is not, and that can be settled arithmetically rather than by re-running.
+
+PASS requires `UNRESOLVED <= 30%` of the in-repository denominator, and `placed`
+is unaffected by reclassifying an unresolved reference as `EXTERNAL` (it leaves
+the numerator and the denominator together). So the ceiling is
+`u_max = (0.3 / 0.7) * placed`.
+
+| Corpus | Placed | Unresolved | `u_max` for PASS | Unresolved that **cannot** be builtins | PASS reachable? |
+|---|---:|---:|---:|---:|---|
+| agentdock | 829 | 1,400 | 355 | 71 | reachable in principle |
+| pydantic | 21,042 | 28,341 | 9,018 | 10,276 | **arithmetically impossible** |
+
+The final column counts unresolved references whose recorded reason proves they
+were *not* zero-candidate lookups — `too_ambiguous` (6,294),
+`unexported_import` (3,839), and `binding_target_missing` (143). A builtin is by
+definition a zero-candidate bare identifier, so none of these can be recovered
+by any builtin table however complete.
+
+On pydantic that residue alone is 10,276, already above the 9,018 ceiling.
+**Even a perfect builtin classifier cannot produce a PASS there.** agentdock is
+reachable only in the degenerate case where essentially every one of its 1,329
+zero-candidate references is external, which the sampled names contradict:
+`mkdir`, `write_text`, `read_text`, `add_argument`, `splitlines`, and
+`assertEqual` are receiver-dependent member calls, not builtins, and resolving
+them needs the type evidence the zero-setup tier does not have.
+
+The protocol takes the worse corpus without averaging, so the FAIL stands on
+pydantic regardless of what a corrected agentdock run would show.
+
+**What is still worth fixing, and why it is not a re-scoring exercise.** The
+builtin gap makes the *number* dishonest even though it does not change the
+*decision*: a reference to `len` is genuinely external, and counting it as
+unresolved overstates how much of Python is beyond reach. Any future
+re-measurement should classify builtins before reporting a share. Separately,
+pydantic's 3,839 `unexported_import` results (13.55% of its unresolved) deserve
+investigation before they are attributed to the language: pydantic's
+`__init__.py` resolves its public names through a `__getattr__` lazy-import
+table, which no static export map can follow, but that is a hypothesis about an
+unusually dynamic corpus rather than a measured cause.
+
+Neither item changes the recommendation. The zero-setup tier does not clear the
+bar on real Python, and the next accuracy tier is pyright-backed `COMPILER`
+evidence as design §2 anticipated.
