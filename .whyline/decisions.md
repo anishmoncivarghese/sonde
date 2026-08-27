@@ -1407,3 +1407,19 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/link/pythonModules.ts, src/link/moduleResolver.ts, src/link/imports.ts, src/index/pipeline.ts, src/adapters/python/stdlib.ts, tests/link/pythonModules.test.ts
 
 <!-- whyline-event: 4e59ed6896eb486482abb2b90f084171 -->
+
+## 2026-08-27 — Use a real src-layout Python fixture to prove extraction and linking compose
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-8
+
+**Because:** The gate depends on interactions among relative imports, package re-exports, external bindings, star exports, receiver narrowing, and dynamic-call visibility that isolated unit tests cannot establish
+
+**Rejected:**
+
+- Mock parser or resolver outputs — mocks would only restate the expected interfaces and could miss composition defects
+
+**Files:** tests/fixtures/repos/python-small, tests/adapters/python/integration.test.ts
+
+<!-- whyline-event: 9f1bbee8407149b6b0ea429e841f3279 -->
