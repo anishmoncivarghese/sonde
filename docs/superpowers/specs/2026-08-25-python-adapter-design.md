@@ -1,7 +1,8 @@
 # Sonde — Python language adapter — Design
 
-**Status:** Approved for planning
-**Date:** 2026-08-25
+**Status:** Built and measured — **gate FAILED**. The adapter exists, is tested,
+and is deliberately **not registered**. See §11 before proposing changes here.
+**Date:** 2026-08-25 (outcome recorded 2026-08-28)
 **Relates to:** `2026-08-16-sonde-design.md` (the base design; section numbers
 cited as `spec §N` refer to that document)
 **Precedent:** `probes/swift-narrowing/FINDINGS.md` (the Swift adapter's gate,
@@ -281,3 +282,69 @@ correctness rather than merely exercising the parser:
 | Decorator-heavy frameworks (`@app.route`) resolve poorly | Attribute access is `HEURISTIC` by invariant 2; this is expected, not a defect |
 | Vendored stdlib list drifts across Python versions | Union of 3.11–3.13 with source version recorded; a missing name degrades to `UNRESOLVED`, never to a wrong edge |
 | Placement PASS is read as correctness | §6.4 disclosure is a shipping requirement, not optional |
+
+---
+
+## 11. Outcome — the gate failed, 2026-08-28
+
+The plan in `docs/superpowers/plans/2026-08-25-python-adapter.md` was executed
+through Task 10. The adapter is built and tested; the gate in §6 said no, so
+Task 11 (registration) never ran.
+
+| Corpus | Files | Unresolved | Placed | Verdict |
+|---|---:|---:|---:|---|
+| `~/agentdock` | 56 | 62.81% | 37.19% | FAIL |
+| `pydantic` | 441 | 57.39% | 42.61% | FAIL |
+
+Both are far above the 30% ceiling fixed in `9b44c9f` before any number
+existed. Full record, sampled unresolved causes, and raw output:
+`probes/python-placement/FINDINGS.md`.
+
+### What ships and what does not
+
+- `src/adapters/python/` exists, is unit-tested, and is **absent from
+  `src/adapters/registry.ts`**.
+- `.py` / `.pyi` remain **absent from the default allowlist in
+  `src/repo/discover.ts`**, so nothing reaches the adapter in production.
+- `sonde init` continues to report `indexed 0 files` on a Python repository.
+  That is the correct behaviour, not an outstanding bug: an honest zero beats a
+  graph whose edges are wrong more often than right.
+
+### Do not re-litigate this with a builtin table
+
+Two defects in **this document** were found during execution and are recorded
+here so they are not rediscovered as if they were news:
+
+1. **§5.4 forgot builtins.** It derived `EXTERNAL` from the stdlib *module*
+   table and from "no repository file for this module". Python builtins —
+   `len`, `str`, `isinstance`, `range` — are never imported, so they have no
+   module to classify and were counted `UNRESOLVED`. This is the same category
+   of methodology error that produced Swift's false FAIL.
+2. **The FAIL survives that error anyway.** PASS requires
+   `unresolved <= (0.3 / 0.7) * placed`. On pydantic the unresolved references
+   that provably are *not* builtins — `too_ambiguous`, `unexported_import`,
+   `binding_target_missing`, 10,276 in total — already exceed the 9,018
+   ceiling. A builtin is by definition a zero-candidate bare identifier, so no
+   builtin table, however complete, can reach PASS there. The arithmetic is in
+   the reviewer note appended to `FINDINGS.md`.
+
+Fixing the builtin gap would make the reported *number* more honest. It cannot
+change the *decision*. Anyone proposing to re-run the gate should read that
+reviewer note first and say what it gets wrong.
+
+### The open question worth pursuing
+
+`unexported_import` accounted for 13.55% of pydantic's unresolved references
+(3,839). The hypothesis — untested — is that pydantic resolves its public API
+through a `__getattr__` lazy-import table in `__init__.py`, which no static
+export map can follow. If that is right it is a property of an unusually
+dynamic corpus rather than of Python, and a less metaprogramming-heavy corpus
+would score better. It would not change the verdict, because the protocol takes
+the worse corpus, but it would sharpen what the zero-setup tier actually costs.
+
+### Recommended next step
+
+The pyright-backed `COMPILER` tier deferred in §2 — the direct analog of
+TypeScript's `--resolve`. This result is the evidence that it is a requirement
+for Python rather than an optional accuracy upgrade, which is precisely what
+running the gate first was meant to establish.
