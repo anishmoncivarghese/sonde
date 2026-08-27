@@ -1,5 +1,17 @@
 # Python Language Adapter Implementation Plan
 
+> **STATUS: EXECUTED AND CLOSED — 2026-08-28. Do not run this plan.**
+>
+> Tasks 1–10 are complete and committed. Task 10's gate **FAILED** on both
+> corpora (agentdock 62.81% unresolved, pydantic 57.39%, against a 30% ceiling),
+> so Task 11 correctly did not run: the Python adapter exists and is tested but
+> is **not** registered, and `.py` is **not** in the default discovery allowlist.
+>
+> Before touching anything here, read `probes/python-placement/FINDINGS.md` —
+> including the reviewer note, which shows arithmetically that the builtin
+> classification gap **cannot** rescue the result. The next step is the
+> pyright-backed `COMPILER` tier, not a re-run of this plan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Give Sonde a Python `LanguageAdapter` that produces a trustworthy symbol graph, and refuse to ship it unless a pre-committed measurement gate passes.
