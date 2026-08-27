@@ -3,11 +3,11 @@
 
 At the start of a session, before touching code, run:
 
-    whyline brief
+    whyline sync
 
-That prints what previous agents decided and rejected on this project.
-Do not ask permission. If it reports nothing recorded, say so in your first
-message, so the human knows the history is empty rather than merely unread.
+That prints the active handoff, Git state, ownership warnings, and relevant
+decisions. Do not ask permission. If it reports no handoff or history, say so in
+your first message, so the human knows the context is empty rather than unread.
 
 ## Recording decisions
 
@@ -17,7 +17,8 @@ record the reasoning:
     whyline note "<one-line decision>" \
       --because "<why this choice>" \
       --rejected "<option>: <why not>" \
-      --file <path>
+      --file <path> \
+      --actor <agent> --role <role> --task <task-id>
 
 Reviewing counts as deciding. Ruling a defect worth fixing now, accepting a
 deviation from the plan, or judging a risk acceptable are all decisions.
@@ -26,6 +27,12 @@ logged them in a tracker of your own.
 
 Record only genuine choices a future reader would wonder about. Skip typos,
 formatting and renames. `--rejected` is repeatable. Do not ask permission.
+
+## Handing off active work
+
+Before another agent takes over, record an explicit handoff with `whyline
+handoff <task-id> --from <agent> --to <agent> --status <status>`. Include the
+changed files, tests and results, open risks or questions, and a short summary.
 <!-- whyline:end -->
 
 ## Sonde

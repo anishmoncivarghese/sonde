@@ -3,3 +3,6 @@ index.db
 !decisions.md
 readside.log
 *.bak
+active-handoff.json
+ownership.json
+*.lock
