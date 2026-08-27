@@ -1560,3 +1560,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/store/repos.ts, tests/store/querySites.test.ts
 
 <!-- whyline-event: d5041ed4aa7b4109adb371e06211928a -->
+
+## 2026-08-27 — Map pyright targets only when they land on a Python symbol declaration line
+
+**Actor:** codex
+**Role:** implementer
+**Task:** pyright-tier-task-3
+
+**Because:** A position merely contained by a function or class can denote a local variable, parameter, or import alias; attributing it to the enclosing symbol would fabricate a COMPILER edge
+
+**Rejected:**
+
+- Choose the innermost containing symbol — containment is not declaration identity
+- Fall back to the file symbol — non-symbol targets must leave the prior tier standing
+
+**Files:** src/resolve/pythonSymbolAt.ts, tests/resolve/pythonSymbolAt.test.ts
+
+<!-- whyline-event: 9a2f05743391428087ce7bc04faf3713 -->
