@@ -1474,3 +1474,17 @@ Append-only. Written by whyline; readable without it.
 **Files:** probes/python-placement/FINDINGS.md, probes/python-placement/measure.ts, src/repo/discover.ts
 
 <!-- whyline-event: edda387c3db34f1fb5602d6bd00c1342 -->
+
+## 2026-08-27 — Stop the Python adapter at the failed gate rather than registering it
+
+**Because:** Both corpora measured far above the 30% unresolved ceiling fixed before measurement (agentdock 62.81%, pydantic 57.39%), and the builtin classification gap that superficially resembles Swift's false FAIL cannot rescue it: on pydantic the 10,276 unresolved references that provably are not builtins already exceed the 9,018 ceiling PASS would require, so no builtin table can reach PASS there
+
+**Rejected:**
+
+- Registering anyway because the code works — sonde init would report a non-zero file count backed by a graph whose edges are wrong more often than right, which is the misleading-number failure the design explicitly rejected
+- Fixing builtins and re-running first — it makes the reported number more honest but is arithmetically incapable of changing the verdict
+- Loosening the threshold after seeing the result — the protocol forbids it, and it is the exact failure the threshold-only commit was designed to prevent
+
+**Files:** docs/superpowers/specs/2026-08-25-python-adapter-design.md, probes/python-placement/FINDINGS.md
+
+<!-- whyline-event: a4eb00726420469983898a6c616ca115 -->
