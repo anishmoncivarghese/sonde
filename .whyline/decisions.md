@@ -1390,3 +1390,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/python/index.ts, tests/adapters/python/adapter.test.ts
 
 <!-- whyline-event: 62ffe54ba9c247d991f3c9c60e414342 -->
+
+## 2026-08-27 — Dispatch module resolution by importer language and derive Python package roots from __init__.py
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-7
+
+**Because:** Python imports carry mechanically usable binding evidence but need Python package semantics; a link-layer dispatch lets the existing export-map and import binder reuse that evidence while preserving pure extraction and unchanged TypeScript behavior
+
+**Rejected:**
+
+- Parse pyproject.toml or execute Python for sys.path — derived package roots handle src layouts without configuration or repository-code execution
+- Build a parallel Python linker — the existing fixpoint and binding tables already express named and star re-exports
+
+**Files:** src/link/pythonModules.ts, src/link/moduleResolver.ts, src/link/imports.ts, src/index/pipeline.ts, src/adapters/python/stdlib.ts, tests/link/pythonModules.test.ts
+
+<!-- whyline-event: 4e59ed6896eb486482abb2b90f084171 -->

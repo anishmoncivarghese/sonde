@@ -1,8 +1,16 @@
 import type { ImportRecord } from "../adapters/types.js";
 import type { TsConfig } from "../tsconfig/load.js";
 import type { RepoBoundary } from "../repo/boundary.js";
-import { resolveSpecifier } from "../tsconfig/resolve.js";
+import type { Resolution } from "../tsconfig/resolve.js";
 import type { ExportMap } from "./exportmap.js";
+import { resolveForFile } from "./moduleResolver.js";
+
+type ResolveFn = (
+  spec: string,
+  from: string,
+  cfg: TsConfig,
+  boundary: RepoBoundary,
+) => Resolution;
 
 export type Binding =
   | { file: string; name: string }
@@ -17,10 +25,11 @@ export type Binding =
 export function bindImports(
   file: string, imports: ImportRecord[], exportMap: ExportMap,
   cfg: TsConfig, boundary: RepoBoundary,
+  resolveFn: ResolveFn = resolveForFile,
 ): Map<string, Binding> {
   const out = new Map<string, Binding>();
   for (const imp of imports) {
-    const t = resolveSpecifier(imp.specifier, file, cfg, boundary);
+    const t = resolveFn(imp.specifier, file, cfg, boundary);
     if (t.kind === "external") {
       out.set(imp.localName, { external: t.pkg, name: imp.importedName });
       continue;

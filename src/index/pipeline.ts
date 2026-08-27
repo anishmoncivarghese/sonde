@@ -8,6 +8,7 @@ import type {
   LanguageAdapter,
 } from "../adapters/types.js";
 import { buildExportMap } from "../link/exportmap.js";
+import { resolveForFile } from "../link/moduleResolver.js";
 import { RepoBoundary } from "../repo/boundary.js";
 import { discover, type FileRecord } from "../repo/discover.js";
 import { resolveAll } from "../resolve/resolver.js";
@@ -127,7 +128,12 @@ async function run(
         .filter((symbol) => deletedPaths.has(symbol.filePath))
         .map((symbol) => symbol.shortName),
     );
-    const exportMap = buildExportMap(extracted, cfg, boundary);
+    const exportMap = buildExportMap(
+      extracted,
+      cfg,
+      boundary,
+      resolveForFile,
+    );
     const resolved = resolveAll(
       extracted,
       exportMap,
