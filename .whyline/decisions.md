@@ -1512,3 +1512,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** docs/superpowers/specs/2026-08-28-pyright-tier-design.md
 
 <!-- whyline-event: 05d79844f1ba4f9184682a57e06d8832 -->
+
+## 2026-08-27 — Correct the pyright plan after independent review rather than shipping it
+
+**Because:** The review found Task 6 counted edges instead of reference sites, and since IMPORTS and CONTAINS edges are inserted at tier LEXICAL while unresolved stays a per-reference count, the ratio inflates on one side only and a FAIL would have rendered as a PASS -- the precise bias the published protocol forbids
+
+**Rejected:**
+
+- Handing the plan to Codex as written — the gate exists to be able to say no, and a probe that cannot say no is worse than no probe
+- Silently rewriting the task bodies — keeping them beside the corrections preserves why each defect was plausible, which is what stops it recurring
+
+**Files:** docs/superpowers/plans/2026-08-28-pyright-tier.md
+
+<!-- whyline-event: 55a549bd050c40a1b5ca8de603e500b0 -->
