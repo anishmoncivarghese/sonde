@@ -311,9 +311,87 @@ export class Store {
       .run({ srcKey, name }).changes;
   }
 
+  /** Sites the deterministic resolver could not place exactly. */
+  unresolvedRefSites(): Array<{
+    srcKey: string;
+    name: string;
+    siteLine: number | null;
+  }> {
+    return this.db
+      .prepare(
+        `SELECT symbol.stable_key AS srcKey,
+                unresolved_ref.name AS name,
+                unresolved_ref.site_line AS siteLine
+         FROM unresolved_ref
+         JOIN symbol ON symbol.id = unresolved_ref.src_symbol_id
+         ORDER BY symbol.stable_key, unresolved_ref.site_line,
+                  unresolved_ref.name`,
+      )
+      .all() as Array<{
+        srcKey: string;
+        name: string;
+        siteLine: number | null;
+      }>;
+  }
+
+  /**
+   * Reference sites represented by heuristic candidate edges.
+   *
+   * Joining the candidate symbol recovers the reference name. DISTINCT
+   * collapses ambiguity fan-out, while the kind filter excludes structural
+   * TESTS edges that are always heuristic but are never pyright queries.
+   */
+  heuristicEdgeSites(): Array<{
+    srcKey: string;
+    name: string;
+    siteLine: number | null;
+  }> {
+    return this.db
+      .prepare(
+        `SELECT DISTINCT source.stable_key AS srcKey,
+                target.short_name AS name,
+                edge.site_line AS siteLine
+         FROM edge
+         JOIN symbol AS source ON source.id = edge.src_symbol_id
+         JOIN symbol AS target ON target.id = edge.dst_symbol_id
+         WHERE edge.tier = 'HEURISTIC'
+           AND edge.kind IN ('CALLS','REFERENCES','IMPLEMENTS','INHERITS')
+         ORDER BY source.stable_key, edge.site_line, target.short_name`,
+      )
+      .all() as Array<{
+        srcKey: string;
+        name: string;
+        siteLine: number | null;
+      }>;
+  }
+
+  /** C1: count source reference sites, never structural or fan-out edges. */
+  countReferenceSites(
+    tier: "COMPILER" | "LEXICAL" | "HEURISTIC",
+  ): number {
+    const row = this.db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM (
+           SELECT DISTINCT src_symbol_id, site_line, kind
+           FROM edge
+           WHERE tier = @tier
+             AND kind IN ('CALLS','REFERENCES','IMPLEMENTS','INHERITS')
+         )`,
+      )
+      .get({ tier }) as { n: number };
+    return row.n;
+  }
+
   countUnresolved(): number {
     const row = this.db
       .prepare("SELECT COUNT(*) AS n FROM unresolved_ref")
+      .get() as { n: number };
+    return row.n;
+  }
+
+  countExternal(): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) AS n FROM external_ref")
       .get() as { n: number };
     return row.n;
   }

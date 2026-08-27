@@ -1543,3 +1543,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** package.json, package-lock.json, src/resolve/pyrightClient.ts, tests/resolve/pyrightClient.test.ts
 
 <!-- whyline-event: b65ca26b2fba4e0e982042dfad46c6a4 -->
+
+## 2026-08-27 — Expose exact pyright query sites and distinct reference-site counts from the store
+
+**Actor:** codex
+**Role:** implementer
+**Task:** pyright-tier-task-2
+
+**Because:** The pass must query only unresolved and heuristic source references, key them by source line and name, exclude structural TESTS edges, and measure C1 reference sites rather than edge rows or ambiguity fan-out
+
+**Rejected:**
+
+- Use tierCounts for the gate — it includes structural edges and multiplies ambiguous references
+- Return heuristic sites without names — same-line lexical references could be queried accidentally
+
+**Files:** src/store/repos.ts, tests/store/querySites.test.ts
+
+<!-- whyline-event: d5041ed4aa7b4109adb371e06211928a -->
