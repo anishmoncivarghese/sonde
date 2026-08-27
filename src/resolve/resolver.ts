@@ -171,7 +171,7 @@ export function resolveAll(
         const externalBinding = binding && "external" in binding
           ? binding
           : null;
-        const sdkFramework = ref.scopeHint
+        const sdkFramework = ref.fromSymbolKey.startsWith("swift:")
           ? SWIFT_SDK_SYMBOLS.get(ref.name)
           : undefined;
         const packageOrLib = externalBinding?.external ?? sdkFramework;

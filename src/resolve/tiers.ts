@@ -42,6 +42,17 @@ function ownerName(candidate: Candidate): string | null {
 }
 
 /**
+ * The Swift SDK table is evidence about Swift only. Gating on the presence of
+ * any scopeHint let a zero-candidate Python or TypeScript reference named
+ * `append`, `Task`, or `String` be attributed to a Swift framework — a
+ * fabricated classification (invariant 1), and one that silently shrinks the
+ * unresolved denominator that spec §6 measures.
+ */
+function isSwiftReference(ref: ReferenceRecord): boolean {
+  return ref.fromSymbolKey.startsWith("swift:");
+}
+
+/**
  * Remove only candidates excluded by explicit Swift source evidence.
  * An absent scope hint is the TypeScript path and returns the original array.
  */
@@ -107,7 +118,7 @@ export function assignTier(
     return { tier: "UNRESOLVED", confidence: 0 };
   }
   if (candidates.length === 0) {
-    if (ref.scopeHint && SWIFT_SDK_SYMBOLS.has(ref.name)) {
+    if (isSwiftReference(ref) && SWIFT_SDK_SYMBOLS.has(ref.name)) {
       return { tier: "EXTERNAL", confidence: 1 };
     }
     return { tier: "UNRESOLVED", confidence: 0 };

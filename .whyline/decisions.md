@@ -1340,3 +1340,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/python/references.ts, tests/adapters/python/references.test.ts
 
 <!-- whyline-event: 3746827a3dbd4e87b7e3f5227010f3be -->
+
+## 2026-08-27 — Scope the Swift SDK external fallback to Swift references
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-4
+
+**Because:** assignTier treated any scopeHint plus a name in SWIFT_SDK_SYMBOLS as EXTERNAL, so Python references named append or Task could be attributed to Swift frameworks and removed from the gate denominator, biasing the measurement toward PASS
+
+**Rejected:**
+
+- Leave it until after the Python gate — the measurement would be contaminated by construction
+- Add a language field to ScopeHint — fromSymbolKey already carries the language prefix, so no type change is needed
+
+**Files:** src/resolve/tiers.ts, src/resolve/resolver.ts, tests/resolve/tiers.test.ts, tests/resolve/swiftSdkScope.test.ts
+
+<!-- whyline-event: 9430377e729f42ba8fdbdef72de89902 -->

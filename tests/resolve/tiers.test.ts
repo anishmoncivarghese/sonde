@@ -52,6 +52,7 @@ describe("assignTier", () => {
 
   it("assigns EXTERNAL to a known zero-candidate Swift SDK reference", () => {
     expect(assignTier(ref({
+      fromSymbolKey: "swift:App.swift#caller",
       name: "View",
       scopeHint: {
         module: null,
