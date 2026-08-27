@@ -42,56 +42,86 @@ shaped what follows:
 The measured serial throughput is not a limitation to engineer around. It is the
 reason this design is small.
 
-## 3. Architecture: a synchronous bridge process
+## 3. Architecture: an in-process async LSP client
 
-### 3.1 The collision
+### 3.1 A correction to an earlier draft of this design
 
-`indexRepo` is synchronous (`src/index/pipeline.ts:224`), and `runCompilerPass`
-is called synchronously inside it. LSP is inherently asynchronous: a subprocess,
-a JSON-RPC conversation, and a request/response lifecycle.
+An earlier draft specified a synchronous **bridge child process**, on the stated
+grounds that `indexRepo` was synchronous and making it async would ripple
+through the CLI, the MCP server, and the tests.
 
-Making `indexRepo` async would ripple through the CLI, the MCP server, and the
-test suite — a large blast radius for a pass that is explicitly optional.
+**That premise was wrong**, and it was caught while writing the implementation
+plan against the real source. `run` is declared `async`
+(`src/index/pipeline.ts:42`), it already `await`s (line 62), and both
+`indexRepo` and `updateRepo` return `Promise<IndexStats>` (lines 224, 231). The
+pipeline has always been async. No caller needs to change.
 
-### 3.2 The resolution
+The correction is recorded rather than quietly edited, because the discarded
+design was not merely unnecessary — it was actively worse, and the reason is
+worth keeping.
 
-`runPyrightPass` spawns a **one-shot bridge** with `execFileSync`: a small Node
-script that receives every query position as JSON on stdin, runs one complete
-LSP session internally, and writes all results as JSON to stdout. The parent
-blocks; the child is async inside.
+### 3.2 Why the bridge was worse, not just redundant
+
+Pyright runs as a separate OS process **either way**: `pyright-langserver` is a
+subprocess whichever side of the boundary the client sits on. The bridge
+therefore added a *second* Node process whose entire job was relaying JSON
+between the pass and the language server.
+
+That relay carried real costs, all of which disappear by deleting it:
+
+| Bridge cost | Status once the client is in-process |
+|---|---|
+| Extra process spawn per pass (~120 ms measured init) | Gone |
+| Double serialisation of every query and result | Gone |
+| `execFileSync`'s 1 MB default `maxBuffer` silently truncating pydantic's several-MB response | Not applicable — no stdout channel to overrun |
+| Resolving the bridge's own path, differing between `dist/*.js` and `src/*.ts` under vitest | Not applicable — it is an ordinary import |
+
+Three of the four risks originally listed in §11 existed only to manage a
+process that did not need to exist.
+
+### 3.3 The design
+
+`runPyrightPass(root, store)` is `async`. It spawns `pyright-langserver
+--stdio` directly, speaks JSON-RPC over its pipes, issues one
+`textDocument/definition` request per query **serially**, and kills the server
+when finished.
 
 ```
-parent (sync)                     bridge child (async)
-  runPyrightPass                    initialize
-    execFileSync ──── stdin ──▶     didOpen × files
-                                    definition × N   (serial)
-    results     ◀─── stdout ───     shutdown
+runPyrightPass (async, in-process)
+  spawn pyright-langserver --stdio
+  initialize / initialized
+  didOpen × files
+  definition × N        (serial — concurrency was measured to buy nothing)
+  kill
 ```
 
-This is only clean because concurrency buys nothing. Had the spike found that
-parallelism helped, this design would instead need a persistent server, a
-request scheduler, and a cache invalidation story. It does not.
+Serial issue is not a simplification to revisit later. The spike measured
+throughput flat at ~210 req/s across client concurrency 1, 8, and 32, with
+latency rising in proportion; a scheduler would add complexity and return
+nothing.
 
-### 3.3 Bridge contract
+### 3.4 Client contract
 
-**Input** (stdin): `{ root, files: [relpath], queries: [{ file, line, character }] }`
-**Output** (stdout): `{ pyrightVersion, results: [{ index, targets: [{ file, line, character }] | null }] }`
+Internal to the pass, so no cross-process wire format is needed:
 
-Positions are LSP-native (0-based line and character). `targets` is `null` when
-pyright returned no definition, which is a real answer and must be recorded as
-such rather than treated as a failure.
+```ts
+interface DefinitionQuery { file: string; line: number; character: number; }
+interface DefinitionTarget { file: string; line: number; character: number; }
+```
 
-Two implementation constraints that are easy to get wrong:
+Positions are LSP-native (0-based line and character). A query answers `null`
+when pyright returns no definition — a real answer, recorded as such, never
+treated as a failure.
 
-- **`maxBuffer` must be set explicitly.** Node's default is 1 MB; pydantic's
-  ~41,000 queries produce several MB of JSON, so the default would truncate the
-  response and produce silently partial results. Set it generously (512 MB) and
-  treat a `maxBuffer` overrun as a hard failure, never as a short result.
+Two constraints survive the redesign:
+
 - **A timeout is mandatory.** Pyright can stall on a pathological file. Bound
-  the call, scaled to query count, and on timeout degrade with a warning (§6)
-  rather than hanging an index.
+  the whole session and kill the server on expiry, degrading with a warning
+  (§6) rather than hanging an index.
+- **The server must always be killed**, including on the error path, or a
+  failed index leaves an orphaned language server holding memory.
 
-### 3.4 Which references are queried
+### 3.5 Which references are queried
 
 Both `UNRESOLVED` and `HEURISTIC` references, not `UNRESOLVED` alone.
 
@@ -134,9 +164,10 @@ them, not a mismatch to paper over.
 
 Pyright returns a file and a range. Sonde keys symbols as
 `py:{relpath}#{scope_chain}`. `declarationToStableKey` in
-`src/resolve/symbolMapping.ts` already solves exactly this problem for
-TypeScript — find the innermost symbol whose span contains a position — and the
-same approach applies unchanged.
+`src/resolve/symbolMapping.ts` solves this for TypeScript — find the innermost
+symbol whose span contains a position — but it is TypeScript-only: it takes a
+`ts.Declaration` and a `CompilerContext`. Python needs its own mapper following
+the same approach, not a reuse of that function.
 
 A definition whose target file lies outside the repository root does not map to
 a key at all. It is `EXTERNAL` (§5.2).
@@ -194,9 +225,9 @@ tree-sitter graph.
 
 | Failure | Behaviour |
 |---|---|
-| Bridge exits non-zero | Warning in the envelope naming the exit code; index stands, `compilerUpgraded` is null |
-| Timeout | Warning naming the timeout and the query count; index stands |
-| `maxBuffer` overrun | Hard failure with a warning — **never** a partial result silently accepted |
+| Language server fails to start or exits early | Warning in the envelope; index stands, `compilerUpgraded` is null |
+| Session timeout | Warning naming the timeout and the query count; server killed; index stands |
+| Malformed JSON-RPC response | Hard failure with a warning — **never** a partial result silently accepted |
 | Pyright returns no definition for a reference | Not a failure; the prior tier stands |
 
 The existing `CompilerUnavailable` pattern in `src/resolve/compilerPass.ts` is
@@ -261,14 +292,15 @@ report zero indexed files for Python repositories.
 
 ```
 src/resolve/
-  pyrightPass.ts      runPyrightPass(root, store) — mirrors compilerPass.ts
-  pyrightBridge.ts    the child entry point; the only async code in the tier
+  pyrightPass.ts      async runPyrightPass(root, store) — mirrors compilerPass.ts
+  pyrightClient.ts    the LSP client: spawn, JSON-RPC framing, definition, kill
 src/adapters/python/
   (unchanged — this pass consumes the existing extractor)
 ```
 
-`pyrightBridge.ts` must be emitted as a standalone runnable file by the build,
-since `execFileSync` invokes it by path rather than importing it.
+`pyrightClient.ts` is an ordinary module, imported normally. Nothing about it
+needs special build treatment, which is one of the costs the discarded bridge
+design carried (§3.2).
 
 ## 10. Out of scope
 
@@ -284,8 +316,7 @@ since `execFileSync` invokes it by path rather than importing it.
 
 | Risk | Handling |
 |---|---|
-| `execFileSync` default 1 MB `maxBuffer` truncates large responses | Explicit 512 MB limit; an overrun is a hard failure, never a partial result (§3.3) |
-| Pyright stalls on a pathological file | Mandatory bounded timeout; degrade with a warning (§6) |
-| Pyright version drift changes definition behaviour | Pinned exact version; `pyrightVersion` recorded in the bridge output and stored alongside the index, as `TSC_VERSION` already is |
-| Bridge path wrong after build | The build must emit `pyrightBridge.js` as a runnable file; a startup smoke test asserts the bridge answers a trivial query |
+| Pyright stalls on a pathological file | Mandatory bounded session timeout; kill the server and degrade with a warning (§6) |
+| A thrown error leaves an orphaned language server | The kill must live in a `finally`, not only on the success path (§3.4) |
+| Pyright version drift changes definition behaviour | Pinned exact version; the version is read from the installed package and stored alongside the index, as `TSC_VERSION` already is |
 | The pass makes the gate pass while producing wrong edges | Placement is not correctness. The gate measures placement only; this limitation is already disclosed in the README and stays disclosed |
