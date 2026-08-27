@@ -1488,3 +1488,27 @@ Append-only. Written by whyline; readable without it.
 **Files:** docs/superpowers/specs/2026-08-25-python-adapter-design.md, probes/python-placement/FINDINGS.md
 
 <!-- whyline-event: a4eb00726420469983898a6c616ca115 -->
+
+## 2026-08-27 — Bundle pyright as a hard dependency rather than an optional one
+
+**Because:** Zero-friction --resolve matches the onboarding philosophy sonde init established, and mirrors how typescript is already bundled so Sonde never loads a type checker from the target repo (invariant 5)
+
+**Rejected:**
+
+- Optional or peer dependency with visible degradation — leaner default install and well supported by invariant 8, but it puts a manual install step in front of exactly the users the feature exists for
+
+**Files:** docs/superpowers/specs/2026-08-28-pyright-tier-design.md
+
+<!-- whyline-event: e0e609bdf84748d3af391aecc087ca29 -->
+
+## 2026-08-27 — Query HEURISTIC references too, not only UNRESOLVED
+
+**Because:** The spike's unresolved-only framing optimised for the gate rather than the graph; member access is where a type checker contributes most, and each ambiguous reference currently emits up to AMBIGUITY_CAP=8 edges of which all but one are wrong by construction, so replacing them with one COMPILER edge is a large precision gain the placement metric would not even show
+
+**Rejected:**
+
+- UNRESOLVED only — 60s cheaper on pydantic but leaves tens of thousands of guessed edges standing
+
+**Files:** docs/superpowers/specs/2026-08-28-pyright-tier-design.md
+
+<!-- whyline-event: 05d79844f1ba4f9184682a57e06d8832 -->
