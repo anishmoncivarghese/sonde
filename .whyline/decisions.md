@@ -1525,3 +1525,21 @@ Append-only. Written by whyline; readable without it.
 **Files:** docs/superpowers/plans/2026-08-28-pyright-tier.md
 
 <!-- whyline-event: 55a549bd050c40a1b5ca8de603e500b0 -->
+
+## 2026-08-27 — Use explicit pyright definition outcomes with bounded canonical LSP sessions
+
+**Actor:** codex
+**Role:** implementer
+**Task:** pyright-tier-task-1
+
+**Because:** The compiler pass must distinguish in-repo definitions from evidenced external definitions while treating no answer, timeout, and request failure as none; canonical RepoBoundary URIs, request/session deadlines, early-exit rejection, and idempotent close prevent false EXTERNAL classifications, hangs, and orphaned servers
+
+**Rejected:**
+
+- Return null for both external and unavailable — Task 4 could not close the builtin gap without guessing
+- Treat request failure as external — EXTERNAL leaves the gate denominator and would bias toward PASS on no evidence
+- Read repository files directly — invariant 6 requires RepoBoundary
+
+**Files:** package.json, package-lock.json, src/resolve/pyrightClient.ts, tests/resolve/pyrightClient.test.ts
+
+<!-- whyline-event: b65ca26b2fba4e0e982042dfad46c6a4 -->
