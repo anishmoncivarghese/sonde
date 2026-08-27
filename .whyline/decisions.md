@@ -1374,3 +1374,19 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/python/modules.ts, tests/adapters/python/modules.test.ts
 
 <!-- whyline-event: 35b551ab929f48d09c8b084c8ab80b1e -->
+
+## 2026-08-27 — Assemble the Python adapter without registering it
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-6
+
+**Because:** The placement gate must measure the complete extraction surface before production routing can expose it; keeping registration separate preserves the ability to stop honestly on a poor verdict
+
+**Rejected:**
+
+- Register as soon as extraction composes — that would ship an unmeasured graph and violate the pre-committed gate sequence
+
+**Files:** src/adapters/python/index.ts, tests/adapters/python/adapter.test.ts
+
+<!-- whyline-event: 62ffe54ba9c247d991f3c9c60e414342 -->
