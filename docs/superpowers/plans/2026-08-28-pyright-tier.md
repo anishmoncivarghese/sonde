@@ -399,11 +399,22 @@ The pass queries `UNRESOLVED` and `HEURISTIC` references only — never `LEXICAL
 ```ts
 // tests/store/querySites.test.ts
 import { describe, expect, it } from "vitest";
-import { openTestStore } from "../helpers/store.js";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { migrate, openDb, Store } from "../../src/store/index.js";
+
+// Mirrors tests/resolve/compilerPass.test.ts. There is no shared test-store
+// helper in this repo; do not invent one.
+function emptyStore(): Store {
+  const db = openDb(join(mkdtempSync(join(tmpdir(), "sonde-sites-")), "index.sqlite"));
+  migrate(db);
+  return new Store(db);
+}
 
 describe("query-site read APIs", () => {
   it("lists unresolved reference sites with their names", () => {
-    const store = openTestStore();
+    const store = emptyStore();
     store.insertSymbols([
       { stableKey: "py:a.py#f", /* remaining required fields per SymbolRow */ } as never,
     ]);
@@ -414,7 +425,7 @@ describe("query-site read APIs", () => {
   });
 
   it("lists heuristic edge sites but not lexical or compiler ones", () => {
-    const store = openTestStore();
+    const store = emptyStore();
     const sites = store.heuristicEdgeSites();
     expect(Array.isArray(sites)).toBe(true);
     // A LEXICAL edge must never appear: re-querying it would spend the
@@ -423,13 +434,13 @@ describe("query-site read APIs", () => {
   });
 
   it("counts external references", () => {
-    const store = openTestStore();
+    const store = emptyStore();
     expect(typeof store.countExternal()).toBe("number");
   });
 });
 ```
 
-**Before writing this test, read `tests/` for the existing store-test helper.** If there is no `openTestStore`, follow whatever pattern the current store tests use and adjust the import — do not invent a new fixture style. Populate the rows through the store's existing insert methods rather than raw SQL, so the test exercises the same path production does.
+**Populate rows through the store's existing insert methods, not raw SQL**, so the test exercises the same path production does. The first test needs a symbol row and an `unresolved_ref` row; find the insert methods the store already exposes (`insertSymbols`, and whatever writes unresolved refs) and use those. If the required shape is unclear, read `tests/store/store.test.ts` for the established pattern.
 
 - [ ] **Step 2: Run it to verify it fails**
 
@@ -736,10 +747,10 @@ export async function runPyrightPass(
     // request, re-deriving them is the one cost this tier cannot justify.
     const wanted = new Set<string>();
     for (const site of store.unresolvedRefSites()) {
-      wanted.add(`${site.srcKey} ${site.siteLine}`);
+      wanted.add(`${site.srcKey}\u0000${site.siteLine}`);
     }
     for (const site of store.heuristicEdgeSites()) {
-      wanted.add(`${site.srcKey} ${site.siteLine}`);
+      wanted.add(`${site.srcKey}\u0000${site.siteLine}`);
     }
     if (wanted.size === 0) return null;
 
@@ -753,7 +764,7 @@ export async function runPyrightPass(
       const symbols = extractPythonSymbols(file, source, tree);
       const lines = source.split("\n");
       for (const ref of extractPythonReferences(file, source, tree, symbols)) {
-        if (!wanted.has(`${ref.fromSymbolKey} ${ref.siteLine}`)) continue;
+        if (!wanted.has(`${ref.fromSymbolKey}\u0000${ref.siteLine}`)) continue;
         // ReferenceRecord carries no column, so recover it from the line by
         // name. Re-parsing here is what keeps the shared type unchanged
         // (spec §4.1).
@@ -1155,7 +1166,7 @@ whyline note "Ship Python on the pyright COMPILER tier after a passing gate" \
 
 ## Self-Review
 
-**Spec coverage.** §3.2 bridge → Task 1. §3.3 contract, `maxBuffer`, timeout → Tasks 1, 4. §3.4 query scope → Task 2 (the read APIs that make filtering possible) and Task 4. §4.1 position recovery without a schema change → Task 4. §4.2 definition→key → Task 3. §5.1 tier assignment and the three outcomes → Task 4. §5.2 builtins closing as a side effect → Task 6 Step 4 requires confirming or refuting it rather than assuming. §5.3 no repo environment → Task 1 (no `pythonPath` is ever sent). §6 degradation → Task 4's `catch` and short-result guard, Task 5's independent degradation. §7 bundled dependency → Task 1 Step 1. §8 the gate → Task 6. §8.3 conditional registration → Task 7. §9 file structure → Tasks 1, 3, 4. §11 risks: `maxBuffer` and timeout in Task 4, version pinning in Task 1, bridge path in Task 5 Step 4.
+**Spec coverage.** §3.3 the in-process client → Task 1. §3.4 client contract, timeout, guaranteed kill → Tasks 1, 4. §3.5 query scope → Task 2 (the read APIs that make filtering possible) and Task 4. §4.1 position recovery without a schema change → Task 4. §4.2 definition→key → Task 3. §5.1 tier assignment and the three outcomes → Task 4. §5.2 builtins closing as a side effect → Task 6 Step 4 requires confirming or refuting it rather than assuming. §5.3 no repo environment → Task 1 (no `pythonPath` is ever sent). §6 degradation → Task 4's `catch` and short-result guard, Task 5's independent degradation. §7 bundled dependency → Task 1 Step 1. §8 the gate → Task 6. §8.3 conditional registration → Task 7. §9 file structure → Tasks 1, 3, 4. §11 risks: session timeout in Task 1, the `finally`-guaranteed kill in Task 4 (asserted by Task 1 Step 6 and Task 5's orphan check), version pinning in Task 1 Step 1.
 
 **Type consistency.** `BridgeInput`/`BridgeOutput`/`BridgeQuery`/`BridgeTarget` are defined in Task 1 and imported unchanged in Task 4. `PyrightPassResult` is defined in Task 4 and consumed in Task 5. `unresolvedRefSites`/`heuristicEdgeSites`/`countExternal` are defined in Task 2 and used in Tasks 4 and 6. `pythonSymbolAt(path, source, line)` is defined in Task 3 with a 1-based `line`, and Task 4 converts the bridge's 0-based line with `target.line + 1`.
 
