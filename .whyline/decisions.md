@@ -1291,3 +1291,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** docs/superpowers/specs/2026-08-25-python-adapter-design.md
 
 <!-- whyline-event: 34c957aff5054507b3216c2e5ddb7d34 -->
+
+## 2026-08-27 — Add Python parsing through the shared tree-sitter runtime with a checksum-pinned grammar
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-1
+
+**Because:** The Python adapter needs synchronous pure extraction after one async warm-up, and sharing ensureTreeSitterRuntime prevents concurrent adapters from corrupting web-tree-sitter's module-level WASM state
+
+**Rejected:**
+
+- Call Parser.init directly in the Python adapter — concurrent language initialization can race and corrupt shared runtime state
+- Use an unpinned grammar download — it would make extractor behavior and the manifest hash non-reproducible
+
+**Files:** scripts/fetch-grammars.mjs, src/adapters/python/parser.ts, tests/adapters/python/parser.test.ts
+
+<!-- whyline-event: cdb2bccd3802421389ee46b4acfe5818 -->

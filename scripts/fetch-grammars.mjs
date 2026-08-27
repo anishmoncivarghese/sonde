@@ -20,6 +20,11 @@ const GRAMMARS = [
     url: "https://github.com/alex-pinkus/tree-sitter-swift/releases/download/0.7.3/tree-sitter-swift.wasm",
     sha256: "0258a7ef17303a8079ffe0748b3583d59656b5c3e8653fca7b6451b3e6689eb2",
   },
+  {
+    name: "tree-sitter-python.wasm",
+    url: "https://unpkg.com/tree-sitter-wasms@0.1.12/out/tree-sitter-python.wasm",
+    sha256: "9056d0fb0c337810d019fae350e8167786119da98f0f282aceae7ab89ee8253b",
+  },
 ];
 
 const dir = join(process.cwd(), "vendor");
