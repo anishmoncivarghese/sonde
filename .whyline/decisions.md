@@ -1308,3 +1308,19 @@ Append-only. Written by whyline; readable without it.
 **Files:** scripts/fetch-grammars.mjs, src/adapters/python/parser.ts, tests/adapters/python/parser.test.ts
 
 <!-- whyline-event: cdb2bccd3802421389ee46b4acfe5818 -->
+
+## 2026-08-27 — Classify Python methods from explicit enclosing syntax state
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-2
+
+**Because:** A function is a method only when its immediate enclosing definition is a class; threading the enclosing kind through traversal expresses that grammar fact directly and keeps nested functions as functions
+
+**Rejected:**
+
+- Infer the enclosing class by searching symbols already emitted — output order is indirect state and can misclassify nested or decorated definitions
+
+**Files:** src/adapters/python/symbols.ts, tests/adapters/python/symbols.test.ts
+
+<!-- whyline-event: 75e0a929e5ef467ab8ff3604dd3e569e -->
