@@ -15,6 +15,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/fetch-grammars.mjs",
+    "probe:python": "node --import tsx probes/python-placement/measure.ts",
     "bench:baseline": "node --import tsx bench/harness/runBaseline.ts",
     "bench:fixture": "node scripts/fetch-bench-fixture.mjs",
     "bench:large": "node --import tsx bench/harness/reportLarge.ts"

@@ -1423,3 +1423,54 @@ Append-only. Written by whyline; readable without it.
 **Files:** tests/fixtures/repos/python-small, tests/adapters/python/integration.test.ts
 
 <!-- whyline-event: 9f1bbee8407149b6b0ea429e841f3279 -->
+
+## 2026-08-27 — Fix the Python placement gate before measuring
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-9
+
+**Because:** Reusing Swift's published thresholds and committing them alone before any Python number exists prevents fitting the acceptance bar to the result
+
+**Rejected:**
+
+- Choose Python-specific thresholds after the probe — that would make the gate unfalsifiable
+- Include measurement scaffolding in the threshold commit — separating them provides an auditable pre-commitment
+
+**Files:** probes/python-placement/PROTOCOL.md
+
+<!-- whyline-event: a10e7f10792842df9c493e856b02ff33 -->
+
+## 2026-08-27 — Score the Python gate per reference instead of per emitted edge
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-10
+
+**Because:** resolveAll emits structural edges and one candidate edge per ambiguous reference, so the plan sketch's raw edge count would multiply HEURISTIC placements and bias the fixed gate toward PASS; the probe now scores each extracted reference once and cross-checks its disposition against production resolver output
+
+**Rejected:**
+
+- Count resolveAll.edges by tier — IMPORTS, CONTAINS, derived IMPLEMENTS, and candidate fan-out are not independent source references
+- Use a bespoke resolver without cross-checking production — probe drift could publish a result the product does not reproduce
+
+**Files:** probes/python-placement/measure.ts
+
+<!-- whyline-event: a1947985e29849b188bdba4882b0e948 -->
+
+## 2026-08-27 — Stop Python registration after both placement corpora failed the fixed gate
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-10
+
+**Because:** agentdock measured 62.81% unresolved and 37.19% placed, while pydantic measured 57.39% unresolved and 42.61% placed; both violate the pre-committed PASS thresholds of at most 30% unresolved and at least 70% placed
+
+**Rejected:**
+
+- Proceed to Task 11 despite FAIL — that would ship a graph the gate was created to reject
+- Adjust the threshold or adapter and rerun after seeing the numbers — that would invalidate the pre-commitment
+
+**Files:** probes/python-placement/FINDINGS.md, probes/python-placement/measure.ts, src/repo/discover.ts
+
+<!-- whyline-event: edda387c3db34f1fb5602d6bd00c1342 -->

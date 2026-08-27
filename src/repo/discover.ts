@@ -15,6 +15,8 @@ export interface FileRecord extends FileMetadata {
 
 export interface DiscoverOptions {
   maxBytes?: number;
+  /** Overrides the default allowlist for pre-registration language probes. */
+  extensions?: ReadonlySet<string>;
 }
 
 const DEFAULT_MAX_BYTES = 2_000_000;
@@ -34,6 +36,7 @@ export function discover(
 ): Array<FileRecord | FileMetadata> {
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
   const hashContent = options.hashContent ?? true;
+  const extensions = options.extensions ?? SOURCE_EXTENSIONS;
   const ignore = buildIgnore(boundary);
   const files: Array<FileRecord | FileMetadata> = [];
 
@@ -57,7 +60,7 @@ export function discover(
         walk(relativePath);
         continue;
       }
-      if (!entry.isFile() || !SOURCE_EXTENSIONS.has(extname(entry.name))) {
+      if (!entry.isFile() || !extensions.has(extname(entry.name))) {
         continue;
       }
 
