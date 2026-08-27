@@ -1357,3 +1357,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/resolve/tiers.ts, src/resolve/resolver.ts, tests/resolve/tiers.test.ts, tests/resolve/swiftSdkScope.test.ts
 
 <!-- whyline-event: 9430377e729f42ba8fdbdef72de89902 -->
+
+## 2026-08-27 — Represent Python from-imports as both bindings and re-exports
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-5
+
+**Because:** Python makes imported module names importable from the importing module, so emitting the existing ImportRecord and ExportRecord shapes lets buildExportMap resolve package re-export chains without cross-file work in extract
+
+**Rejected:**
+
+- Resolve imported modules during extraction — that would violate extraction purity and duplicate link-layer responsibility
+- Emit imports only — __init__.py re-export chains would disappear from the export map
+
+**Files:** src/adapters/python/modules.ts, tests/adapters/python/modules.test.ts
+
+<!-- whyline-event: 35b551ab929f48d09c8b084c8ab80b1e -->
