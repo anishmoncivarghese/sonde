@@ -1324,3 +1324,19 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/python/symbols.ts, tests/adapters/python/symbols.test.ts
 
 <!-- whyline-event: 75e0a929e5ef467ab8ff3604dd3e569e -->
+
+## 2026-08-27 — Extract bare Python decorators as references as well as decorator calls
+
+**Actor:** codex
+**Role:** implementer
+**Task:** python-adapter-task-3
+
+**Because:** tree-sitter represents @app.route as an attribute rather than a call; handling only call nodes would silently drop a required decorator reference
+
+**Rejected:**
+
+- Treat every attribute expression as a reference — that would broaden extraction beyond the specified call, annotation, decorator, and base-class surfaces and risk duplicate or low-signal edges
+
+**Files:** src/adapters/python/references.ts, tests/adapters/python/references.test.ts
+
+<!-- whyline-event: 3746827a3dbd4e87b7e3f5227010f3be -->
