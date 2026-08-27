@@ -16,7 +16,134 @@ This plan was written by Claude and **self-reviewed only**. Treat its assertions
 
 **The code blocks are a starting point; the tests are the contract.** Where a block disagrees with real type signatures, the real signatures win — fix the code and note it in the commit. Never weaken a test assertion to make it pass.
 
+**This plan has been reviewed and has known defects.** Read *Corrections from independent review* immediately below before starting any task; where a correction conflicts with a task body, the correction wins.
+
 **Two hard stops.** Task 6 measures and **stops**. Task 7 (registration) runs only on a PASS. A FAIL means Python stays unregistered and `sonde init` keeps reporting zero indexed files for Python repositories — that is a correct outcome, not a problem to engineer around. No threshold may be adjusted after seeing a result.
+
+## Corrections from independent review — READ BEFORE ANY TASK
+
+An independent Opus review of this plan found defects that were **verified against the real source**. Where a correction below conflicts with a task body further down, **the correction wins**. The task bodies were left in place so the reasoning is visible, not because they are right.
+
+### C1 — Task 6's probe counts edges, not references. It would produce a false PASS. (Critical)
+
+Task 6 Step 1 computes `placed` from `store.tierCounts()`, which is `SELECT tier, COUNT(*) FROM edge`. That table holds **structural** edges: `src/resolve/resolver.ts:90` inserts one `IMPORTS` edge per import at tier `LEXICAL`, and `:118` inserts one `CONTAINS` edge **per symbol**, also `LEXICAL`. One ambiguous reference additionally emits up to `AMBIGUITY_CAP` = 8 `HEURISTIC` edges.
+
+`unresolved` stays a true per-reference count, so the ratio is inflated on one side only. `probes/python-placement/FINDINGS.md` already rejects exactly this: *"It deliberately does not count `resolveAll.edges` directly… Raw edge counting would therefore bias placement toward PASS."* Following Task 6 as written would render a FAIL as a PASS and then compare it against a per-reference baseline as though it were an improvement.
+
+**Required fix.** Count *reference sites*, never raw edges. Exclude the structural kinds and collapse ambiguity fan-out:
+
+```sql
+SELECT COUNT(*) FROM (
+  SELECT DISTINCT src_symbol_id, site_line, kind
+  FROM edge
+  WHERE tier = @tier
+    AND kind IN ('CALLS','REFERENCES','IMPLEMENTS','INHERITS')
+)
+```
+
+Run that once per tier for `COMPILER`, `LEXICAL`, `HEURISTIC`; `placed` is their sum. `unresolved` remains `store.countUnresolved()`. **FINDINGS.md must state this counting rule explicitly** and note that it is a per-reference-site proxy, so a reader can judge its comparability to the 62.81% / 57.39% baseline rather than assume it.
+
+### C2 — The `EXTERNAL` outcome is never implemented, so spec §5.2 does not happen. (Critical)
+
+Spec §5.1 defines three outcomes; Task 4 implements two. `if (!target) continue;` collapses *definition outside the repository*, *no definition*, and *request failed* into "prior tier stands". Nothing calls `store.insertExternal` (which exists, `src/store/repos.ts:202`).
+
+Consequence: the builtin references spec §5.2 promises will classify as `EXTERNAL` via typeshed stay `UNRESOLVED` — in both the numerator and the denominator. The design's stated mechanism for closing the largest measured gap would simply be absent, and Task 6 would "refute" it for an implementation reason rather than a measured one.
+
+This biases toward FAIL, not PASS, so it is not dishonest — but it makes the gate unwinnable by the route the spec argues for.
+
+**Required fix.** Task 1's client must distinguish the three cases instead of returning `DefinitionTarget | null`:
+
+```ts
+export type DefinitionResult =
+  | { kind: "in-repo"; file: string; line: number; character: number }
+  | { kind: "external"; uri: string }
+  | { kind: "none" };
+```
+
+Task 4 then, for `"external"`, derives `packageOrLib` from the target path (`"typeshed"` when the path contains `typeshed`, otherwise the first path segment after `site-packages`), calls `store.insertExternal(...)`, and calls `deleteUnresolvedFor` for that site. `"none"` leaves the prior tier standing. Only then does Task 2's `countExternal()` mean anything.
+
+**A failed or timed-out query must never become `EXTERNAL`.** It is `"none"`. Anything else moves references out of the gate denominator on no evidence, which is the one bias that would corrupt the measurement in the PASS direction.
+
+### C3 — `indexOf(ref.name)` can fabricate a `COMPILER` edge. (Critical)
+
+Task 4 recovers a column with `text.indexOf(ref.name)`. For member access — the majority of the `HEURISTIC` set this pass exists to fix — this is not merely imprecise. In `self.method_registry.method()`, `ref.name` is `"method"` and `indexOf` lands inside `method_registry`. Pyright then answers for a **different symbol**, and Task 4 writes a `COMPILER` edge to it. `COMPILER` outranks everything (invariant 3), so the wrong target wins permanently. That is a fabricated edge (invariant 1), not a missed one.
+
+Spec §4.1's stated reason for avoiding a column — "would touch every adapter" — is wrong. The field is optional and `src/adapters/python/references.ts:56` already has `node.startPosition` in hand.
+
+**Required fix.** Add to `ReferenceRecord` in `src/adapters/types.ts`:
+
+```ts
+  /** 0-based column of the identifier. Optional: only adapters that need
+   *  compiler-grade position evidence populate it. */
+  siteColumn?: number;
+```
+
+Populate it in the Python extractor's `push` beside `siteLine`, and use it in Task 4. Delete the `indexOf` path entirely; skip any reference with no `siteColumn` rather than guessing.
+
+### C4 — `pythonSymbolAt` attributes non-symbol targets to their enclosing symbol. (Critical)
+
+Task 3 returns the innermost symbol whose span *contains* the line. Pyright's definition target is frequently not a Sonde symbol at all: a local variable, a parameter, an import alias. A target inside `def f` maps to `py:file#f`, and Task 4 writes an edge to it — another fabricated edge.
+
+**Required fix.** Require the target to land on a symbol's **declaration line**, not merely inside its span:
+
+```ts
+    if (symbol.startLine !== line) continue;
+```
+
+Return `null` otherwise, leaving the prior tier standing. Task 3's tests must be updated: the "position in the class header" case stays, but a position *inside* a function body must now return `null`, not the enclosing key.
+
+### I1 — Do not rewrite the edge kind
+
+Task 4's `ref.kind === "CALLS" ? "CALLS" : "REFERENCES"` mislabels `INHERITS` and `IMPLEMENTS`, both real `EdgeKind` members (`src/store/repos.ts:25-33`) that the Python extractor emits (`references.ts:164`). `upgradeEdgeTier` then fails to match the existing `INHERITS` edge and `insertCompilerEdge` adds a **duplicate edge of the wrong kind**. Pass `ref.kind` through unchanged.
+
+### I2 — Realpath the root before building the URI prefix
+
+Task 1 builds `prefix` from the raw `root`, but every fixture uses `mkdtempSync`, and on macOS `os.tmpdir()` is `/var/folders/...` symlinked to `/private/var/folders/...`. If pyright canonicalises returned URIs, `uri.startsWith(prefix)` is false for every in-repo target and the client silently resolves nothing. Use `realpathSync(root)` before building `prefix` and `uriOf`, matching `createCompilerContext` (`src/resolve/compilerPass.ts:36`).
+
+### I3 — The client must read through `RepoBoundary` (invariant 6)
+
+Task 1 reads repository files with `readFileSync` for each `didOpen`. Invariant 6 is unconditional. Pass the `RepoBoundary` into `openPyrightSession` and use `boundary.readFile`. Reading pyright's own package files via `require.resolve` is fine — that is a bundled dependency, not repository content.
+
+### I4 — Key the `wanted` set on name too, and report NULL `site_line`
+
+Both `site_line` columns are nullable. A NULL produces a key no reference can match, so those sites are silently never queried — invariant 8 requires a warning, not silence. Count and report them as skipped.
+
+Separately, keying on `(srcKey, siteLine)` alone matches *every* reference on that line, including `LEXICAL` ones — re-querying evidence we already have, in direct contradiction of spec §3.5. Include `name` in `heuristicEdgeSites()` and key on `(srcKey, siteLine, name)`.
+
+### I5 — Add a session deadline, an early-exit handler, and a real warning
+
+`REQUEST_TIMEOUT_MS` is per-request; spec §3.4 requires bounding the whole session. Add a session deadline checked before each request. Add `server.on("exit")` and `server.on("error")` handlers that reject all pending requests immediately — otherwise a mid-run crash makes every remaining request wait its full timeout serially. Have `close()` clear pending timers so the event loop is not held open.
+
+`runPyrightPass` currently returns a bare `null` for every failure, indistinguishable from "nothing to query". Return a reason so Task 5 can emit the warning spec §6 requires.
+
+### I6 — Warm the parser
+
+`pythonParser()` throws if `getPythonParser()` was never awaited, and `initializeAdapters` only warms *registered* adapters — Python is unregistered until Task 7. Task 4's bare `catch` would swallow this and return `null` forever. Add `await getPythonParser()` at the top of `runPyrightPass`.
+
+### I7 — Refresh `stats.unresolved`
+
+Task 5 updates `compilerUpgraded` and `edges` but not `stats.unresolved`, even though the pass deletes unresolved rows. The TypeScript path does refresh it (`src/index/pipeline.ts:212`). Add `stats.unresolved = store.countUnresolved();`. Also decide the `compiler_version` meta-key scheme before storing a pyright version beside `TSC_VERSION` — there is only one key today.
+
+### I8 — Remove `as never` from Task 6's probe
+
+`openStore` is not exported from `src/store/index.js` (only `openDb`, `migrate`, `Store`), the `indexRepo` call shape is wrong, and it is never `await`ed — the `as never` cast is what hides all three from the compiler. Write the probe against the real signatures with no casts. `indexRepo(root, dbPath, options)` returns a Promise and must be awaited before the store is read.
+
+### I9 — Disclose that `deleteUnresolvedFor` clears by name, not by site
+
+`src/store/repos.ts:302` deletes every `unresolved_ref` with that name under that symbol, not only the answered site. One answered site can clear several unanswered ones, directly reducing the gate numerator. `runCompilerPass` behaves identically, so this is precedent rather than a new bug — but FINDINGS.md **must disclose it as a known upward bias**, with a count of extra rows cleared.
+
+### I10 — Task 2's tests must actually test something
+
+`insertSymbols` resolves `file_id` through a `file` row that the test never creates, so it throws; and two of the three tests assert only `Array.isArray(...)` / `typeof … === "number"`, which a stub satisfies. Insert a file row, a symbol, one `LEXICAL` edge and one `HEURISTIC` edge, then assert the `LEXICAL` one is **absent** from `heuristicEdgeSites()`. That exclusion is the property the whole query-scope decision rests on.
+
+### Minor
+
+- `tests/adapters/registry.test.ts` does not exist; Task 7 says "append" — create it.
+- Line-number drift in Verified Facts: `indexRepo` is at 228 (not 224), `updateRepo` 236 (not 231), the `runCompilerPass` call 203 (not 202). The signatures themselves are correct.
+- Task 4 increments `result.answered` before the `if (!site) continue` guard.
+- The Self-Review section still names `BridgeInput`/`BridgeOutput` from the discarded design.
+
+---
 
 ## Global Constraints
 
