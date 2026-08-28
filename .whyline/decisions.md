@@ -1645,3 +1645,16 @@ Append-only. Written by whyline; readable without it.
 **Files:** probes/python-placement/measure-resolved.ts, probes/python-placement/FINDINGS.md, package.json
 
 <!-- whyline-event: 21b14d86df5946598f62ad5e87bf1fe0 -->
+
+## 2026-08-28 — Accept the pyright tier gate PASS but block registration on stable-key collisions
+
+**Because:** Independently verified the PASS is honest: countReferenceSites uses the corrected DISTINCT SQL with structural kinds excluded and never tierCounts, and every failure path in the client yields 'none' rather than 'external', so no failed or timed-out query can shrink the gate denominator. But agentdock passes by only 0.28 points once the name-wide deleteUnresolvedFor bias is reversed (29.72% vs a 30% ceiling), and pydantic's 88 duplicate stable keys make production indexing fail outright with UNIQUE constraint failed: symbol.stable_key
+
+**Rejected:**
+
+- Running Task 7 now — registering would make pydantic indexing fail, so a passing placement gate is necessary but not sufficient for registration
+- Treating the measured 27.00% as the margin — the honest figure for decision-making is the bias-reversed 29.72%, roughly three references from FAIL
+
+**Files:** probes/python-placement/FINDINGS.md, src/resolve/pyrightPass.ts
+
+<!-- whyline-event: 166c1986026c4f57be0c0c6c56f6812f -->
