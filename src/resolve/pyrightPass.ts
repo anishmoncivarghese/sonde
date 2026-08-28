@@ -10,7 +10,7 @@ import {
   openPyrightSession,
   type DefinitionQuery,
 } from "./pyrightClient.js";
-import { pythonSymbolAt } from "./pythonSymbolAt.js";
+import { pythonSymbolsByDeclarationLine } from "./pythonSymbolAt.js";
 
 export interface PyrightPassResult {
   upgraded: number;
@@ -129,26 +129,30 @@ export async function runPyrightPass(
       const source = boundary.readFile(file).toString("utf8");
       const tree = pythonParser().parse(source);
       if (!tree) continue;
-      const symbols = extractPythonSymbols(file, source, tree);
-      for (const ref of extractPythonReferences(file, source, tree, symbols)) {
-        const key = siteKey(ref.fromSymbolKey, ref.siteLine, ref.name);
-        if (!wanted.has(key) || matched.has(key)) continue;
-        // spec §4.1: compiler-grade evidence requires the exact identifier
-        // column. Never recover it by searching source text.
-        if (ref.siteColumn === undefined) continue;
-        matched.add(key);
-        queries.push({
-          file,
-          line: ref.siteLine - 1,
-          character: ref.siteColumn,
-        });
-        sites.push({
-          srcKey: ref.fromSymbolKey,
-          name: ref.name,
-          siteLine: ref.siteLine,
-          kind: ref.kind,
-          wasUnresolved: unresolvedKeys.has(key),
-        });
+      try {
+        const symbols = extractPythonSymbols(file, source, tree);
+        for (const ref of extractPythonReferences(file, source, tree, symbols)) {
+          const key = siteKey(ref.fromSymbolKey, ref.siteLine, ref.name);
+          if (!wanted.has(key) || matched.has(key)) continue;
+          // spec §4.1: compiler-grade evidence requires the exact identifier
+          // column. Never recover it by searching source text.
+          if (ref.siteColumn === undefined) continue;
+          matched.add(key);
+          queries.push({
+            file,
+            line: ref.siteLine - 1,
+            character: ref.siteColumn,
+          });
+          sites.push({
+            srcKey: ref.fromSymbolKey,
+            name: ref.name,
+            siteLine: ref.siteLine,
+            kind: ref.kind,
+            wasUnresolved: unresolvedKeys.has(key),
+          });
+        }
+      } finally {
+        tree.delete();
       }
     }
 
@@ -186,6 +190,7 @@ export async function runPyrightPass(
     }
 
     const actions: SuccessfulAction[] = [];
+    const targetSymbols = new Map<string, ReadonlyMap<number, string>>();
     for (const [index, target] of answers.entries()) {
       const site = sites[index];
       if (!site || target.kind === "none") continue;
@@ -200,17 +205,20 @@ export async function runPyrightPass(
         continue;
       }
 
-      let targetSource: string;
-      try {
-        targetSource = boundary.readFile(target.file).toString("utf8");
-      } catch {
-        continue;
+      let symbolsByLine = targetSymbols.get(target.file);
+      if (!symbolsByLine) {
+        try {
+          const targetSource = boundary.readFile(target.file).toString("utf8");
+          symbolsByLine = pythonSymbolsByDeclarationLine(
+            target.file,
+            targetSource,
+          );
+          targetSymbols.set(target.file, symbolsByLine);
+        } catch {
+          continue;
+        }
       }
-      const dstKey = pythonSymbolAt(
-        target.file,
-        targetSource,
-        target.line + 1,
-      );
+      const dstKey = symbolsByLine.get(target.line + 1) ?? null;
       if (!dstKey || dstKey === site.srcKey) continue;
       actions.push({ kind: "in-repo", site, dstKey });
     }

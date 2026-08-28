@@ -1611,3 +1611,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/index/pipeline.ts, src/store/repos.ts, src/cli/main.ts
 
 <!-- whyline-event: 47fb236fcd8a44e69786e495abe1b285 -->
+
+## 2026-08-28 — Cache Python declaration maps during pyright placement
+
+**Actor:** codex
+**Role:** implementer
+**Task:** pyright-tier-task-4-scale-fix
+
+**Because:** Pydantic exhausted the tree-sitter WASM runtime when Task 4 reparsed the same target file for every compiler answer; one exact declaration-line map per file preserves C4 while bounding parser use
+
+**Rejected:**
+
+- Treat the WebAssembly abort as a gate result — no placement measurement had completed
+- Increase the session deadline — the failure was parser resource exhaustion, not a pyright timeout
+
+**Files:** src/resolve/pyrightPass.ts, src/resolve/pythonSymbolAt.ts
+
+<!-- whyline-event: 99f0ee7332cb4784914bf06a6b304ac8 -->

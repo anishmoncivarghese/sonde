@@ -14,16 +14,33 @@ export function pythonSymbolAt(
   source: string,
   line: number,
 ): string | null {
-  const tree = pythonParser().parse(source);
-  if (!tree) return null;
+  return pythonSymbolsByDeclarationLine(path, source).get(line) ?? null;
+}
 
-  let best: { key: string; span: number } | null = null;
-  for (const symbol of extractPythonSymbols(path, source, tree)) {
-    if (symbol.startLine !== line) continue;
-    const span = symbol.endLine - symbol.startLine;
-    if (!best || span < best.span) {
-      best = { key: symbol.stableKey, span };
+/** Build the exact-line map once when several pyright targets share a file. */
+export function pythonSymbolsByDeclarationLine(
+  path: string,
+  source: string,
+): ReadonlyMap<number, string> {
+  const tree = pythonParser().parse(source);
+  if (!tree) return new Map();
+
+  try {
+    const bestByLine = new Map<number, { key: string; span: number }>();
+    for (const symbol of extractPythonSymbols(path, source, tree)) {
+      const span = symbol.endLine - symbol.startLine;
+      const best = bestByLine.get(symbol.startLine);
+      if (!best || span < best.span) {
+        bestByLine.set(symbol.startLine, { key: symbol.stableKey, span });
+      }
     }
+    return new Map(
+      [...bestByLine].map(([declarationLine, symbol]) => [
+        declarationLine,
+        symbol.key,
+      ]),
+    );
+  } finally {
+    tree.delete();
   }
-  return best?.key ?? null;
 }
