@@ -1658,3 +1658,17 @@ Append-only. Written by whyline; readable without it.
 **Files:** probes/python-placement/FINDINGS.md, src/resolve/pyrightPass.ts
 
 <!-- whyline-event: 166c1986026c4f57be0c0c6c56f6812f -->
+
+## 2026-08-28 — Give colliding Python declarations distinct identity by cause, not by line
+
+**Because:** Four different causes produced the 88 collisions on pydantic and each needed different treatment: module-level rebinding is one variable, @overload families are one runtime function, property accessors are genuinely distinct code bodies that must not resolve to each other, and true redefinitions need a disambiguator that survives line moves and body edits
+
+**Rejected:**
+
+- INSERT OR IGNORE in the store — hides a real modelling error and would silently drop declarations for every future language too
+- Appending the line number — forbidden by invariant 9, since identity must not move when code moves
+- Appending a body hash — stable under line moves but changes whenever the body is edited, which breaks every edge on an ordinary refactor -- worse than the problem
+
+**Files:** src/adapters/python/symbols.ts
+
+<!-- whyline-event: b0b5f4ea9fef4abdb61732461f2a8683 -->
