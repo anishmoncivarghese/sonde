@@ -298,6 +298,118 @@ export class Store {
     return result.changes > 0;
   }
 
+  /** Promote only the candidate edge produced for this exact reference site. */
+  upgradeEdgeTierAt(
+    srcKey: string,
+    dstKey: string,
+    kind: EdgeKind,
+    siteLine: number,
+  ): boolean {
+    const result = this.db
+      .prepare(
+        `UPDATE edge
+         SET tier = 'COMPILER', confidence = 1.0
+         WHERE kind = @kind
+           AND site_line = @siteLine
+           AND src_symbol_id = (
+             SELECT id FROM symbol WHERE stable_key = @srcKey
+           )
+           AND dst_symbol_id = (
+             SELECT id FROM symbol WHERE stable_key = @dstKey
+           )
+           AND (tier <> 'COMPILER' OR confidence <> 1.0)`,
+      )
+      .run({ srcKey, dstKey, kind, siteLine });
+    return result.changes > 0;
+  }
+
+  /** Insert compiler evidence for one site, without conflating another line. */
+  insertCompilerEdgeAt(
+    srcKey: string,
+    dstKey: string,
+    kind: EdgeKind,
+    siteLine: number,
+  ): boolean {
+    const result = this.db
+      .prepare(
+        `INSERT INTO edge
+           (src_symbol_id, dst_symbol_id, kind, tier, confidence, site_line,
+            extractor_version)
+         SELECT source.id, target.id, @kind, 'COMPILER', 1.0, @siteLine,
+                @extractorVersion
+         FROM symbol AS source, symbol AS target
+         WHERE source.stable_key = @srcKey
+           AND target.stable_key = @dstKey
+           AND NOT EXISTS (
+             SELECT 1 FROM edge AS existing
+             WHERE existing.src_symbol_id = source.id
+               AND existing.dst_symbol_id = target.id
+               AND existing.kind = @kind
+               AND existing.site_line = @siteLine
+           )`,
+      )
+      .run({
+        srcKey,
+        dstKey,
+        kind,
+        siteLine,
+        extractorVersion: EXTRACTOR_VERSION,
+      });
+    return result.changes > 0;
+  }
+
+  hasCompilerEdgeAt(
+    srcKey: string,
+    dstKey: string,
+    kind: EdgeKind,
+    siteLine: number,
+  ): boolean {
+    return (
+      this.db
+        .prepare(
+          `SELECT 1 AS present
+           FROM edge
+           WHERE tier = 'COMPILER'
+             AND kind = @kind
+             AND site_line = @siteLine
+             AND src_symbol_id = (
+               SELECT id FROM symbol WHERE stable_key = @srcKey
+             )
+             AND dst_symbol_id = (
+               SELECT id FROM symbol WHERE stable_key = @dstKey
+             )
+           LIMIT 1`,
+        )
+        .get({ srcKey, dstKey, kind, siteLine }) !== undefined
+    );
+  }
+
+  /** Remove superseded ambiguity candidates at one answered reference site. */
+  deleteHeuristicEdgesAt(
+    srcKey: string,
+    kind: EdgeKind,
+    siteLine: number,
+    exceptDstKey: string | null,
+  ): number {
+    return this.db
+      .prepare(
+        `DELETE FROM edge
+         WHERE tier = 'HEURISTIC'
+           AND kind = @kind
+           AND site_line = @siteLine
+           AND src_symbol_id = (
+             SELECT id FROM symbol WHERE stable_key = @srcKey
+           )
+           AND (
+             @exceptDstKey IS NULL OR
+             dst_symbol_id <> (
+               SELECT id FROM symbol WHERE stable_key = @exceptDstKey
+             )
+           )`,
+      )
+      .run({ srcKey, kind, siteLine, exceptDstKey }).changes;
+  }
+
   /** Remove unresolved records for a reference the compiler has now placed. */
   deleteUnresolvedFor(srcKey: string, name: string): number {
     return this.db

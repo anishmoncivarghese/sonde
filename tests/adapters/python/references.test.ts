@@ -35,6 +35,14 @@ describe("extractPythonReferences", () => {
     expect(ref?.receiver).toBe("obj");
   });
 
+  it("records the exact final-identifier column for compiler queries", () => {
+    const ref = refs(
+      "a.py",
+      "def f():\n    self.method_registry.method()\n",
+    ).find((reference) => reference.name === "method");
+    expect(ref?.siteColumn).toBe(25);
+  });
+
   it("sets receiverType to the enclosing class for self and cls", () => {
     const found = refs(
       "a.py",

@@ -1577,3 +1577,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/resolve/pythonSymbolAt.ts, tests/resolve/pythonSymbolAt.test.ts
 
 <!-- whyline-event: 9a2f05743391428087ce7bc04faf3713 -->
+
+## 2026-08-28 — Pyright replacements are exact-site and failure-aware
+
+**Actor:** codex
+**Role:** implementer
+**Task:** pyright-tier-task-4
+
+**Because:** Compiler evidence must replace ambiguity fan-out without double-counting C1, while failed queries must preserve their prior tier and emit an unavailable reason
+
+**Rejected:**
+
+- Broad source-target promotion — it can promote the same target at unrelated lines
+- Treat request failure as EXTERNAL — it would exclude unevidenced sites from the gate denominator
+
+**Files:** src/resolve/pyrightPass.ts, src/store/repos.ts, src/adapters/types.ts
+
+<!-- whyline-event: e0170d11fe174d24992ffa8566124aed -->

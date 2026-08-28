@@ -54,6 +54,7 @@ export function extractPythonReferences(
       scopeHint: hintFor(path, receiverType),
       kind,
       siteLine: node.startPosition.row + 1,
+      siteColumn: node.startPosition.column,
     });
   };
 

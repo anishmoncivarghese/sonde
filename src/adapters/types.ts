@@ -39,6 +39,8 @@ export interface ReferenceRecord {
   scopeHint?: ScopeHint;
   kind: "CALLS" | "REFERENCES" | "IMPLEMENTS" | "INHERITS";
   siteLine: number;
+  /** 0-based identifier column; adapters populate it only when exact. */
+  siteColumn?: number;
 }
 
 export interface ImportRecord {
