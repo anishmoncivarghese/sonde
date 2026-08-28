@@ -1628,3 +1628,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/resolve/pyrightPass.ts, src/resolve/pythonSymbolAt.ts
 
 <!-- whyline-event: 99f0ee7332cb4784914bf06a6b304ac8 -->
+
+## 2026-08-28 — Pyright clears the fixed placement gate but registration remains deferred
+
+**Actor:** codex
+**Role:** implementer
+**Task:** pyright-tier-task-6
+
+**Because:** Distinct reference-site counts measured PASS on both corpora (agentdock 27.00% unresolved, pydantic 17.42%), while Task 6 is a hard stop and pydantic exposed 88 duplicate stable keys that make registration unsafe until collision handling is fixed
+
+**Rejected:**
+
+- Count tierCounts edge rows — structural edges and ambiguity fan-out would bias the result toward PASS
+- Register immediately after PASS — the user required stopping after Task 6 and production indexing still rejects repeated Python stable keys
+
+**Files:** probes/python-placement/measure-resolved.ts, probes/python-placement/FINDINGS.md, package.json
+
+<!-- whyline-event: 21b14d86df5946598f62ad5e87bf1fe0 -->

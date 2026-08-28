@@ -481,3 +481,192 @@ unusually dynamic corpus rather than a measured cause.
 Neither item changes the recommendation. The zero-setup tier does not clear the
 bar on real Python, and the next accuracy tier is pyright-backed `COMPILER`
 evidence as design §2 anticipated.
+
+---
+
+## Pyright tier re-measurement — 2026-08-28
+
+This is the Task 6 re-measurement against the thresholds already fixed in
+`PROTOCOL.md`. No threshold was changed after either result was seen. Both
+corpora are the same commits as the tree-sitter-only run:
+`ea9d1ac3ca08aef29acd724b2abbd410f7925632` for agentdock and
+`965c23dd93bd5ca7b86224ba39ccbe79399f117b` for pydantic.
+
+### Corrected counting method
+
+The three placed tiers are **distinct reference-site proxies**, never raw edge
+counts. For each of `COMPILER`, `LEXICAL`, and `HEURISTIC`, the probe calls
+`Store.countReferenceSites()`, which counts distinct
+`(src_symbol_id, site_line, kind)` tuples for only `CALLS`, `REFERENCES`,
+`IMPLEMENTS`, and `INHERITS`. This excludes structural `CONTAINS`, `IMPORTS`,
+and `TESTS` edges and collapses heuristic ambiguity fan-out. `UNRESOLVED`
+remains `Store.countUnresolved()`. `EXTERNAL` is excluded from the denominator.
+
+This is a per-reference-site proxy, not the original probe's direct iteration
+over every extracted `ReferenceRecord`: multiple same-kind references on one
+source line collapse. That is why the `references` totals below should not be
+compared as raw extraction totals to the earlier 2,951 / 71,726 figures. The
+gate shares are comparable at the intended placement level, and they avoid the
+known false-PASS bias of counting structural and ambiguity edges.
+
+Python was enabled in `registry.ts` and default discovery only in the working
+tree for these runs, then both edits were reversed before this record was
+committed. Python remains unregistered.
+
+### Measurement interruptions and workaround
+
+The first pydantic attempt failed before pyright ran: production indexing hit
+`UNIQUE constraint failed: symbol.stable_key`. The corpus contains 88 repeated
+Python stable keys, primarily overloads, property accessors, and deliberate
+same-scope redefinitions. For measurement only, symbol insertion temporarily
+used `INSERT OR IGNORE`, collapsing declarations that already share one stable
+identity to a single store row. That edit was also reversed before commit. The
+agentdock corpus was rerun under the same setup and produced identical output.
+
+The next pydantic attempt reached pyright but returned unavailable with the
+WebAssembly error `Aborted(). Build with -sASSERTIONS for more info.`. Task 4
+was reparsing a target file for every answer until the tree-sitter runtime was
+exhausted. The pass was fixed to cache one exact declaration-line map per
+target file and release parse trees (`c389896`); focused tests passed, and both
+corpora were rerun. The failed query was never classified as `EXTERNAL` and no
+failed attempt was scored.
+
+The temporary duplicate collapse is a real registration warning, not a hidden
+production fix: registering Python as-is would still make pydantic indexing
+fail. Placement passed, but stable-key collision handling must be fixed and
+tested before registration is safe.
+
+### Tier distributions
+
+#### agentdock
+
+| Tier | Count | Share of proxy total | Gate share |
+|---|---:|---:|---:|
+| `COMPILER` | 234 | 7.74% | 27.46% |
+| `LEXICAL` | 287 | 9.49% | 33.69% |
+| `HEURISTIC` | 101 | 3.34% | 11.85% |
+| `EXTERNAL` | 2,171 | 71.82% | — |
+| `UNRESOLVED` | 230 | 7.61% | **27.00%** |
+| **Placed** | **622** | **20.58%** | **73.00%** |
+
+Gate denominator: 852 in-repository reference-site proxies. Verdict: **PASS**.
+
+#### pydantic
+
+| Tier | Count | Share of proxy total | Gate share |
+|---|---:|---:|---:|
+| `COMPILER` | 13,794 | 20.04% | 45.77% |
+| `LEXICAL` | 6,593 | 9.58% | 21.88% |
+| `HEURISTIC` | 4,501 | 6.54% | 14.93% |
+| `EXTERNAL` | 38,700 | 56.22% | — |
+| `UNRESOLVED` | 5,250 | 7.63% | **17.42%** |
+| **Placed** | **24,888** | **36.15%** | **82.58%** |
+
+Gate denominator: 30,138 in-repository reference-site proxies. Verdict:
+**PASS**.
+
+### Comparison with tree-sitter only
+
+| Corpus | Tree-sitter unresolved | Pyright unresolved | Change | Tree-sitter placed | Pyright placed | Verdict |
+|---|---:|---:|---:|---:|---:|---|
+| agentdock | 62.81% | **27.00%** | -35.81 pp | 37.19% | **73.00%** | PASS |
+| pydantic | 57.39% | **17.42%** | -39.97 pp | 42.61% | **82.58%** | PASS |
+
+The worse corpus is agentdock at 27.00% unresolved / 73.00% placed. The fixed
+gate requires at most 30% unresolved and at least 70% placed, so the overall
+placement verdict is **PASS** without averaging.
+
+### EXTERNAL evidence and name-wide deletion bias
+
+Pyright added 1,295 EXTERNAL rows on agentdock, all attributed to its bundled
+typeshed. It added 14,419 on pydantic, of which 14,388 were attributed to
+typeshed. This confirms the predicted builtin/standard-library classification
+path in design §5.2 rather than assuming those references are in-repository.
+
+`deleteUnresolvedFor` deletes by `(source symbol, name)`, not by reference site.
+The pass counted 33 extra unresolved rows cleared on agentdock and 1,386 on
+pydantic beyond the successfully answered unresolved sites. This is a known
+upward bias. A conservative sensitivity check that restores every extra row
+still yields PASS: agentdock becomes 29.72% unresolved / 70.28% placed, and
+pydantic becomes 21.05% unresolved / 78.95% placed.
+
+### Verdict: PASS, registration not started
+
+Both corpora pass the fixed placement gate, so Task 7 is eligible on placement
+alone. Per the Task 6 hard stop, Task 7 was not started. In addition, the 88
+duplicate pydantic stable keys found during this run are an operational blocker
+that should be resolved before Python registration is attempted. The production
+registry and discovery allowlist remain unchanged, and Python-only repositories
+still index zero files.
+
+### Raw resolved outputs
+
+#### agentdock
+
+```json
+{
+  "repo": "../agentdock",
+  "files": 56,
+  "parseErrorFiles": 0,
+  "references": 3023,
+  "COMPILER": 234,
+  "LEXICAL": 287,
+  "HEURISTIC": 101,
+  "EXTERNAL": 2171,
+  "UNRESOLVED": 230,
+  "inRepoReferences": 852,
+  "unresolvedShare": 27,
+  "placedShare": 73,
+  "verdict": "PASS",
+  "pyright": {
+    "version": "1.1.413",
+    "queries": 1884,
+    "answered": 1555,
+    "noDefinition": 329,
+    "upgraded": 251,
+    "externalized": 1295,
+    "externalAdded": 1295,
+    "typeshedAdded": 1295,
+    "unresolvedCleared": 1170,
+    "extraUnresolvedCleared": 33,
+    "skippedNullSites": 0,
+    "unmatchedSites": 0,
+    "warnings": []
+  }
+}
+```
+
+#### pydantic
+
+```json
+{
+  "repo": "../../../private/tmp/sonde-corpora/pydantic",
+  "files": 441,
+  "parseErrorFiles": 1,
+  "references": 68838,
+  "COMPILER": 13794,
+  "LEXICAL": 6593,
+  "HEURISTIC": 4501,
+  "EXTERNAL": 38700,
+  "UNRESOLVED": 5250,
+  "inRepoReferences": 30138,
+  "unresolvedShare": 17.42,
+  "placedShare": 82.58,
+  "verdict": "PASS",
+  "pyright": {
+    "version": "1.1.413",
+    "queries": 37763,
+    "answered": 30947,
+    "noDefinition": 6816,
+    "upgraded": 14441,
+    "externalized": 14419,
+    "externalAdded": 14419,
+    "typeshedAdded": 14388,
+    "unresolvedCleared": 23091,
+    "extraUnresolvedCleared": 1386,
+    "skippedNullSites": 0,
+    "unmatchedSites": 0,
+    "warnings": []
+  }
+}
+```
