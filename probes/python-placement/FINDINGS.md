@@ -670,3 +670,64 @@ still index zero files.
   }
 }
 ```
+
+---
+
+## Authoritative re-run after the stable-key fix — 2026-08-28
+
+The previous pyright measurement was taken with symbol insertion temporarily
+using `INSERT OR IGNORE`, because pydantic's 88 colliding stable keys made
+production indexing fail with `UNIQUE constraint failed: symbol.stable_key`.
+That made the run non-authoritative by this project's own standard: a number
+measured under a modified indexer is a hypothesis, not a result.
+
+The collision is now fixed properly in the extractor (`fix: guarantee unique
+Python stable keys`), and both corpora extract **zero** duplicate keys. This
+is the fresh run against the unchanged thresholds in `PROTOCOL.md`.
+
+Python was again enabled in `registry.ts` and default discovery in the working
+tree only, and both edits were reverted before this record was committed.
+Python remains unregistered.
+
+### Results
+
+| Corpus | Files | COMPILER | LEXICAL | HEURISTIC | EXTERNAL | UNRESOLVED | Unresolved share | Placed | Verdict |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| agentdock | 56 | 234 | 287 | 101 | 2,171 | 230 | **27.00%** | 73.00% | PASS |
+| pydantic | 441 | 13,601 | 6,595 | 4,669 | 38,700 | 5,245 | **17.42%** | 82.58% | PASS |
+
+Worse corpus is agentdock. Verdict: **PASS**, unchanged.
+
+### Effect of the stable-key fix on the measurement
+
+agentdock is byte-identical to the collapsed run — it had no colliding keys of
+consequence. pydantic moved only slightly (`COMPILER` 13,794 → 13,601,
+`HEURISTIC` 4,501 → 4,669, `UNRESOLVED` 5,250 → 5,245), and its gate shares are
+unchanged at 17.42% / 82.58%.
+
+So the temporary collapse did not manufacture the earlier PASS. That was worth
+establishing rather than assuming, and it is now established by measurement
+instead of by argument.
+
+### The margin is thin on the worse corpus, and that is the number to quote
+
+`deleteUnresolvedFor` clears every unresolved row with a given name under a
+symbol, not only the answered site (`src/store/repos.ts:302`), so one answered
+site can clear rows pyright never answered. `runCompilerPass` behaves
+identically, so this is inherited precedent rather than a new bias — but it
+moves the gate numerator, and the gate is a published bar.
+
+Reversing it completely:
+
+| Corpus | Extra rows cleared | Unresolved share with them restored | Margin to the 30% ceiling |
+|---|---:|---:|---:|
+| agentdock | 33 | 29.72% | **+0.28 pts** |
+| pydantic | 1,377 | 21.03% | +8.97 pts |
+
+Both still pass. But agentdock passing by 0.28 points is roughly three
+references from FAIL, and any future change to how declarations are keyed,
+counted, or cleared could move it either way. The honest summary of this gate
+is **"passes, narrowly, on the worse corpus"** — not "passes".
+
+A site-scoped variant of `deleteUnresolvedFor` would remove the ambiguity
+entirely and is the obvious next hardening if this margin ever matters.
