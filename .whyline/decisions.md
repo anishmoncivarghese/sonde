@@ -1594,3 +1594,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/resolve/pyrightPass.ts, src/store/repos.ts, src/adapters/types.ts
 
 <!-- whyline-event: e0170d11fe174d24992ffa8566124aed -->
+
+## 2026-08-28 — Store pyright provenance separately and surface pipeline degradation
+
+**Actor:** codex
+**Role:** implementer
+**Task:** pyright-tier-task-5
+
+**Because:** A single compiler_version key cannot truthfully identify both tsc and pyright, and an unavailable pyright pass must remain visible even when TypeScript resolution succeeds
+
+**Rejected:**
+
+- Overwrite compiler_version with pyright — mixed-language indexes would lose TypeScript provenance
+- Represent unavailable as null only — callers could not distinguish failure from no Python work
+
+**Files:** src/index/pipeline.ts, src/store/repos.ts, src/cli/main.ts
+
+<!-- whyline-event: 47fb236fcd8a44e69786e495abe1b285 -->

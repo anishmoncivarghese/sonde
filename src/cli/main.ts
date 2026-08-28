@@ -64,6 +64,10 @@ function compilerIndexSummary(
     : `; compiler upgraded ${upgraded} edge(s)`;
 }
 
+function indexWarningSummary(warnings: string[]): string {
+  return warnings.length === 0 ? "" : `; warning: ${warnings.join("; ")}`;
+}
+
 function rootHash(boundary: RepoBoundary): string {
   return createHash("sha256")
     .update(boundary.root)
@@ -110,7 +114,7 @@ program
       compilerIndexSummary(
         options.resolve === true,
         indexStats.compilerUpgraded,
-      );
+      ) + indexWarningSummary(indexStats.warnings);
 
     const boundary = new RepoBoundary(path);
     const mcpPath = boundary.resolve(".mcp.json");
@@ -200,7 +204,7 @@ program
         compilerIndexSummary(
           options.resolve === true,
           stats.compilerUpgraded,
-        ),
+        ) + indexWarningSummary(stats.warnings),
     );
   });
 
@@ -226,7 +230,7 @@ program
         compilerIndexSummary(
           options.resolve === true,
           stats.compilerUpgraded,
-        ),
+        ) + indexWarningSummary(stats.warnings),
     );
   });
 

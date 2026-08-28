@@ -535,6 +535,27 @@ export class Store {
     return row?.value ?? null;
   }
 
+  /** Pyright provenance is independent from the TypeScript compiler version. */
+  setPyrightVersion(version: string | null): void {
+    if (version === null) {
+      this.db.prepare("DELETE FROM meta WHERE key = 'pyright_version'").run();
+      return;
+    }
+    this.db
+      .prepare(
+        `INSERT INTO meta (key, value) VALUES ('pyright_version', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      )
+      .run(version);
+  }
+
+  pyrightVersion(): string | null {
+    const row = this.db
+      .prepare("SELECT value FROM meta WHERE key = 'pyright_version'")
+      .get() as { value: string } | undefined;
+    return row?.value ?? null;
+  }
+
   symbolsInFile(path: string): SymbolRow[] {
     const rows = this.db
       .prepare(`${SYMBOL_SELECT} WHERE f.path = ? ORDER BY s.start_byte`)

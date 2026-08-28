@@ -13,6 +13,7 @@ import { RepoBoundary } from "../repo/boundary.js";
 import { discover, type FileRecord } from "../repo/discover.js";
 import { resolveAll } from "../resolve/resolver.js";
 import { runCompilerPass } from "../resolve/compilerPass.js";
+import { runPyrightPass } from "../resolve/pyrightPass.js";
 import { migrate, openDb, Store } from "../store/index.js";
 import { loadTsConfig } from "../tsconfig/load.js";
 
@@ -25,6 +26,7 @@ export interface IndexStats {
   unresolved: number;
   parseFailures: number;
   compilerUpgraded: number | null;
+  warnings: string[];
 }
 
 export interface IndexOptions {
@@ -153,6 +155,7 @@ async function run(
       unresolved: resolved.unresolved.length,
       parseFailures: failed.size,
       compilerUpgraded: null,
+      warnings: [],
     };
 
     store.transaction(() => {
@@ -194,6 +197,7 @@ async function run(
       // version is restored below only when this invocation completes a fresh
       // compiler pass; inline refresh therefore discloses its downgrade.
       store.setCompilerVersion(null);
+      store.setPyrightVersion(null);
     });
 
     // The deterministic index is already committed. Compiler resolution is an
@@ -211,6 +215,27 @@ async function run(
         // The pass clears unresolved records it has placed, so the figure taken
         // during RESOLVE is stale by exactly the number of references the
         // compiler rescued — it understated the benefit of --resolve.
+        stats.unresolved = store.countUnresolved();
+      }
+
+      // Python remains deliberately unregistered until its measured placement
+      // gate passes. The pass still runs here so registration, if earned, does
+      // not require another pipeline change (spec §3.2).
+      const pyrightResult = await runPyrightPass(root, store);
+      if (pyrightResult && "unavailable" in pyrightResult) {
+        stats.warnings.push(
+          `pyright COMPILER tier unavailable: ${pyrightResult.reason}`,
+        );
+      } else if (pyrightResult) {
+        stats.compilerUpgraded =
+          (stats.compilerUpgraded ?? 0) + pyrightResult.upgraded;
+        stats.warnings.push(...pyrightResult.warnings);
+        store.setPyrightVersion(pyrightResult.pyrightVersion);
+        stats.edges = Object.values(store.tierCounts()).reduce(
+          (total, count) => total + count,
+          0,
+        );
+        stats.external = store.countExternal();
         stats.unresolved = store.countUnresolved();
       }
     }
