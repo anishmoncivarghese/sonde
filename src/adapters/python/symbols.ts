@@ -27,6 +27,33 @@ function signatureOf(node: SyntaxNode): string | null {
   return `${params.text}${returns ? ` -> ${returns.text}` : ""}`;
 }
 
+/**
+ * Decorator text lines attached to a definition, if any.
+ *
+ * The decorators are the only in-source evidence that distinguishes an
+ * `@overload` type declaration from an implementation, or a property setter
+ * from its getter. Both are needed to keep stable keys unique without falling
+ * back on line numbers (invariant 9).
+ */
+function decoratorsOf(decorated: SyntaxNode): string[] {
+  return decorated.namedChildren
+    .filter((child) => child?.type === "decorator")
+    .map((child) => child!.text.split("\n")[0]!.trim());
+}
+
+function isOverloadStub(decorators: string[]): boolean {
+  return decorators.some((d) => /^@\s*(typing\.)?overload\b/.test(d));
+}
+
+/** `@x.setter` → "setter". A plain `@property` is the base accessor. */
+function accessorRole(decorators: string[]): string | null {
+  for (const decorator of decorators) {
+    const match = /^@[A-Za-z_][\w.]*\.(setter|getter|deleter)\b/.exec(decorator);
+    if (match) return match[1]!;
+  }
+  return null;
+}
+
 function record(
   path: string,
   scope: string[],
@@ -34,9 +61,12 @@ function record(
   kind: SymbolKind,
   node: SyntaxNode,
   signature: string | null,
+  keyName: string = name,
 ): SymbolRecord {
   return {
-    stableKey: stableKey(path, [...scope, name]),
+    // The key may carry a disambiguating suffix; the display fields never do,
+    // so `find_symbols` still matches what a human would type.
+    stableKey: stableKey(path, [...scope, keyName]),
     qualifiedName: [...scope, name].join("."),
     shortName: name,
     kind,
@@ -56,12 +86,75 @@ function record(
 
 type EnclosingKind = "class" | "function" | null;
 
+interface Candidate {
+  symbol: SymbolRecord;
+  /** An `@overload` declaration, which is a type stub rather than code. */
+  overload: boolean;
+}
+
+/**
+ * Guarantee one symbol per stable key.
+ *
+ * Four distinct causes produced collisions on real code, measured on pydantic:
+ * module-level rebinding (37 keys), `@overload` families (29), property
+ * accessor triples (9), and genuine same-scope redefinitions (13). Each needs
+ * different treatment, and none may resort to a line number (invariant 9).
+ */
+function deduplicate(candidates: Candidate[]): SymbolRecord[] {
+  const byKey = new Map<string, Candidate[]>();
+  for (const candidate of candidates) {
+    const group = byKey.get(candidate.symbol.stableKey) ?? [];
+    group.push(candidate);
+    byKey.set(candidate.symbol.stableKey, group);
+  }
+
+  const kept = new Set<SymbolRecord>();
+  for (const group of byKey.values()) {
+    const first = group[0]!;
+    if (group.length === 1) {
+      kept.add(first.symbol);
+      continue;
+    }
+
+    // A name rebound in one scope is one variable, however often it is assigned.
+    if (first.symbol.kind === "variable") {
+      kept.add(first.symbol);
+      continue;
+    }
+
+    // PEP 484 overloads declare types for a single runtime function, so the
+    // family is one symbol. Prefer the implementation; a .pyi stub file has
+    // none, so the first declaration represents it.
+    const implementations = group.filter((c) => !c.overload);
+    if (implementations.length <= 1 && group.some((c) => c.overload)) {
+      kept.add((implementations[0] ?? first).symbol);
+      continue;
+    }
+
+    // What remains is genuinely distinct code sharing a scope chain. The first
+    // keeps its bare key so existing identities never move; the rest take an
+    // ordinal, which survives line moves and body edits and changes only when
+    // a same-named sibling is inserted before them.
+    for (const [index, candidate] of group.entries()) {
+      kept.add(
+        index === 0
+          ? candidate.symbol
+          : { ...candidate.symbol, stableKey: `${candidate.symbol.stableKey}$${index + 1}` },
+      );
+    }
+  }
+
+  // Preserve source order rather than grouping order.
+  const order = new Map(candidates.map((c, i) => [c.symbol, i]));
+  return [...kept].sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
+}
+
 export function extractPythonSymbols(
   path: string,
   _source: string,
   tree: Tree,
 ): SymbolRecord[] {
-  const out: SymbolRecord[] = [];
+  const candidates: Candidate[] = [];
 
   const visit = (
     node: SyntaxNode,
@@ -71,40 +164,53 @@ export function extractPythonSymbols(
     for (const child of node.namedChildren) {
       if (!child) continue;
 
-      // A decorated def/class wraps the definition; recurse past the wrapper.
-      if (child.type === "decorated_definition") {
-        visit(child, scope, enclosingKind);
-        continue;
-      }
+      // A decorated def/class wraps the definition. The decorators must travel
+      // with it: they are what separates an overload stub from an
+      // implementation, and a property setter from its getter.
+      const decorated = child.type === "decorated_definition";
+      const definition = decorated
+        ? child.namedChildren.find(
+            (c) =>
+              c?.type === "function_definition" || c?.type === "class_definition",
+          )
+        : child;
+      if (decorated && !definition) continue;
+      const decorators = decorated ? decoratorsOf(child) : [];
+      const target = definition!;
 
       if (
-        child.type === "function_definition" ||
-        child.type === "class_definition"
+        target.type === "function_definition" ||
+        target.type === "class_definition"
       ) {
-        const name = child.childForFieldName("name")?.text;
+        const name = target.childForFieldName("name")?.text;
         if (!name) continue;
         const kind: SymbolKind =
-          child.type === "class_definition"
+          target.type === "class_definition"
             ? "class"
             : enclosingKind === "class"
               ? "method"
               : "function";
-        out.push(
-          record(
+        // `@` cannot appear in a Python identifier, so a role suffix can never
+        // collide with a real name.
+        const role = accessorRole(decorators);
+        candidates.push({
+          symbol: record(
             path,
             scope,
             name,
             kind,
-            child,
-            child.type === "function_definition" ? signatureOf(child) : null,
+            target,
+            target.type === "function_definition" ? signatureOf(target) : null,
+            role ? `${name}@${role}` : name,
           ),
-        );
-        const body = child.childForFieldName("body");
+          overload: isOverloadStub(decorators),
+        });
+        const body = target.childForFieldName("body");
         if (body) {
           visit(
             body,
             [...scope, name],
-            child.type === "class_definition" ? "class" : "function",
+            target.type === "class_definition" ? "class" : "function",
           );
         }
         continue;
@@ -114,9 +220,12 @@ export function extractPythonSymbols(
         const assignment = child.namedChildren.find(
           (candidate) => candidate?.type === "assignment",
         );
-        const target = assignment?.namedChildren[0];
-        if (target?.type === "identifier") {
-          out.push(record(path, scope, target.text, "variable", child, null));
+        const assignTarget = assignment?.namedChildren[0];
+        if (assignTarget?.type === "identifier") {
+          candidates.push({
+            symbol: record(path, scope, assignTarget.text, "variable", child, null),
+            overload: false,
+          });
         }
         continue;
       }
@@ -126,5 +235,5 @@ export function extractPythonSymbols(
   };
 
   visit(tree.rootNode, [], null);
-  return out;
+  return deduplicate(candidates);
 }
