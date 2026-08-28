@@ -1,4 +1,6 @@
 import type { LanguageAdapter } from "./types.js";
+import { pythonAdapter } from "./python/index.js";
+import { getPythonParser } from "./python/parser.js";
 import { swiftAdapter } from "./swift/index.js";
 import { getSwiftParser } from "./swift/parser.js";
 import { typescriptAdapter } from "./typescript/index.js";
@@ -12,6 +14,7 @@ interface Registration {
 const registrations: readonly Registration[] = [
   { adapter: typescriptAdapter, initialize: getTsParser },
   { adapter: swiftAdapter, initialize: getSwiftParser },
+  { adapter: pythonAdapter, initialize: getPythonParser },
 ];
 
 export function adapterForPath(path: string): LanguageAdapter | null {

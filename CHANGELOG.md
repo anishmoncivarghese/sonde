@@ -5,6 +5,16 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- Python `.py` and `.pyi` indexing, backed by the bundled pyright when
+  `--resolve` is enabled. Against the fixed placement gate, unresolved
+  reference sites fell from 62.81% to 27.00% on agentdock and from 57.39% to
+  17.42% on pydantic. The worse corpus passes narrowly: restoring the known
+  name-wide deletion bias leaves a 0.28-point margin below the 30% ceiling.
+  This gate measures placement, not target correctness; Python does not yet
+  have an independent oracle equivalent to TypeScript's `ORACLE.md`.
+
 ## [0.2.2] — 2026-08-24
 
 ### Added

@@ -1672,3 +1672,21 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/python/symbols.ts
 
 <!-- whyline-event: b0b5f4ea9fef4abdb61732461f2a8683 -->
+
+## 2026-08-28 — Ship Python registration and discovery together after the authoritative pyright gate PASS
+
+**Actor:** codex
+**Role:** reviewer-implementer
+**Task:** pyright-tier-task-7
+
+**Because:** The stable-key fix removed all duplicate keys, the fresh fixed-threshold gate measured 27.00% unresolved on agentdock and 17.42% on pydantic, and the production smoke indexed 56 files with 251 compiler upgrades
+
+**Rejected:**
+
+- Register only the adapter — default discovery would silently filter every Python file
+- Open .py discovery without registration — discovered files would have no adapter and still be skipped
+- Recommend tree-sitter-only Python — its 62.81% and 57.39% unresolved shares failed the fixed gate
+
+**Files:** src/adapters/registry.ts, src/repo/discover.ts, README.md, CHANGELOG.md
+
+<!-- whyline-event: 285fa99928e04219830b025ce5bd8b1e -->

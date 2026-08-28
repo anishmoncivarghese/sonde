@@ -20,7 +20,15 @@ export interface DiscoverOptions {
 }
 
 const DEFAULT_MAX_BYTES = 2_000_000;
-const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".swift"]);
+const SOURCE_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".swift",
+  ".py",
+  ".pyi",
+]);
 
 export function discover(
   boundary: RepoBoundary,

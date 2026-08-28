@@ -13,12 +13,15 @@ function repo(): RepoBoundary {
 }
 
 describe("discover extension filtering", () => {
-  it("keeps the default allowlist unchanged", () => {
+  it("discovers Python files by default now that the adapter ships", () => {
+    // Registration in registry.ts alone is a silent no-op: the registry
+    // decides which adapter handles a file, discovery decides whether the
+    // file is ever offered to one.
     const found = discover(repo(), { hashContent: false }).map(
       (file) => file.path,
     );
     expect(found).toContain("a.ts");
-    expect(found).not.toContain("b.py");
+    expect(found).toContain("b.py");
   });
 
   it("honours an explicit extension override", () => {

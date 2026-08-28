@@ -4,11 +4,11 @@
 [![npm](https://img.shields.io/npm/v/%40cheppulabs%2Fsonde.svg)](https://www.npmjs.com/package/@cheppulabs/sonde)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-A local code-context engine for AI coding agents. Sonde indexes a
-TypeScript repository into a symbol-level graph in SQLite and exposes three MCP
-tools — `find_symbols`, `query_graph`, and `get_impact_radius` — so an agent can
-answer *who calls this*, *what breaks if I change it*, and *which tests relate
-to it* in one call instead of a search loop.
+A local code-context engine for AI coding agents. Sonde indexes a TypeScript,
+Python, or Swift repository into a symbol-level graph in SQLite and exposes
+three MCP tools — `find_symbols`, `query_graph`, and `get_impact_radius` — so an
+agent can answer *who calls this*, *what breaks if I change it*, and *which
+tests relate to it* in one call instead of a search loop.
 
 ## What the benchmark actually shows
 
@@ -54,6 +54,9 @@ this project's `.mcp.json`, asking before it writes anything (skip the prompt
 with `sonde init --yes`). It never touches an `.mcp.json` it can't safely merge
 into — an existing `sonde` entry that differs from what `init` would write is
 left alone and reported, not overwritten.
+
+For Python repositories, use `sonde init --resolve`; the default tree-sitter
+tier did not pass the project's placement gate for structural queries.
 
 Equivalent by hand, if you'd rather see every step:
 
@@ -184,7 +187,18 @@ sonde mcp serve [path]                     # MCP server over stdio
 - **Node 22+ is required.** `better-sqlite3` needs it; installing on an older
   Node prints an `EBADENGINE` warning but still completes. If `sonde` then
   fails to run, this is why — upgrade Node rather than ignore the warning.
-- **TypeScript and Swift only; no Python or other language adapter.**
+- **Python needs `--resolve`, and its edges are not oracle-verified.** Without
+  it, Python indexes at the tree-sitter tier only, which measured **62.81%
+  unresolved** on a real 56-file project and 57.39% on pydantic — far past the
+  30% ceiling this project requires, so it is not fit for structural queries.
+  With `--resolve`, a bundled pyright drives a `COMPILER` tier and the same
+  corpora measure **27.00%** and **17.42%** unresolved. That gate measured
+  *placement* — whether a reference found a target — not whether the target was
+  correct; TypeScript's edges are scored against `tsc` in `ORACLE.md` and
+  Python has no equivalent oracle. On the worse corpus the margin is thin: 0.28
+  points once a known upward bias is reversed. See
+  [`probes/python-placement/FINDINGS.md`](probes/python-placement/FINDINGS.md).
+- **TypeScript, Python and Swift only; no other language adapter.**
 - **Swift resolution is heuristic, not compiler-backed, and one narrowing
   rule is unvalidated.** References are narrowed by file visibility and
   explicit local type annotations, not full type inference. On a real

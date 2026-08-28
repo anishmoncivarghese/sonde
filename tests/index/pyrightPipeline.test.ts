@@ -30,9 +30,11 @@ describe("pyright pass wiring", () => {
     });
 
     expect(pyright.run).toHaveBeenCalledOnce();
-    // Registration remains gated on Task 6, so production discovery still
-    // indexes zero Python files at this point.
-    expect(stats.filesIndexed).toBe(0);
+    // The adapter is registered and `.py` is in the default allowlist, so
+    // production discovery now reaches Python. Both halves are required:
+    // registration alone leaves discovery filtering the file out, and this
+    // assertion is what catches that.
+    expect(stats.filesIndexed).toBe(1);
   });
 
   it("combines promotions and stores pyright provenance separately", async () => {
