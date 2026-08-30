@@ -8,6 +8,7 @@ const symbol = (
   stableKey: string,
   filePath: string,
   shortName: string,
+  isTest = false,
 ) => ({
   stableKey,
   filePath,
@@ -21,7 +22,7 @@ const symbol = (
   endLine: 1,
   bodyHash: null,
   exported: true,
-  isTest: false,
+  isTest,
 });
 
 beforeEach(() => {
@@ -51,7 +52,7 @@ beforeEach(() => {
   });
   store.insertSymbols([
     symbol("ts:src/a/main.ts#run", "src/a/main.ts", "run"),
-    symbol("ts:src/b/util.ts#helper", "src/b/util.ts", "helper"),
+    symbol("ts:src/b/util.ts#helper", "src/b/util.ts", "helper", true),
     symbol("ts:src/b/util.ts#other", "src/b/util.ts", "other"),
   ]);
   store.insertEdges([
@@ -91,6 +92,7 @@ describe("doc store queries", () => {
         srcFile: "src/a/main.ts",
         dstFile: "src/b/util.ts",
         dstName: "helper",
+        dstKind: "function",
         kind: "CALLS",
         tier: "LEXICAL",
       },
@@ -99,9 +101,9 @@ describe("doc store queries", () => {
 
   it("counts symbols per file, including indexed files with none", () => {
     expect(store.docSymbolCounts()).toEqual([
-      { filePath: "src/a/main.ts", symbols: 1 },
-      { filePath: "src/b/util.ts", symbols: 2 },
-      { filePath: "src/c/broken.ts", symbols: 0 },
+      { filePath: "src/a/main.ts", symbols: 1, testSymbols: 0 },
+      { filePath: "src/b/util.ts", symbols: 2, testSymbols: 1 },
+      { filePath: "src/c/broken.ts", symbols: 0, testSymbols: 0 },
     ]);
   });
 

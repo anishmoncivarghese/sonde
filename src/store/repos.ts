@@ -168,6 +168,7 @@ export class Store {
     srcFile: string;
     dstFile: string;
     dstName: string;
+    dstKind: string;
     kind: EdgeKind;
     tier: string;
   }> {
@@ -176,6 +177,7 @@ export class Store {
         `SELECT src_file.path AS srcFile,
                 dst_file.path AS dstFile,
                 target.short_name AS dstName,
+                target.kind AS dstKind,
                 edge.kind AS kind,
                 edge.tier AS tier
          FROM edge
@@ -191,21 +193,32 @@ export class Store {
         srcFile: string;
         dstFile: string;
         dstName: string;
+        dstKind: string;
         kind: EdgeKind;
         tier: string;
       }>;
   }
 
-  docSymbolCounts(): Array<{ filePath: string; symbols: number }> {
+  docSymbolCounts(): Array<{
+    filePath: string;
+    symbols: number;
+    testSymbols: number;
+  }> {
     return this.db
       .prepare(
-        `SELECT file.path AS filePath, COUNT(symbol.id) AS symbols
+        `SELECT file.path AS filePath,
+                COUNT(symbol.id) AS symbols,
+                COALESCE(SUM(symbol.is_test), 0) AS testSymbols
          FROM file
          LEFT JOIN symbol ON symbol.file_id = file.id
          GROUP BY file.path
          ORDER BY file.path`,
       )
-      .all() as Array<{ filePath: string; symbols: number }>;
+      .all() as Array<{
+        filePath: string;
+        symbols: number;
+        testSymbols: number;
+      }>;
   }
 
   /** Count files whose extraction was partial or failed; never coerce a flag. */

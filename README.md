@@ -68,6 +68,40 @@ sonde index .
 
 No account or hosted service is required.
 
+## Architecture documentation
+
+`sonde doc` writes an [`ARCHITECTURE.md`](ARCHITECTURE.md) describing the
+repository's modules, how they depend on each other, and what each one exposes —
+generated from the graph, so it reports what the code actually does rather than
+what someone remembered.
+
+```sh
+sonde doc            # write ARCHITECTURE.md
+sonde doc --stdout   # print it instead
+sonde doc --check    # fail if it is out of date (for CI)
+sonde doc --module src/store   # symbol-level detail, never committed
+```
+
+It is meant to be committed and regenerated, not hand-edited. Regeneration is
+byte-identical when nothing changed, so it does not churn your diffs; when two
+branches both regenerate it, resolve the conflict by running `sonde doc` again
+rather than merging by hand. It refuses to overwrite an `ARCHITECTURE.md` it did
+not generate.
+
+Three things it deliberately does **not** do:
+
+- **It does not draw a dependency it cannot evidence.** Module pairs that merely
+  share symbol names are excluded and counted separately. On this repository two
+  adapters share the filenames `symbols.ts`, `parser.ts` and `references.ts`,
+  which manufactured 62 heuristic "references" between modules that never import
+  each other — once the second-heaviest arrow in the diagram.
+- **It does not pretend the diagram is complete.** The diagram shows the
+  heaviest dependencies and states how many it omitted; the table below it goes
+  further, and `--module` has the rest. A diagram containing every dependency is
+  unreadable and therefore shows nothing.
+- **It does not claim to be current when it is not.** The header names the
+  commit it describes and warns when files have changed since.
+
 ## What it guarantees
 
 - **Never returns stale source bytes.** Whenever a response includes source,

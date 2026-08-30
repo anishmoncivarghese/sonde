@@ -100,6 +100,28 @@ describe("sonde doc", () => {
     expect(existsSync(join(root, "ARCHITECTURE.md"))).toBe(false);
   }, 120_000);
 
+  it("excludes all-test modules by default and includes them on request", () => {
+    const root = project();
+    mkdirSync(join(root, "tests/doc"), { recursive: true });
+    writeFileSync(
+      join(root, "tests/doc/render.test.ts"),
+      "export function testRender() { return true; }\n",
+    );
+    run(["index", root]);
+
+    const defaultOutput = run(["doc", root, "--stdout"]);
+    expect(defaultOutput).not.toContain("| `tests/doc` |");
+    expect(defaultOutput).toContain("--include-tests");
+
+    const withTests = run([
+      "doc",
+      root,
+      "--stdout",
+      "--include-tests",
+    ]);
+    expect(withTests).toContain("| `tests/doc` |");
+  }, 120_000);
+
   it("--check passes on a current file and fails on a stale one", () => {
     const root = project();
     run(["index", root]);

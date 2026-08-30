@@ -1791,3 +1791,36 @@ Append-only. Written by whyline; readable without it.
 **Files:** ARCHITECTURE.md, src/doc/modules.ts
 
 <!-- whyline-event: c5555d2985e74991886eb84942565034 -->
+
+## 2026-08-30 — Classify TypeScript file symbols with the test path convention
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-doc-task-7
+
+**Because:** The revised scope filter counts symbol.is_test, but the synthetic file symbol was always non-test and made every TypeScript test module appear mixed
+
+**Rejected:**
+
+- Ignore synthetic file symbols in the documentation query — that would make the query depend on symbol kinds instead of fixing inconsistent adapter evidence
+
+**Files:** src/adapters/typescript/index.ts, src/adapters/typescript/symbols.ts, tests/adapters/typescript-adapter.test.ts
+
+<!-- whyline-event: 53d35e8b1bbd46c19b67a6c59f6d5b34 -->
+
+## 2026-08-30 — Reject the second sonde doc output as still unreadable
+
+**Actor:** codex
+**Role:** reviewer
+**Task:** sonde-doc-task-7-step-8
+
+**Because:** Task 7 reduced the output to 363 lines and 25 diagram arrows, but it still has 32 modules, a 277-row dependency table, and module-surface lines up to 1,075 characters; benchmark, probe, and fixture modules obscure the production architecture
+
+**Rejected:**
+
+- Pass because the diagram meets its cap — the complete document remains unsuitable for a new contributor
+- Continue to documentation and commit — Step 8 explicitly requires stopping when human usefulness fails
+
+**Files:** src/doc/modules.ts, src/doc/render.ts
+
+<!-- whyline-event: 69a610807eec4456807addb0ed473e1d -->

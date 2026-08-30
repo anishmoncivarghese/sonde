@@ -5,6 +5,10 @@ import type { SymbolRecord } from "../types.js";
 
 const TEST_PATH = /(\.test\.|\.spec\.|(^|\/)__tests__\/)/;
 
+export function isTestPath(path: string): boolean {
+  return TEST_PATH.test(path);
+}
+
 interface PendingSymbol {
   node: SyntaxNode;
   name: string;
@@ -148,7 +152,7 @@ export function extractSymbols(
   tree: Tree,
 ): SymbolRecord[] {
   const pending: PendingSymbol[] = [];
-  const fileIsTest = TEST_PATH.test(path);
+  const fileIsTest = isTestPath(path);
 
   const visit = (node: SyntaxNode, chain: string[]): void => {
     let nextChain = chain;

@@ -7,6 +7,49 @@ import { DOC_MARKER, renderDoc, type DocStamp } from "./render.js";
 
 export const DOC_PATH = "ARCHITECTURE.md";
 
+/**
+ * Manifests that mark a directory as a project in its own right.
+ *
+ * A repository often vendors whole sample projects -- this one keeps three
+ * fixture repositories under `tests/fixtures/repos/` -- and their internals are
+ * not its architecture. Detecting them by their own manifest is mechanical,
+ * so it is evidence rather than a naming heuristic (invariant 1).
+ */
+const PROJECT_MANIFESTS = [
+  "package.json",
+  "tsconfig.json",
+  "pyproject.toml",
+  "Package.swift",
+];
+
+function findNestedProjectRoots(
+  boundary: RepoBoundary,
+  modulePaths: readonly string[],
+): string[] {
+  const roots = new Set<string>();
+  const checked = new Set<string>();
+  for (const modulePath of modulePaths) {
+    const parts = modulePath.split("/");
+    // Walk each ancestor, but never the repository root itself: its own
+    // manifest does not make the whole repository a nested project.
+    for (let depth = 1; depth <= parts.length; depth++) {
+      const dir = parts.slice(0, depth).join("/");
+      if (dir === "" || dir === "." || checked.has(dir)) continue;
+      checked.add(dir);
+      for (const manifest of PROJECT_MANIFESTS) {
+        try {
+          boundary.stat(`${dir}/${manifest}`);
+          roots.add(dir);
+          break;
+        } catch {
+          // Absent manifest: not a project root by this signal.
+        }
+      }
+    }
+  }
+  return [...roots].sort();
+}
+
 export class NoDocumentableModulesError extends Error {
   constructor() {
     super("index contains no modules; run `sonde index` on a source repository");
@@ -20,8 +63,23 @@ export type WriteOutcome =
   | { action: "unchanged" }
   | { action: "refused"; reason: "not-generated-by-sonde" };
 
-export function generateDoc(boundary: RepoBoundary, store: Store): string {
-  const graph = buildModuleGraph(store.docEdgeRows(), store.docSymbolCounts());
+export interface GenerateDocOptions {
+  includeTests?: boolean;
+}
+
+export function generateDoc(
+  boundary: RepoBoundary,
+  store: Store,
+  options: GenerateDocOptions = {},
+): string {
+  const symbolCounts = store.docSymbolCounts();
+  const graph = buildModuleGraph(store.docEdgeRows(), symbolCounts, {
+    ...options,
+    nestedProjectRoots: findNestedProjectRoots(
+      boundary,
+      symbolCounts.map((row) => row.filePath.split("/").slice(0, -1).join("/")),
+    ),
+  });
   if (graph.modules.length === 0) throw new NoDocumentableModulesError();
 
   const git = gitState(boundary);

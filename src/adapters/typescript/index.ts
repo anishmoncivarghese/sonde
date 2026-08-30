@@ -5,7 +5,7 @@ import type { ExtractResult, LanguageAdapter, SymbolRecord } from "../types.js";
 import { extractModuleTables } from "./modules.js";
 import { parserFor } from "./parser.js";
 import { extractReferences } from "./references.js";
-import { extractSymbols, stableKey } from "./symbols.js";
+import { extractSymbols, isTestPath, stableKey } from "./symbols.js";
 
 function fileSymbol(path: string, tree: Tree): SymbolRecord {
   return {
@@ -20,7 +20,7 @@ function fileSymbol(path: string, tree: Tree): SymbolRecord {
     endLine: tree.rootNode.endPosition.row + 1,
     bodyHash: null,
     exported: false,
-    isTest: false,
+    isTest: isTestPath(path),
   };
 }
 

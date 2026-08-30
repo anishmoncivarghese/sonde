@@ -1,5 +1,47 @@
 import type { ModuleDependency, ModuleGraph } from "./modules.js";
-import { moduleOf } from "./modules.js";
+import {
+  compareDependencies,
+  DIAGRAM_LIMIT,
+  moduleOf,
+  resolvedOf,
+} from "./modules.js";
+
+export { DIAGRAM_LIMIT } from "./modules.js";
+
+/**
+ * Nothing exhaustive belongs in the committed document (spec §4.3).
+ *
+ * The first dogfood shipped a complete dependency table of 277 rows and a
+ * surface list 1,049 characters wide for one module. Both were technically
+ * complete and neither was readable, which is the failure this document exists
+ * to avoid. Completeness lives behind `sonde doc --module`.
+ */
+export const TABLE_LIMIT = 30;
+
+/**
+ * Strip the lines that report *state* rather than structure.
+ *
+ * The header stamps the commit the document describes, so committing the
+ * document itself moves HEAD and changes the stamp — which would leave
+ * `--check` permanently failing on a file nobody had to touch. The drift
+ * warning is volatile for the same reason: it reflects the index, not the
+ * architecture. `--check` asks whether the *structure* is stale, so it
+ * compares everything except these.
+ */
+export function structuralBody(document: string): string {
+  // Blank lines go too: this exists only for comparison, so removing a
+  // volatile line must not leave whitespace behind that differs.
+  return document
+    .split("\n")
+    .filter((line) =>
+      line.trim() !== "" &&
+      !line.startsWith("Describes ") &&
+      !line.startsWith("> **") &&
+      !line.endsWith("were excluded. Run `sonde doc --include-tests` to include them.")
+    )
+    .join("\n");
+}
+export const SURFACE_LIMIT = 6;
 
 /** Allows the writer to distinguish Sonde output from a human-owned file. */
 export const DOC_MARKER =
@@ -22,10 +64,18 @@ function stampLine(stamp: DocStamp): string {
   return `Describes commit ${stamp.revision}${suffix}.`;
 }
 
+/**
+ * A dependency drawn dashed is real but thinly evidenced.
+ *
+ * Pairs with *no* resolved reference are not drawn at all, so testing for zero
+ * resolved evidence here would be dead code. What the reader needs flagged is
+ * the arrow that exists but rests mostly on name matching: `src/resolve` to
+ * `src/adapters/typescript` carries 2 resolved references and 60 heuristic
+ * ones, and should not look like `src/index` to `src/store`, which carries 41
+ * resolved.
+ */
 function isInferred(dependency: ModuleDependency): boolean {
-  return (
-    dependency.byTier.COMPILER === 0 && dependency.byTier.LEXICAL === 0
-  );
+  return dependency.byTier.HEURISTIC > resolvedOf(dependency);
 }
 
 function evidence(dependency: ModuleDependency): string {
@@ -103,6 +153,7 @@ export function renderModuleDetail(
 /** Pure ModuleGraph-to-Markdown rendering; no clock, I/O, or ambient paths. */
 export function renderDoc(graph: ModuleGraph, stamp: DocStamp): string {
   const lines: string[] = ["# Architecture", "", DOC_MARKER, ""];
+  const dependencies = [...graph.dependencies].sort(compareDependencies);
   const total =
     graph.tierTotals.COMPILER +
     graph.tierTotals.LEXICAL +
@@ -119,6 +170,13 @@ export function renderDoc(graph: ModuleGraph, stamp: DocStamp): string {
   };
 
   lines.push(stampLine(stamp), "");
+  if (graph.excludedTestModules > 0) {
+    lines.push(
+      `${graph.excludedTestModules} all-test module(s) were excluded. ` +
+        "Run `sonde doc --include-tests` to include them.",
+      "",
+    );
+  }
   if (stamp.driftedFiles > 0) {
     lines.push(
       `> **${stamp.driftedFiles} file(s) differ from the index used for this ` +
@@ -151,27 +209,58 @@ export function renderDoc(graph: ModuleGraph, stamp: DocStamp): string {
     "",
   );
 
-  if (graph.dependencies.length === 0) {
+  if (dependencies.length === 0) {
     lines.push("No cross-module references were found.", "");
   } else {
     lines.push("```mermaid", "graph LR");
-    for (const dependency of graph.dependencies) {
+    const verified = dependencies.filter(
+      (dep) => resolvedOf(dep) > 0,
+    );
+    for (const dependency of verified.slice(0, DIAGRAM_LIMIT)) {
       const arrow = isInferred(dependency) ? "-.->" : "-->";
       lines.push(
         `  ${idFor(dependency.from)}[${JSON.stringify(dependency.from)}] ` +
-          `${arrow}|${dependency.total}| ` +
+          `${arrow}|${resolvedOf(dependency)}| ` +
           `${idFor(dependency.to)}[${JSON.stringify(dependency.to)}]`,
       );
     }
     lines.push("```", "");
+    const omittedDependencies = Math.max(
+      graph.omittedDependencies,
+      dependencies.length - DIAGRAM_LIMIT,
+    );
+    if (omittedDependencies > 0) {
+      lines.push(
+        `${omittedDependencies} lower-weight dependency pair(s) are not shown ` +
+          "in the diagram; the table below is complete.",
+        "",
+      );
+    }
     lines.push(
       "| From | To | References | Evidence |",
       "|---|---|---:|---|",
     );
-    for (const dependency of graph.dependencies) {
+    for (const dependency of verified.slice(0, TABLE_LIMIT)) {
       lines.push(
         `| ${inlineCode(dependency.from)} | ${inlineCode(dependency.to)} | ` +
           `${dependency.total} | ${evidence(dependency)} |`,
+      );
+    }
+    const untabled = verified.length - TABLE_LIMIT;
+    if (untabled > 0) {
+      lines.push(
+        "",
+        `${untabled} lighter ${untabled === 1 ? "dependency is" : "dependencies are"} ` +
+          "not listed. Run `sonde doc --module <path>` for a module's complete set.",
+      );
+    }
+    if (graph.unverifiedPairs > 0) {
+      lines.push(
+        `${graph.unverifiedPairs} further module pair(s) share symbol names but ` +
+          "have no resolved reference between them. They are not shown: a shared " +
+          "name is a coincidence, not a dependency, and modules with parallel " +
+          "structure produce the most of them.",
+        "",
       );
     }
     lines.push("");
@@ -184,9 +273,13 @@ export function renderDoc(graph: ModuleGraph, stamp: DocStamp): string {
     "|---|---:|---:|---|",
   );
   for (const module of graph.modules) {
+    // Ranked by reference count upstream, so the shown names are the ones
+    // other modules actually lean on.
+    const shown = module.surface.slice(0, SURFACE_LIMIT).map(inlineCode);
+    const hidden = module.surface.length - shown.length;
     const surface = module.surface.length === 0
       ? "—"
-      : module.surface.map(inlineCode).join(", ");
+      : shown.join(", ") + (hidden > 0 ? `, +${hidden} more` : "");
     lines.push(
       `| ${inlineCode(module.path)} | ${module.files} | ${module.symbols} | ` +
         `${surface} |`,

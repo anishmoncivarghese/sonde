@@ -5,6 +5,21 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- `sonde doc` — generates a committed `ARCHITECTURE.md` from the graph, with
+  `--stdout`, `--check` (for CI), `--module` for symbol-level detail, and
+  `--include-tests`. Regeneration is byte-identical when nothing changed, so the
+  committed file does not churn diffs; the header stamps the commit it describes
+  and `--check` ignores that stamp, since committing the document itself moves
+  `HEAD`.
+- The document refuses to assert dependencies it cannot evidence. Module pairs
+  that only share symbol names are excluded and counted separately: on this
+  repository the swift and typescript adapters share filenames and therefore
+  function names, manufacturing 62 heuristic "references" between modules that
+  never import each other. Ranking by resolved rather than total references is
+  what keeps that out of the diagram.
+
 ## [0.3.1] — 2026-08-30
 
 ### Added

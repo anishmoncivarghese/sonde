@@ -54,6 +54,16 @@ describe("typescriptAdapter", () => {
     });
   });
 
+  it("marks the synthetic file symbol as test-owned in a test file", () => {
+    const result = typescriptAdapter.extract(
+      "tests/doc/render.test.ts",
+      Buffer.from("export function testRender() { return true; }"),
+    );
+
+    expect(result.symbols.length).toBeGreaterThan(0);
+    expect(result.symbols.every((symbol) => symbol.isTest)).toBe(true);
+  });
+
   it("attributes a top-level reference to the file symbol instead of dropping it", () => {
     const result = typescriptAdapter.extract(
       "src/a.ts",

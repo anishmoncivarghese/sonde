@@ -11,7 +11,7 @@ import {
   NoDocumentableModulesError,
   writeDoc,
 } from "../doc/index.js";
-import { renderModuleDetail } from "../doc/render.js";
+import { renderModuleDetail, structuralBody } from "../doc/render.js";
 import { indexPathFor } from "../index/cache.js";
 import { checkDrift } from "../index/drift.js";
 import { indexRepo, updateRepo } from "../index/pipeline.js";
@@ -311,9 +311,15 @@ program
   .option("--stdout", "print the document instead of writing it")
   .option("--check", "fail if the committed document is out of date")
   .option("--module <module>", "print symbol detail for one module")
+  .option("--include-tests", "include modules containing only test symbols")
   .action((
     path: string,
-    options: { stdout?: boolean; check?: boolean; module?: string },
+    options: {
+      stdout?: boolean;
+      check?: boolean;
+      module?: string;
+      includeTests?: boolean;
+    },
   ) => {
     const selectedModes = [
       options.stdout === true,
@@ -363,7 +369,9 @@ program
 
       let content: string;
       try {
-        content = generateDoc(boundary, store);
+        content = generateDoc(boundary, store, {
+          includeTests: options.includeTests,
+        });
       } catch (error) {
         if (!(error instanceof NoDocumentableModulesError)) throw error;
         console.error(error.message);
@@ -382,7 +390,10 @@ program
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
         }
-        if (current === content) {
+        if (
+          current !== null &&
+          structuralBody(current) === structuralBody(content)
+        ) {
           console.log(`${DOC_PATH} is up to date`);
           return;
         }
