@@ -1,6 +1,6 @@
 # Sonde — `sonde doc`, deterministic architecture documentation — Design
 
-**Status:** Approved for planning
+**Status:** Approved for planning — **revised 2026-08-30 after the first dogfood failed its readability gate.** See §11.
 **Date:** 2026-08-30
 **Relates to:** `2026-08-16-sonde-design.md` (base design; `spec §N` refers to it)
 
@@ -52,14 +52,25 @@ exist.
 
 ### 3.1 A module is a source file's immediate parent directory
 
-Mechanical, language-agnostic, needs no configuration. Measured against real
-repositories: this repository yields 16 modules, which is readable. A flat
-project collapses to one or two — correctly, because a flat project has no
-module structure to draw.
+Mechanical, language-agnostic, needs no configuration. Measured on this
+repository's full index: **52 modules, of which 17 are under `src/`** — the rest
+are tests, benchmarks and probes. A flat project collapses to one or two,
+correctly, because a flat project has no module structure to draw.
+
+An earlier revision of this document claimed 16 modules. That figure was
+measured over `src/` alone while the generator reads the whole index, and acting
+on it produced a 1,307-line document that failed its own readability gate (§11).
 
 Deliberately not: package manifests (absent in most languages), a configurable
 depth (a knob needing defence), or heuristic clustering (a guess, forbidden by
 invariant 1 in the one artifact people trust most).
+
+**Modules whose symbols are all test symbols are excluded by default.** This
+uses `symbol.is_test`, which the adapters already set from path conventions, so
+it introduces no new heuristic. On this repository test modules are 29 of 52,
+and they account for 59% of all dependency arrows — they bury the architecture
+a new contributor is trying to read. `--include-tests` opts them back in, and
+the document states that they were excluded.
 
 ### 3.2 Dependencies are aggregated, and carry their evidence
 
@@ -73,6 +84,13 @@ src/pack → src/query    18 edges  (HEURISTIC 18)
 
 The first is resolved fact. The second is inference, and the document says so:
 rendered dashed in the diagram, annotated in the table.
+
+**The diagram and the table are not the same artifact.** The table is complete.
+The diagram is a *summary* limited to the heaviest dependencies, because a
+diagram containing every dependency is unreadable and therefore shows nothing —
+measured on this repository, the complete graph is 615 arrows (§11). The
+diagram MUST state how many dependencies it omitted; withholding that would be
+the silent incompleteness invariant 8 forbids.
 
 This is what makes aggregation safe. A single heuristic edge between two modules
 is weak evidence; fifty is strong, because even when each individual target is
@@ -264,3 +282,48 @@ The tests that decide correctness rather than merely exercising the renderer:
 | Readers mistake heuristic arrows for facts | Evidence counts and dashed rendering (§3.2); tier composition in the header |
 | Non-deterministic output creates diff noise on every run | Explicitly tested (§8), not merely intended |
 | The document rots the way the predecessor's wiki did | The freshness stamp is in the header, and `--check` fails CI (§5) |
+
+
+---
+
+## 11. Outcome of the first dogfood — 2026-08-30
+
+Tasks 1–5 of the implementation plan were built and the generator works. Task 6
+ran it against this repository and **rejected the output at the readability
+gate**, correctly, before committing anything.
+
+### What was measured
+
+| | Value |
+|---|---:|
+| Generated lines | 1,307 |
+| Module rows | 52 (17 under `src/`) |
+| Dependency arrows | 615 |
+| Arrows touching `tests/` | 361 (59%) |
+| Arrows with both ends in `src/` | 159 |
+| Arrows backed by exactly one reference | 127 |
+
+### Two independent causes, not one
+
+**Scope.** §3.1's "16 modules" was measured over `src/` only while the generator
+reads everything indexed. Test, benchmark and probe modules are 35 of the 52 and
+contribute the majority of arrows. §3.1 now excludes all-test modules by
+default.
+
+**Density, which scope alone would not have fixed.** Even restricted to `src/`,
+159 arrows across 17 modules is unreadable. Filtering to dependencies with ten
+or more references still leaves 88, and the twenty heaviest carry only 32% of
+total reference mass — so there is no small set of hubs to fall back on. This
+repository is genuinely densely coupled at module granularity.
+
+The design error was conflating two artifacts. A dependency **table** can be
+complete; a dependency **diagram** cannot, because one drawn with every edge
+shows nothing. §3.2 now separates them: the table is exhaustive, the diagram is
+a disclosed summary of the heaviest dependencies.
+
+### Why this is recorded rather than quietly fixed
+
+The gate existed because generated documentation fails by being plausible and
+unread, and the predecessor's wiki (§1.1) failed exactly that way. A gate that
+is never allowed to fire is decoration. This one fired on the first real
+repository it saw, which is the outcome that justifies having built it.
