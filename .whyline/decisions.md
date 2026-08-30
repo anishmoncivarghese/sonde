@@ -1824,3 +1824,28 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/doc/modules.ts, src/doc/render.ts
 
 <!-- whyline-event: 69a610807eec4456807addb0ed473e1d -->
+
+## 2026-08-30 — Rank module dependencies by resolved references, never by volume
+
+**Because:** The spec claimed fifty heuristic edges is strong evidence of coupling, and this repository refuted it: the swift and typescript adapters share filenames and therefore function names, manufacturing 62 heuristic references between modules that never import each other, which became the second-heaviest arrow in the generated architecture document
+
+**Rejected:**
+
+- Keeping total-reference ranking — modules with parallel structure produce the most name-match noise, so volume ranks the most spurious pairs highest
+- Drawing heuristic-only pairs dashed instead of excluding them — a dashed arrow still asserts a dependency, and there is no evidence one exists
+
+**Files:** src/doc/modules.ts, src/doc/render.ts
+
+<!-- whyline-event: e2fbc673fc7049a799337afd374b9cc2 -->
+
+## 2026-08-30 — Finish sonde doc by iterating on the output rather than specifying it
+
+**Because:** Three specification rounds each produced a document that failed its readability gate, and each failure was only visible in the artifact -- 615 arrows, then 277 table rows and a 1,049-character line, then fabricated dependencies from name collisions; the cost was the round-trip between specifying and seeing, not the implementation
+
+**Rejected:**
+
+- A fourth specify-and-hand-off round — the same blind condition that produced the first three rejections
+
+**Files:** ARCHITECTURE.md
+
+<!-- whyline-event: 5c9cf08cb5c040e889ea8689247c6148 -->
