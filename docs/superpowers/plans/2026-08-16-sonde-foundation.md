@@ -304,7 +304,7 @@ describe("RepoBoundary", () => {
 
   it("rejects a NUL byte in the path", () => {
     const b = new RepoBoundary(root);
-    expect(() => b.resolve("a .ts")).toThrow(PathEscapeError);
+    expect(() => b.resolve("a\0.ts")).toThrow(PathEscapeError);
   });
 });
 ```
@@ -342,7 +342,7 @@ export class RepoBoundary {
 
   /** Resolve a repo-relative path to absolute, refusing anything outside the root. */
   resolve(rel: string): string {
-    if (rel.includes(" ")) throw new PathEscapeError(rel);
+    if (rel.includes("\0")) throw new PathEscapeError(rel);
     const abs = isAbsolute(rel) ? resolve(rel) : resolve(this.root, rel);
     if (!this.contains(abs)) throw new PathEscapeError(rel);
 
