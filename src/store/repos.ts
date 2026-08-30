@@ -157,6 +157,65 @@ export class Store {
       .all() as Array<{ shortName: string; filePath: string }>;
   }
 
+  /**
+   * Flat dependency evidence for pure documentation aggregation.
+   *
+   * CONTAINS is intra-file structure, not a dependency. TESTS is excluded
+   * because this document does not expose structural test relationships and
+   * therefore must not imply coverage (spec §3.4 / invariant 7).
+   */
+  docEdgeRows(): Array<{
+    srcFile: string;
+    dstFile: string;
+    dstName: string;
+    kind: EdgeKind;
+    tier: string;
+  }> {
+    return this.db
+      .prepare(
+        `SELECT src_file.path AS srcFile,
+                dst_file.path AS dstFile,
+                target.short_name AS dstName,
+                edge.kind AS kind,
+                edge.tier AS tier
+         FROM edge
+         JOIN symbol AS source ON source.id = edge.src_symbol_id
+         JOIN symbol AS target ON target.id = edge.dst_symbol_id
+         JOIN file AS src_file ON src_file.id = source.file_id
+         JOIN file AS dst_file ON dst_file.id = target.file_id
+         WHERE edge.kind NOT IN ('CONTAINS', 'TESTS')
+         ORDER BY src_file.path, dst_file.path, target.short_name,
+                  edge.kind, edge.tier`,
+      )
+      .all() as Array<{
+        srcFile: string;
+        dstFile: string;
+        dstName: string;
+        kind: EdgeKind;
+        tier: string;
+      }>;
+  }
+
+  docSymbolCounts(): Array<{ filePath: string; symbols: number }> {
+    return this.db
+      .prepare(
+        `SELECT file.path AS filePath, COUNT(symbol.id) AS symbols
+         FROM file
+         LEFT JOIN symbol ON symbol.file_id = file.id
+         GROUP BY file.path
+         ORDER BY file.path`,
+      )
+      .all() as Array<{ filePath: string; symbols: number }>;
+  }
+
+  /** Count files whose extraction was partial or failed; never coerce a flag. */
+  countParseFailures(): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) AS n FROM file WHERE parse_state != 'ok'")
+      .get() as { n: number };
+    return row.n;
+  }
+
   deleteFile(path: string): void {
     this.db.prepare("DELETE FROM file WHERE path = ?").run(path);
   }

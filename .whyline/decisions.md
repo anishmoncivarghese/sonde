@@ -1690,3 +1690,19 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/adapters/registry.ts, src/repo/discover.ts, README.md, CHANGELOG.md
 
 <!-- whyline-event: 285fa99928e04219830b025ce5bd8b1e -->
+
+## 2026-08-30 — Expose flat documentation rows and an actual parse-failure count
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-doc-task-1
+
+**Because:** Pure aggregation needs ungrouped evidence, and the architecture document must report the number of partial/failed files rather than fabricating 1 from a boolean
+
+**Rejected:**
+
+- Reuse tierCounts or hasParseFailures — they lose file/module evidence and do not provide the claimed count
+
+**Files:** src/store/repos.ts, tests/store/docQueries.test.ts
+
+<!-- whyline-event: 3109782d452c47efa98a9837615bd33a -->
