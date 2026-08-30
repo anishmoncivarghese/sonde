@@ -1706,3 +1706,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/store/repos.ts, tests/store/docQueries.test.ts
 
 <!-- whyline-event: 3109782d452c47efa98a9837615bd33a -->
+
+## 2026-08-30 — Make module aggregation pure and order-independent
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-doc-task-2
+
+**Because:** The committed architecture file must be byte-identical regardless of database row or Map insertion order, and its tier header describes only rendered cross-module references
+
+**Rejected:**
+
+- Use raw iteration order — SQLite and Map population order would leak into committed output
+- Include intra-module edges in tier totals — the header would count evidence absent from the dependency document
+
+**Files:** src/doc/modules.ts, tests/doc/modules.test.ts
+
+<!-- whyline-event: fd483718470d454d942a12a3b6c3634d -->
