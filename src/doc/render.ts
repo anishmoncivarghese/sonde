@@ -52,6 +52,8 @@ export interface DocStamp {
   dirty: boolean | null;
   driftedFiles: number;
   parseFailures: number;
+  /** TypeScript sources are indexed but the repository has no tsconfig.json. */
+  missingTsConfig: boolean;
 }
 
 function stampLine(stamp: DocStamp): string {
@@ -181,6 +183,14 @@ export function renderDoc(graph: ModuleGraph, stamp: DocStamp): string {
     lines.push(
       `> **${stamp.driftedFiles} file(s) differ from the index used for this ` +
         "document.** Run `sonde index`, then `sonde doc` to refresh.",
+      "",
+    );
+  }
+  if (stamp.missingTsConfig) {
+    lines.push(
+      "> **No `tsconfig.json` was found.** TypeScript module resolution needs " +
+        "one, so cross-module references may be missing from this document. " +
+        "Add a `tsconfig.json` and re-run `sonde index`, then `sonde doc`.",
       "",
     );
   }

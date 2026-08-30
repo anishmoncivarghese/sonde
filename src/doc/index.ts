@@ -15,6 +15,28 @@ export const DOC_PATH = "ARCHITECTURE.md";
  * not its architecture. Detecting them by their own manifest is mechanical,
  * so it is evidence rather than a naming heuristic (invariant 1).
  */
+/**
+ * TypeScript resolution needs a tsconfig.json to place cross-module imports.
+ *
+ * Without one the document renders every module with no dependencies at all,
+ * which is honest -- no reference resolved -- but reads like a broken tool.
+ * Invariant 8 says degrade with a warning rather than silently, so the
+ * document says why it is empty.
+ */
+function missingTsConfigFor(
+  boundary: RepoBoundary,
+  filePaths: readonly string[],
+): boolean {
+  const hasTypeScript = filePaths.some((path) => /\.(ts|tsx|mts|cts)$/.test(path));
+  if (!hasTypeScript) return false;
+  try {
+    boundary.stat("tsconfig.json");
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 const PROJECT_MANIFESTS = [
   "package.json",
   "tsconfig.json",
@@ -88,6 +110,10 @@ export function generateDoc(
     revision: git.revision,
     dirty: git.dirty,
     driftedFiles: drift.driftCount,
+    missingTsConfig: missingTsConfigFor(
+      boundary,
+      symbolCounts.map((row) => row.filePath),
+    ),
     parseFailures: store.countParseFailures(),
   };
   return renderDoc(graph, stamp);

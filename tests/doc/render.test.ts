@@ -39,6 +39,7 @@ const clean: DocStamp = {
   dirty: false,
   driftedFiles: 0,
   parseFailures: 0,
+  missingTsConfig: false,
 };
 
 describe("renderDoc", () => {
@@ -180,6 +181,7 @@ describe("the diagram is a summary, not the whole graph", () => {
       dirty: false,
       driftedFiles: 0,
       parseFailures: 0,
+      missingTsConfig: false,
     });
     const arrows = out
       .split("\n")
@@ -195,6 +197,7 @@ describe("the diagram is a summary, not the whole graph", () => {
       dirty: false,
       driftedFiles: 0,
       parseFailures: 0,
+      missingTsConfig: false,
     });
 
     for (let index = 0; index < 60; index += 1) {
@@ -212,10 +215,26 @@ describe("the diagram is a summary, not the whole graph", () => {
       dirty: false,
       driftedFiles: 0,
       parseFailures: 0,
+      missingTsConfig: false,
     });
 
     expect(out).toContain("29");
     expect(out).toContain("--include-tests");
+  });
+});
+
+describe("missing tsconfig disclosure", () => {
+  it("says so when a TypeScript repository has no tsconfig.json", () => {
+    // Without one, module resolution has nothing to resolve against and the
+    // document shows modules with no dependencies between them. That is an
+    // honest answer -- it found no resolved references -- but a reader would
+    // reasonably think Sonde had failed, so it is disclosed (invariant 8).
+    const out = renderDoc(graph(), { ...clean, missingTsConfig: true });
+    expect(out).toMatch(/tsconfig\.json/);
+  });
+
+  it("stays silent when a tsconfig is present", () => {
+    expect(renderDoc(graph(), clean)).not.toMatch(/tsconfig\.json/);
   });
 });
 

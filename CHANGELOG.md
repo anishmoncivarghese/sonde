@@ -5,6 +5,15 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- `sonde doc` discloses a missing `tsconfig.json`. Without one, TypeScript
+  module resolution has nothing to resolve against, so the document renders
+  every module with no dependencies between them. That is an honest answer —
+  no reference resolved — but it reads like a broken tool, so the header now
+  says why (invariant 8). The note appears only when TypeScript sources are
+  indexed, so Python- and Swift-only repositories are unaffected.
+
 ## [0.4.0] — 2026-08-30
 
 Generated architecture documentation. Minor rather than patch: a new command
