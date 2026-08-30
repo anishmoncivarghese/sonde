@@ -1,7 +1,11 @@
 # Sonde — Python language adapter — Design
 
-**Status:** Built and measured — **gate FAILED**. The adapter exists, is tested,
-and is deliberately **not registered**. See §11 before proposing changes here.
+**Status:** **Superseded.** The tree-sitter-only tier specified here failed its
+gate (§11) and was never registered on its own. Python now ships via the
+pyright-backed `COMPILER` tier in `2026-08-28-pyright-tier-design.md`, which
+reuses this document's extractor, linking and stable keys unchanged. This
+document remains authoritative for *how Python is extracted*, and is a
+historical record for *why the heuristic tier alone was not enough*.
 **Date:** 2026-08-25 (outcome recorded 2026-08-28)
 **Relates to:** `2026-08-16-sonde-design.md` (the base design; section numbers
 cited as `spec §N` refer to that document)

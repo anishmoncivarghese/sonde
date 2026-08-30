@@ -40,7 +40,9 @@ changed files, tests and results, open risks or questions, and a short summary.
 A local code-context engine for AI coding agents. It indexes a repository into a
 symbol-level graph in SQLite and exposes three MCP tools so an agent can ask
 structural questions text search cannot answer: who calls this, what breaks if I
-change it, which tests touch it. TypeScript first; Swift is the v0.2 wedge.
+change it, which tests touch it. TypeScript, Python and Swift. Python requires
+`--resolve`, which drives a bundled pyright; its tree-sitter-only tier measured
+far past the project's unresolved ceiling and is not fit for structural queries.
 
 ### Picking up this project (any agent, any vendor)
 

@@ -17,7 +17,8 @@ if (!root) throw new Error("usage: measure-resolved.ts <repo-path>");
 const dbDir = mkdtempSync(join(tmpdir(), "sonde-gate-"));
 const dbPath = join(dbDir, "index.sqlite");
 
-// Task 6 temporarily enables Python in registry/discovery while this runs.
+// Python is registered in production as of the passing gate, so no temporary
+// registry or discovery edit is needed to re-run this probe.
 // Resolution is invoked directly below so the probe can disclose the pass's
 // null-site, unmatched-site, and name-wide deletion accounting.
 const indexStats = await indexRepo(root, dbPath, { resolve: false });
