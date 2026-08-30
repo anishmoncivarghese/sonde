@@ -1723,3 +1723,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/doc/modules.ts, tests/doc/modules.test.ts
 
 <!-- whyline-event: fd483718470d454d942a12a3b6c3634d -->
+
+## 2026-08-30 — Render architecture Markdown with collision-free stable module IDs
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-doc-task-3
+
+**Because:** Sorted module ordinals make Mermaid nodes deterministic and distinct even when paths sanitize identically, while drift wording must describe divergence from the index rather than inventing a generation-time relationship
+
+**Rejected:**
+
+- Sanitize paths directly into Mermaid IDs — distinct module paths can collapse to one node
+- Tell users to rerun doc for index drift — documentation generation does not refresh the index
+
+**Files:** src/doc/render.ts, tests/doc/render.test.ts
+
+<!-- whyline-event: 8df08543f64b450e947b653be3efb8f1 -->
