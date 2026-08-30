@@ -1774,3 +1774,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/doc/render.ts, src/cli/main.ts, tests/cli/doc.test.ts
 
 <!-- whyline-event: 669b301ea995486baf507564ec0f6886 -->
+
+## 2026-08-30 — Reject the first sonde doc output as unreadable
+
+**Actor:** codex
+**Role:** reviewer
+**Task:** sonde-doc-task-6
+
+**Because:** Real-repository dogfood produced 1,307 lines, 52 module rows, and 615 dependency arrows; tests, probes, fixtures, and heuristic fanout bury the production architecture, contradicting the plan's verified 16-module claim
+
+**Rejected:**
+
+- Ship because tests pass — Task 6 explicitly requires human usefulness
+- Commit the generated document anyway — an unreadable architecture document fails the feature's purpose
+
+**Files:** ARCHITECTURE.md, src/doc/modules.ts
+
+<!-- whyline-event: c5555d2985e74991886eb84942565034 -->
