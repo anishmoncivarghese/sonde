@@ -1740,3 +1740,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/doc/render.ts, tests/doc/render.test.ts
 
 <!-- whyline-event: 8df08543f64b450e947b653be3efb8f1 -->
+
+## 2026-08-30 — Refuse empty architecture output and require an exact ownership marker
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-doc-task-4
+
+**Because:** An empty index must not produce a confident-looking page, and substring ownership could let a human document that merely discusses Sonde be overwritten
+
+**Rejected:**
+
+- Render an empty Architecture page — it would hide missing or unusable index state
+- Use String.includes for ownership — prose containing the marker text is not proof Sonde owns the file
+
+**Files:** src/doc/index.ts, tests/doc/generate.test.ts
+
+<!-- whyline-event: acbc1d5aa9f045c5b149fd80c397f50c -->
