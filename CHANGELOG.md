@@ -5,6 +5,11 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-30
+
+Generated architecture documentation. Minor rather than patch: a new command
+and a new committed artifact, with no breaking change to existing behaviour.
+
 ### Added
 
 - `sonde doc` — generates a committed `ARCHITECTURE.md` from the graph, with
