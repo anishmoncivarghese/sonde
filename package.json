@@ -1,6 +1,7 @@
 {
   "name": "@cheppulabs/sonde",
-  "version": "0.3.0",
+  "version": "0.3.1",
+  "mcpName": "io.github.anishmoncivarghese/sonde",
   "type": "module",
   "engines": {
     "node": ">=22"

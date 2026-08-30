@@ -5,6 +5,15 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-08-30
+
+### Added
+
+- `mcpName` in `package.json` and a `server.json` manifest, so Sonde can be
+  listed in the official MCP Registry. The registry verifies ownership by
+  matching `mcpName` against the published npm package, which is why this
+  needs a release rather than a repository-only change. No functional change.
+
 ## [0.3.0] — 2026-08-28
 
 Python support. Minor rather than patch because a new language ships and
