@@ -5,6 +5,13 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { existsSync, rmSync } from "node:fs";
 import { Command } from "commander";
 import { getTsParser } from "../adapters/typescript/parser.js";
+import {
+  DOC_PATH,
+  generateDoc,
+  NoDocumentableModulesError,
+  writeDoc,
+} from "../doc/index.js";
+import { renderModuleDetail } from "../doc/render.js";
 import { indexPathFor } from "../index/cache.js";
 import { checkDrift } from "../index/drift.js";
 import { indexRepo, updateRepo } from "../index/pipeline.js";
@@ -293,6 +300,107 @@ program
         `${drift.state} — drift ${drift.driftCount}; ${counts.symbols} symbols, ` +
           `${counts.edges} edges; tiers ${tierSummary}`,
       );
+    } finally {
+      db.close();
+    }
+  });
+
+program
+  .command("doc")
+  .argument("[path]", "repository root", ".")
+  .option("--stdout", "print the document instead of writing it")
+  .option("--check", "fail if the committed document is out of date")
+  .option("--module <module>", "print symbol detail for one module")
+  .action((
+    path: string,
+    options: { stdout?: boolean; check?: boolean; module?: string },
+  ) => {
+    const selectedModes = [
+      options.stdout === true,
+      options.check === true,
+      options.module !== undefined,
+    ].filter(Boolean).length;
+    if (selectedModes > 1) {
+      console.error("choose only one of --stdout, --check, or --module");
+      process.exitCode = 1;
+      return;
+    }
+
+    const dbPath = indexPathFor(path);
+    if (!existsSync(dbPath)) {
+      console.error("no index; run `sonde index`");
+      process.exitCode = 1;
+      return;
+    }
+
+    const db = openDb(dbPath);
+    try {
+      try {
+        migrate(db);
+      } catch (error) {
+        if (!(error instanceof SchemaVersionError)) throw error;
+        console.error(error.message);
+        process.exitCode = 1;
+        return;
+      }
+
+      const boundary = new RepoBoundary(path);
+      const store = new Store(db);
+      if (options.module !== undefined) {
+        const symbols = store.allFiles().flatMap(({ path: filePath }) =>
+          store.symbolsInFile(filePath).map((symbol) => ({
+            filePath: symbol.filePath,
+            qualifiedName: symbol.qualifiedName,
+            shortName: symbol.shortName,
+            kind: symbol.kind,
+          })),
+        );
+        process.stdout.write(
+          renderModuleDetail(options.module, symbols, store.docEdgeRows()),
+        );
+        return;
+      }
+
+      let content: string;
+      try {
+        content = generateDoc(boundary, store);
+      } catch (error) {
+        if (!(error instanceof NoDocumentableModulesError)) throw error;
+        console.error(error.message);
+        process.exitCode = 1;
+        return;
+      }
+
+      if (options.stdout === true) {
+        process.stdout.write(content);
+        return;
+      }
+      if (options.check === true) {
+        let current: string | null = null;
+        try {
+          current = boundary.readFile(DOC_PATH).toString("utf8");
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        }
+        if (current === content) {
+          console.log(`${DOC_PATH} is up to date`);
+          return;
+        }
+        console.error(`${DOC_PATH} is out of date; run \`sonde doc\``);
+        process.exitCode = 1;
+        return;
+      }
+
+      const outcome = writeDoc(boundary, content);
+      if (outcome.action === "refused") {
+        console.error(
+          `${DOC_PATH} was not written by sonde; refusing to overwrite it. ` +
+            "Use `sonde doc --stdout` to see the generated document.",
+        );
+        process.exitCode = 1;
+        return;
+      }
+      console.log(`${DOC_PATH} ${outcome.action}`);
     } finally {
       db.close();
     }

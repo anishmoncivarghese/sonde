@@ -1,4 +1,5 @@
 import type { ModuleDependency, ModuleGraph } from "./modules.js";
+import { moduleOf } from "./modules.js";
 
 /** Allows the writer to distinguish Sonde output from a human-owned file. */
 export const DOC_MARKER =
@@ -36,6 +37,67 @@ function evidence(dependency: ModuleDependency): string {
 
 function inlineCode(text: string): string {
   return `\`${text.replaceAll("|", "\\|")}\``;
+}
+
+export interface ModuleDetailSymbol {
+  filePath: string;
+  qualifiedName: string;
+  shortName: string;
+  kind: string;
+}
+
+export interface ModuleDetailEdge {
+  srcFile: string;
+  dstFile: string;
+  dstName: string;
+}
+
+/** Render volatile symbol detail from plain rows; never committed to disk. */
+export function renderModuleDetail(
+  modulePath: string,
+  symbols: ModuleDetailSymbol[],
+  edges: ModuleDetailEdge[],
+): string {
+  const incoming = new Map<string, Set<string>>();
+  for (const edge of edges) {
+    if (moduleOf(edge.dstFile) !== modulePath) continue;
+    const sourceModule = moduleOf(edge.srcFile);
+    if (sourceModule === modulePath) continue;
+    const sources = incoming.get(edge.dstName);
+    if (sources) sources.add(sourceModule);
+    else incoming.set(edge.dstName, new Set([sourceModule]));
+  }
+
+  const selected = symbols
+    .filter(({ filePath }) => moduleOf(filePath) === modulePath)
+    .sort((left, right) => {
+      const leftKey = `${left.shortName}\u0000${left.qualifiedName}\u0000${left.filePath}`;
+      const rightKey = `${right.shortName}\u0000${right.qualifiedName}\u0000${right.filePath}`;
+      return leftKey === rightKey ? 0 : leftKey < rightKey ? -1 : 1;
+    });
+
+  const lines = [`# Module ${inlineCode(modulePath)}`, ""];
+  if (selected.length === 0) {
+    lines.push("No indexed symbols were found for this module.", "");
+    return lines.join("\n");
+  }
+
+  lines.push(
+    "| Symbol | Kind | File | Referenced by modules |",
+    "|---|---|---|---|",
+  );
+  for (const symbol of selected) {
+    const referencedBy = [...(incoming.get(symbol.shortName) ?? [])]
+      .sort()
+      .map(inlineCode)
+      .join(", ") || "—";
+    lines.push(
+      `| ${inlineCode(symbol.qualifiedName)} | ${symbol.kind} | ` +
+        `${inlineCode(symbol.filePath)} | ${referencedBy} |`,
+    );
+  }
+  lines.push("");
+  return lines.join("\n");
 }
 
 /** Pure ModuleGraph-to-Markdown rendering; no clock, I/O, or ambient paths. */

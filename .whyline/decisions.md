@@ -1757,3 +1757,20 @@ Append-only. Written by whyline; readable without it.
 **Files:** src/doc/index.ts, tests/doc/generate.test.ts
 
 <!-- whyline-event: acbc1d5aa9f045c5b149fd80c397f50c -->
+
+## 2026-08-30 — Keep module-detail rendering pure over explicit store rows
+
+**Actor:** codex
+**Role:** implementer
+**Task:** sonde-doc-task-5
+
+**Because:** The renderer must remain deterministic and independently testable; the CLI owns store access and passes sorted symbol/dependency evidence into formatting
+
+**Rejected:**
+
+- Pass Store into renderModuleDetail as sketched — that makes rendering database-coupled and contradicts the plan's purity boundary
+- Drop the cross-module consumer assertion — the fixture needed its real bundler resolution configuration, not a weaker contract
+
+**Files:** src/doc/render.ts, src/cli/main.ts, tests/cli/doc.test.ts
+
+<!-- whyline-event: 669b301ea995486baf507564ec0f6886 -->
