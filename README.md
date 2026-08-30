@@ -77,7 +77,8 @@ No account or hosted service is required.
   cannot verify (spec §8.1, Guarantee B). `sonde status` shows the same
   drift and tier distribution carried by tool response envelopes.
 - **Every edge is tier-labelled by how it was found** — `COMPILER` (resolved
-  exactly by the bundled TypeScript compiler under `--resolve`), `LEXICAL`
+  exactly by a bundled type checker under `--resolve`: the TypeScript compiler
+  for TypeScript, pyright for Python), `LEXICAL`
   (resolved through an import binding or lexical scope), `HEURISTIC` (member
   access or another relationship requiring type inference), `EXTERNAL` (target
   outside the indexed repository), or `UNRESOLVED` (genuinely unplaceable,
@@ -182,7 +183,7 @@ sonde mcp serve [path]                     # MCP server over stdio
 `--token-budget <n>`. The `init`, `index`, `update`, `status`, `search`, `query`,
 `impact`, `doctor`, and `clean` commands accept `--json`.
 
-## Known limitations (v0.2.1)
+## Known limitations
 
 - **Node 22+ is required.** `better-sqlite3` needs it; installing on an older
   Node prints an `EBADENGINE` warning but still completes. If `sonde` then

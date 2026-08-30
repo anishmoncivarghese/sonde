@@ -5,6 +5,11 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-08-28
+
+Python support. Minor rather than patch because a new language ships and
+`pyright` becomes a hard dependency, which materially changes install size.
+
 ### Added
 
 - Python `.py` and `.pyi` indexing, backed by the bundled pyright when
@@ -14,6 +19,36 @@ All notable changes to this project are documented here. Format follows
   name-wide deletion bias leaves a 0.28-point margin below the 30% ceiling.
   This gate measures placement, not target correctness; Python does not yet
   have an independent oracle equivalent to TypeScript's `ORACLE.md`.
+- A pyright-backed `COMPILER` tier for Python (`src/resolve/pyrightPass.ts`),
+  driven over LSP by an in-process client. Requests are issued serially
+  because throughput was measured flat across client concurrency 1, 8 and 32
+  — the server answers on one thread, so a scheduler would return nothing.
+  See [`probes/pyright-feasibility/FINDINGS.md`](probes/pyright-feasibility/FINDINGS.md).
+
+### Changed
+
+- `pyright@1.1.413` is now a pinned hard dependency (~19 MB), matching how
+  `typescript` is already bundled. Sonde never loads a type checker from the
+  target repository, in any language (invariant 5, SEC-008). No Python
+  interpreter is required: pyright is a TypeScript program and bundles
+  typeshed.
+- `.py` and `.pyi` are discovered by default. Registration and discovery
+  changed together, because either alone is a silent no-op.
+
+### Fixed
+
+- Python stable keys are now guaranteed unique. Indexing a real corpus failed
+  outright with `UNIQUE constraint failed: symbol.stable_key`; on pydantic, 88
+  collisions came from four distinct causes, each needing different treatment
+  and none permitted to use a line number (invariant 9): module-level
+  rebinding is one variable, `@overload` families are one runtime function,
+  property accessors earn role-suffixed keys (`area`, `area@setter`), and
+  genuine redefinitions take an ordinal that survives line moves.
+- The Swift SDK `EXTERNAL` fallback is scoped to Swift references. It fired on
+  any reference carrying a scope hint, so Python names colliding with the
+  table (`append`, `Task`, `String`, `Int`, `filter`) would have been
+  attributed to Swift frameworks — and since `EXTERNAL` is excluded from the
+  placement denominator, that would have biased Python's gate toward PASS.
 
 ## [0.2.2] — 2026-08-24
 
@@ -97,4 +132,4 @@ First public release, published to npm as `@cheppulabs/sonde`.
 
 ### Known limitations
 
-See the [README](README.md#known-limitations-v021) for the current, maintained list.
+See the [README](README.md#known-limitations) for the current, maintained list.
