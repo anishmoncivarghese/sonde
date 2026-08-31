@@ -114,6 +114,31 @@ tests pass.
 9. **Stable keys are never line-based.** `{lang}:{relpath}#{scope_chain}`.
    Line numbers move on every edit; identity must not.
 
+### Releasing
+
+**Verify every release by clean install, not from inside this repository.**
+After publishing, install the published package into an empty directory and run
+the release's headline feature against a throwaway project. Read the output;
+do not just check the exit code. Verify the *absence* of a warning as well as
+its presence — a disclosure that fires wrongly is worse than none.
+
+This is not ceremony. It has caught a shipped bug twice while tests, typecheck
+and review were all green:
+
+- **0.3.0** — whether the bundled pyright resolves from inside an installed
+  package. A `require.resolve` failure would have made Python silently degrade.
+- **0.4.1** — `sonde doc` listed every module with no dependencies at all on a
+  TypeScript project lacking `tsconfig.json`.
+
+Both were invisible here, because this repository has a `tsconfig.json` and a
+working dependency tree and always did.
+
+A release lands in three places that must agree: npm, a GitHub tag and release,
+and the MCP Registry. `server.json` carries the version twice (top-level and
+`packages[0]`) and must be bumped with `package.json`. The registry JWT expires
+quickly, so chain `mcp-publisher login github && mcp-publisher publish`, and
+confirm the result by querying the registry API rather than trusting the CLI.
+
 ### Conventions
 
 - TDD: failing test first, then the minimal implementation. The plan's steps are
