@@ -5,6 +5,18 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `sonde doc --module` listed one row per declaration, so a discriminated
+  union's shared property appeared four times as visually identical rows.
+  Identical rows now collapse into one carrying the declaration count —
+  repeating them read as a bug, and dropping them silently would have hidden
+  real structure.
+- `--include-tests` now applies to `sonde doc --module` as well as to the
+  committed document. It previously filtered only the latter, so module detail
+  always listed test modules under "Referenced by modules" regardless of the
+  flag. When references are hidden, the output says so.
+
 ## [0.4.1] — 2026-08-31
 
 ### Added

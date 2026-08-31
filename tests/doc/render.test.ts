@@ -4,6 +4,7 @@ import {
   DOC_MARKER,
   structuralBody,
   renderDoc,
+  renderModuleDetail,
   type DocStamp,
 } from "../../src/doc/render.js";
 
@@ -265,5 +266,84 @@ describe("structuralBody", () => {
     );
     expect(structuralBody(renderDoc(graph(), clean)))
       .not.toBe(structuralBody(renderDoc(other, clean)));
+  });
+});
+
+describe("renderModuleDetail duplicate collapsing", () => {
+  const sym = (qualifiedName: string, shortName: string, kind = "property") => ({
+    filePath: "src/doc/index.ts",
+    qualifiedName,
+    shortName,
+    kind,
+  });
+
+  it("collapses rows that would render identically, and says how many", () => {
+    // A discriminated union declares the same property once per variant, so
+    // four real symbols share a qualified name, kind and file. Four identical
+    // rows read as a bug; dropping three silently hides real structure.
+    const out = renderModuleDetail(
+      "src/doc",
+      [
+        sym("WriteOutcome.action", "action"),
+        sym("WriteOutcome.action", "action"),
+        sym("WriteOutcome.action", "action"),
+        sym("WriteOutcome.action", "action"),
+      ],
+      [],
+    );
+    const rows = out.split("\n").filter((l) => l.includes("WriteOutcome.action"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatch(/4/);
+  });
+
+  it("does not annotate a symbol declared once", () => {
+    const out = renderModuleDetail("src/doc", [sym("DOC_PATH", "DOC_PATH", "variable")], []);
+    const row = out.split("\n").find((l) => l.includes("DOC_PATH"));
+    expect(row).not.toMatch(/×|declarations/);
+  });
+
+  it("keeps distinct symbols separate even when they share a short name", () => {
+    // Two different qualified names are two different symbols.
+    const out = renderModuleDetail(
+      "src/doc",
+      [sym("A.action", "action"), sym("B.action", "action")],
+      [],
+    );
+    expect(out).toContain("A.action");
+    expect(out).toContain("B.action");
+  });
+});
+
+describe("renderModuleDetail honours the test filter", () => {
+  const symbol = {
+    filePath: "src/doc/render.ts",
+    qualifiedName: "renderDoc",
+    shortName: "renderDoc",
+    kind: "function",
+  };
+  const edges = [
+    { srcFile: "src/cli/main.ts", dstFile: "src/doc/render.ts", dstName: "renderDoc", kind: "CALLS", tier: "LEXICAL" },
+    { srcFile: "tests/doc/render.test.ts", dstFile: "src/doc/render.ts", dstName: "renderDoc", kind: "CALLS", tier: "LEXICAL" },
+  ];
+
+  it("hides test modules by default and says so", () => {
+    // --include-tests must mean the same thing here as it does for the
+    // committed document; a flag that filters one view and not the other is
+    // surprising. The disclosure prevents "where did my tests go".
+    const out = renderModuleDetail("src/doc", [symbol], edges, {
+      testModules: new Set(["tests/doc"]),
+    });
+    expect(out).toContain("src/cli");
+    expect(out).not.toContain("tests/doc`");
+    expect(out).toMatch(/--include-tests/);
+  });
+
+  it("shows test modules when asked, without the notice", () => {
+    const out = renderModuleDetail("src/doc", [symbol], edges, {
+      testModules: new Set(["tests/doc"]),
+      includeTests: true,
+    });
+    expect(out).toContain("tests/doc");
+    expect(out).not.toMatch(/--include-tests/);
   });
 });

@@ -116,6 +116,42 @@ export function moduleOf(filePath: string): string {
 }
 
 /** Aggregate store rows into a completely sorted, order-independent graph. */
+/**
+ * Modules whose every symbol is a test symbol.
+ *
+ * Shared so that `sonde doc` and `sonde doc --module` agree on what a test
+ * module is: a flag that filters one view and silently not the other is a
+ * papercut.
+ */
+export function testModulePaths(
+  symbolCounts: ReadonlyArray<{
+    filePath: string;
+    symbols: number;
+    testSymbols: number;
+  }>,
+): Set<string> {
+  const symbolsByModule = new Map<string, number>();
+  const testSymbolsByModule = new Map<string, number>();
+  for (const row of symbolCounts) {
+    const modulePath = moduleOf(row.filePath);
+    symbolsByModule.set(
+      modulePath,
+      (symbolsByModule.get(modulePath) ?? 0) + row.symbols,
+    );
+    testSymbolsByModule.set(
+      modulePath,
+      (testSymbolsByModule.get(modulePath) ?? 0) + row.testSymbols,
+    );
+  }
+  const out = new Set<string>();
+  for (const [modulePath, symbols] of symbolsByModule) {
+    if (symbols > 0 && testSymbolsByModule.get(modulePath) === symbols) {
+      out.add(modulePath);
+    }
+  }
+  return out;
+}
+
 export function buildModuleGraph(
   edges: EdgeInput[],
   symbolCounts: Array<{

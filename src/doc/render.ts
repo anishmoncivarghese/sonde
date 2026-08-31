@@ -105,16 +105,31 @@ export interface ModuleDetailEdge {
 }
 
 /** Render volatile symbol detail from plain rows; never committed to disk. */
+export interface ModuleDetailOptions {
+  /** Modules whose every symbol is a test symbol, from testModulePaths(). */
+  testModules?: ReadonlySet<string>;
+  includeTests?: boolean;
+}
+
 export function renderModuleDetail(
   modulePath: string,
   symbols: ModuleDetailSymbol[],
   edges: ModuleDetailEdge[],
+  options: ModuleDetailOptions = {},
 ): string {
+  const testModules = options.testModules ?? new Set<string>();
+  const hidingTests = options.includeTests !== true && testModules.size > 0;
+  let hidTestReference = false;
+
   const incoming = new Map<string, Set<string>>();
   for (const edge of edges) {
     if (moduleOf(edge.dstFile) !== modulePath) continue;
     const sourceModule = moduleOf(edge.srcFile);
     if (sourceModule === modulePath) continue;
+    if (hidingTests && testModules.has(sourceModule)) {
+      hidTestReference = true;
+      continue;
+    }
     const sources = incoming.get(edge.dstName);
     if (sources) sources.add(sourceModule);
     else incoming.set(edge.dstName, new Set([sourceModule]));
@@ -129,6 +144,13 @@ export function renderModuleDetail(
     });
 
   const lines = [`# Module ${inlineCode(modulePath)}`, ""];
+  if (hidTestReference) {
+    lines.push(
+      "References from test modules are hidden. Run with `--include-tests` " +
+        "to show them.",
+      "",
+    );
+  }
   if (selected.length === 0) {
     lines.push("No indexed symbols were found for this module.", "");
     return lines.join("\n");
@@ -138,15 +160,29 @@ export function renderModuleDetail(
     "| Symbol | Kind | File | Referenced by modules |",
     "|---|---|---|---|",
   );
+  // A discriminated union declares the same property once per variant, so
+  // several real symbols can share a qualified name, kind and file and render
+  // as identical rows. Repeating them reads as a bug; dropping them silently
+  // would hide real structure, so they collapse into one row carrying the
+  // declaration count.
+  const seen = new Map<string, number>();
   for (const symbol of selected) {
     const referencedBy = [...(incoming.get(symbol.shortName) ?? [])]
       .sort()
       .map(inlineCode)
       .join(", ") || "—";
-    lines.push(
+    const row =
       `| ${inlineCode(symbol.qualifiedName)} | ${symbol.kind} | ` +
-        `${inlineCode(symbol.filePath)} | ${referencedBy} |`,
-    );
+      `${inlineCode(symbol.filePath)} | ${referencedBy} |`;
+    seen.set(row, (seen.get(row) ?? 0) + 1);
+  }
+  for (const [row, count] of seen) {
+    if (count === 1) {
+      lines.push(row);
+      continue;
+    }
+    // Annotate in the Symbol cell, which keeps the column count intact.
+    lines.push(row.replace(/^\| ([^|]*)\|/, `| $1(${count} declarations) |`));
   }
   lines.push("");
   return lines.join("\n");

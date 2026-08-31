@@ -12,6 +12,7 @@ import {
   writeDoc,
 } from "../doc/index.js";
 import { renderModuleDetail, structuralBody } from "../doc/render.js";
+import { testModulePaths } from "../doc/modules.js";
 import { indexPathFor } from "../index/cache.js";
 import { checkDrift } from "../index/drift.js";
 import { indexRepo, updateRepo } from "../index/pipeline.js";
@@ -362,7 +363,12 @@ program
           })),
         );
         process.stdout.write(
-          renderModuleDetail(options.module, symbols, store.docEdgeRows()),
+          renderModuleDetail(options.module, symbols, store.docEdgeRows(), {
+            // --include-tests means the same thing here as for the committed
+            // document.
+            testModules: testModulePaths(store.docSymbolCounts()),
+            includeTests: options.includeTests,
+          }),
         );
         return;
       }
