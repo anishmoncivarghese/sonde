@@ -5,6 +5,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-08-31
+
 ### Fixed
 
 - Running `sonde` on Node 20 **segfaulted with no output at all** — exit 139,

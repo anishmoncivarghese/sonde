@@ -1,6 +1,6 @@
 {
   "name": "@cheppulabs/sonde",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "mcpName": "io.github.anishmoncivarghese/sonde",
   "type": "module",
   "engines": {
