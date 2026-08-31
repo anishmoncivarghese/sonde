@@ -118,3 +118,28 @@ describe("sonde init", () => {
     );
   });
 });
+
+describe("sonde init points at the architecture document", () => {
+  // Discoverability gap found in use: after `sonde init` there was no
+  // indication that `sonde doc` exists. A prompt would be the wrong fix --
+  // it writes a second file into someone's repo, which init is deliberately
+  // conservative about -- so init just names the command.
+
+  it("mentions sonde doc after writing the config", () => {
+    expect(cli(["init", root, "--yes"])).toContain("sonde doc");
+  });
+
+  it("mentions sonde doc when already configured", () => {
+    cli(["init", root, "--yes"]);
+    const second = cli(["init", root, "--yes"]);
+    expect(second).toContain("already configured");
+    expect(second).toContain("sonde doc");
+  });
+
+  it("does not suggest it when the user declined to write the config", () => {
+    // Setup did not complete, so a next-step pointer would be misleading.
+    const out = cli(["init", root], "n\n");
+    expect(out).toContain("not confirmed");
+    expect(out).not.toContain("sonde doc");
+  });
+});

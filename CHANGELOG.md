@@ -5,6 +5,17 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- `sonde init` now names `sonde doc` in its output. The command was
+  undiscoverable after setup — found by running init on a real project and
+  then having no idea the architecture document existed. It is a pointer
+  rather than a prompt: generating by default would write a second file into
+  the repository, which `init` is deliberately conservative about, and the
+  document is not worth committing for every project shape. The pointer
+  appears only where setup completed, not on the error, conflict or declined
+  paths.
+
 ### Fixed
 
 - `sonde doc` emitted an empty `graph LR` block and a header-only dependency

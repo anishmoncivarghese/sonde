@@ -130,6 +130,9 @@ program
         indexStats.compilerUpgraded,
       ) + indexWarningSummary(indexStats.warnings);
 
+    // Discoverability: `sonde doc` was invisible after init in real use.
+    const docHint = " Run `sonde doc` to generate an architecture document.";
+
     const boundary = new RepoBoundary(path);
     const mcpPath = boundary.resolve(".mcp.json");
     const existing = readMcpConfigIfPresent(boundary);
@@ -149,7 +152,7 @@ program
       emit(
         options.json === true,
         { index: indexStats, mcpConfig: plan },
-        `${indexSummary}. sonde is already configured in .mcp.json.`,
+        `${indexSummary}. sonde is already configured in .mcp.json.${docHint}`,
       );
       return;
     }
@@ -190,7 +193,7 @@ program
       options.json === true,
       { index: indexStats, mcpConfig: plan },
       `${indexSummary}. ${verb}d ` +
-        `${mcpPath}. Restart your MCP client to pick it up.`,
+        `${mcpPath}. Restart your MCP client to pick it up.${docHint}`,
     );
   });
 
