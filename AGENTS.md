@@ -135,9 +135,26 @@ working dependency tree and always did.
 
 A release lands in three places that must agree: npm, a GitHub tag and release,
 and the MCP Registry. `server.json` carries the version twice (top-level and
-`packages[0]`) and must be bumped with `package.json`. The registry JWT expires
-quickly, so chain `mcp-publisher login github && mcp-publisher publish`, and
-confirm the result by querying the registry API rather than trusting the CLI.
+`packages[0]`) and must be bumped with `package.json`.
+
+**Run each publish command separately. Never chain them with `&&`.** Both the
+npm session and the registry JWT expire between releases, and both login flows
+open a browser. A login that exits non-zero makes `&&` skip everything after it
+*silently*, which reads as "the publish did not work" when the truth is "the
+publish never ran". Chaining was suggested here once and cost a wasted
+round-trip on 0.4.2. Run the command, read its output, then run the next.
+
+Two failure modes that look like problems but are not:
+
+- **npm returns `404 Not Found` on `PUT`** when you are logged out, not `401`.
+  Check `npm whoami` before concluding anything is wrong with the package.
+- **The MCP Registry lags a publish by a few seconds.** `cannot publish
+  duplicate version` usually means the previous attempt succeeded. Re-query
+  before retrying.
+
+Confirm the result by querying each registry's API rather than trusting a CLI
+success line — for the MCP Registry, that the new version shows
+`isLatest: true`.
 
 ### Conventions
 
