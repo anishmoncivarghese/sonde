@@ -5,6 +5,19 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `sonde doc` emitted an empty `graph LR` block and a header-only dependency
+  table when every dependency was excluded as unevidenced. The guard checked
+  whether dependencies existed, but the diagram draws only those with a
+  resolved reference, so the two could disagree. It now explains why nothing
+  is drawn and names how many pairs were dropped.
+- A repository whose code lives in one directory — a flat Python package, for
+  example — collapses to a single module, so cross-module references cannot
+  exist by construction. The document said nothing and drew an empty graph;
+  it now states that the granularity has nothing to show and points at
+  `sonde doc --module`.
+
 ## [0.4.3] — 2026-08-31
 
 ### Fixed

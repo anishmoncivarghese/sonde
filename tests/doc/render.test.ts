@@ -347,3 +347,58 @@ describe("renderModuleDetail honours the test filter", () => {
     expect(out).not.toMatch(/--include-tests/);
   });
 });
+
+describe("repositories with nothing to draw", () => {
+  const stamp: DocStamp = {
+    revision: "abc1234", dirty: false, driftedFiles: 0,
+    parseFailures: 0, missingTsConfig: false,
+  };
+
+  it("explains a single-module repository instead of drawing an empty graph", () => {
+    // A flat package -- src/whyline/*.py, 22 files, one directory -- collapses
+    // to one module, so there are no cross-module references by construction.
+    // The references are real; the granularity has nothing to say about them.
+    const graph = buildModuleGraph([], [
+      { filePath: "src/whyline/cli.py", symbols: 40, testSymbols: 0 },
+      { filePath: "src/whyline/runner.py", symbols: 30, testSymbols: 0 },
+    ]);
+    const out = renderDoc(graph, stamp);
+    expect(out).not.toContain("graph LR");
+    expect(out).toMatch(/one (code )?module/i);
+    expect(out).toContain("--module");
+  });
+
+  it("explains when every dependency was excluded as unevidenced", () => {
+    // dependencies exist but none has a resolved reference, so the diagram
+    // filter empties them. Emitting an empty `graph LR` and a header-only
+    // table looks broken when the situation is merely uninformative.
+    const graph = buildModuleGraph(
+      [
+        { srcFile: "a/one.py", dstFile: "b/two.py", dstName: "run", kind: "CALLS", tier: "HEURISTIC" },
+        { srcFile: "a/one.py", dstFile: "c/three.py", dstName: "run", kind: "CALLS", tier: "HEURISTIC" },
+      ],
+      [
+        { filePath: "a/one.py", symbols: 3, testSymbols: 0 },
+        { filePath: "b/two.py", symbols: 3, testSymbols: 0 },
+        { filePath: "c/three.py", symbols: 3, testSymbols: 0 },
+      ],
+    );
+    const out = renderDoc(graph, stamp);
+    expect(out).not.toMatch(/^\| From \| To \|/m);
+    expect(out).not.toContain("graph LR");
+    expect(out).toMatch(/resolved reference/i);
+    // Names how many pairs were dropped, rather than silently showing nothing.
+    expect(out).toContain("2 pair");
+  });
+
+  it("still draws a graph when at least one dependency is evidenced", () => {
+    const graph = buildModuleGraph(
+      [{ srcFile: "a/one.py", dstFile: "b/two.py", dstName: "run", kind: "CALLS", tier: "COMPILER" }],
+      [
+        { filePath: "a/one.py", symbols: 3, testSymbols: 0 },
+        { filePath: "b/two.py", symbols: 3, testSymbols: 0 },
+      ],
+    );
+    expect(renderDoc(graph, stamp)).toContain("graph LR");
+  });
+});

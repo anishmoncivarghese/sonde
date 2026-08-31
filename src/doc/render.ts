@@ -255,13 +255,38 @@ export function renderDoc(graph: ModuleGraph, stamp: DocStamp): string {
     "",
   );
 
-  if (dependencies.length === 0) {
-    lines.push("No cross-module references were found.", "");
+  // The diagram draws only evidenced dependencies, so it can be empty while
+  // `dependencies` is not. Emitting an empty `graph LR` and a header-only
+  // table reads as a broken tool when the situation is merely uninformative.
+  const verified = dependencies.filter((dep) => resolvedOf(dep) > 0);
+
+  if (graph.modules.length <= 1) {
+    // A flat package collapses to one module, so cross-module references
+    // cannot exist by construction. The references are real; this granularity
+    // has nothing to say about them.
+    const only = graph.modules[0];
+    lines.push(
+      only === undefined
+        ? "No code modules were found."
+        : `This repository has one code module (${inlineCode(only.path)}, ` +
+          `${only.files} file(s)). A module dependency graph has nothing to ` +
+          "show at this granularity — references within a module are not " +
+          "cross-module references. Run " +
+          `\`sonde doc --module ${only.path}\` for symbol-level detail.`,
+      "",
+    );
+  } else if (verified.length === 0) {
+    lines.push(
+      dependencies.length === 0
+        ? "No cross-module references were found."
+        : `No module pair has a resolved reference between them, so no ` +
+          `dependency is drawn. ${dependencies.length} pair(s) share symbol ` +
+          "names only, which is a coincidence rather than a dependency. Run " +
+          "`sonde index --resolve` if the language supports a compiler tier.",
+      "",
+    );
   } else {
     lines.push("```mermaid", "graph LR");
-    const verified = dependencies.filter(
-      (dep) => resolvedOf(dep) > 0,
-    );
     for (const dependency of verified.slice(0, DIAGRAM_LIMIT)) {
       const arrow = isInferred(dependency) ? "-.->" : "-->";
       lines.push(
