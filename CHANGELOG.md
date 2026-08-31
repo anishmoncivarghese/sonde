@@ -5,6 +5,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-08-31
+
 ### Fixed
 
 - `sonde doc --module` listed one row per declaration, so a discriminated
