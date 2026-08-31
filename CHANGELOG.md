@@ -5,6 +5,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.4] — 2026-08-31
+
 ### Added
 
 - `sonde init` now names `sonde doc` in its output. The command was
