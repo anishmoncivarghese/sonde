@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { assertSupportedNode } from "./nodeVersion.js";
 import { createHash } from "node:crypto";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { existsSync, rmSync } from "node:fs";
@@ -97,6 +98,11 @@ function unknownEnvelope(path: string, message: string) {
     estimatedTokens: 0,
   });
 }
+
+// Before anything can reach the database. better-sqlite3 imports fine on an
+// unsupported Node and segfaults on use, so this is the only place a user
+// gets told why (invariant 8).
+assertSupportedNode();
 
 const program = new Command();
 program.name("sonde").version(PACKAGE_VERSION);

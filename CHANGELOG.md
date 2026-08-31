@@ -5,6 +5,17 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Running `sonde` on Node 20 **segfaulted with no output at all** — exit 139,
+  no message, no stack trace — because the bundled `better-sqlite3` imports
+  cleanly on an unsupported Node and then crashes when the database is used.
+  Every signal a new user would check said the install had worked: npm
+  downgrades `EBADENGINE` to a warning and exits 0, and `sonde --version`
+  printed normally because it never touches SQLite. The CLI now refuses to
+  start on Node below 22 and states the cause and the fix. A version it cannot
+  parse is accepted, since a guard that misfires would block a working install.
+
 ## [0.4.2] — 2026-08-31
 
 ### Fixed
