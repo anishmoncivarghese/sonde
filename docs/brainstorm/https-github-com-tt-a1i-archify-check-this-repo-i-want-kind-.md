@@ -1,3 +1,7 @@
+# Brainstorm: https://github.com/tt-a1i/archify, check this repo, I want kind of similar feature for sonde so that user agent skill and visualization tool that converts codebases, system architectures, workflows, or everyday plans into interactive, self-contained HTML diagrams.
+
+## Codex
+
 # Independent research: an Archify-like visualization capability for Sonde
 
 Date: 2026-10-06
@@ -314,4 +318,3 @@ Recommended: learn from and interoperate with Archify during prototyping, but bu
 - Archify repository evidence verifier: https://github.com/tt-a1i/archify/blob/main/archify/renderers/shared/repository-evidence.mjs
 - Archify live repository-backed example: https://tt-a1i.github.io/archify/cases/mco-runtime.architecture.html
 - Sonde local design, implementation, README, generated architecture document, and current MCP/CLI surfaces in this workspace.
-

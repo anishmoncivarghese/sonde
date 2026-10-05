@@ -1,0 +1,18 @@
+{
+  "claude": {
+    "status": "succeeded",
+    "reason": null
+  },
+  "codex": {
+    "status": "succeeded",
+    "reason": null
+  },
+  "antigravity": {
+    "status": "succeeded",
+    "reason": null
+  },
+  "grok": {
+    "status": "failed",
+    "reason": "generic non-zero failure"
+  }
+}
