@@ -1849,3 +1849,69 @@ Append-only. Written by whyline; readable without it.
 **Files:** ARCHITECTURE.md
 
 <!-- whyline-event: 5c9cf08cb5c040e889ea8689247c6148 -->
+
+## 2026-10-05 — Separate Sonde's indexed map compiler from skill-authored generic diagrams with explicit provenance
+
+**Actor:** codex
+**Role:** researcher
+**Task:** brainstorm-archify
+
+**Because:** Sonde's graph tiers, drift state, and stable identities can make repository diagrams stronger than Archify's agent-authored citations, while one shared IR and offline viewer can still support described systems and everyday plans
+
+**Rejected:**
+
+- Clone or fork Archify wholesale — its mature renderer, viewer, export, and delivery surface would add a second large product before validating Sonde's differentiated map
+- Add a visualization MCP tool immediately — the existing three-tool surface is intentionally narrow and the file-producing workflow fits a CLI plus agent skill
+
+**Files:** .whyline/relay/brainstorm-tmp/codex.md
+
+<!-- whyline-event: 947c50f8a9544e97b04babe7a9697268 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-05T20:36:10.602Z"} -->
+
+## 2026-10-05 — Gate Sonde visualization on measured value and separate HTML rendering from bounded MCP IR access
+
+**Actor:** codex
+**Role:** reviewer
+**Task:** brainstorm-archify-sonde
+
+**Because:** The existing PRD defers visualization, sonde doc is already a baseline, and MCP-only clients cannot invoke a CLI renderer; a falsifiable spike and capability-aware access preserve Sonde's small truthful surface
+
+**Rejected:**
+
+- Commit directly to a full Archify-like product — the value over sonde doc is unmeasured and the maintenance surface is large
+- Keep visualization CLI-only — this silently excludes MCP-only users
+- Add an MCP tool that writes HTML — repository artifact creation does not fit Sonde's read-only MCP contract
+
+**Files:** docs/brainstorm/https-github-com-tt-a1i-archify-check-this-repo-i-want-kind-.md
+
+<!-- whyline-event: f1e72b0d38744e33955e2356a532467e -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-05T20:42:10.836Z"} -->
+
+## 2026-10-05 — Gate the archify-style visual map on a pre-committed Phase 0 spike
+
+**Because:** The PRD placed interactive visualization out of scope three times, and two fresh measurements cap the expected value: ARCHITECTURE.md is unchanged across 278 agentdock commits while still passing --check, and an agent with all three MCP tools answered four structural questions by grepping instead
+
+**Rejected:**
+
+- Proceeding straight to Phase 1 from the brainstorm — the brainstorm asks whether HTML beats Markdown, but the unanswered prior question is whether either is used
+- A time-based threshold — with one participant and five questions, a numeric time gate would be fabricated precision; correctness plus a stated judgment is honest
+- Omitting a control question — a protocol the new artifact wins outright measures enthusiasm rather than utility
+
+**Files:** probes/visual-map/PROTOCOL.md
+
+<!-- whyline-event: f10173f5cab54c128041247d1cdde68c -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-05T21:12:48.845Z"} -->
+
+## 2026-10-05 — Correct the SDK baseline harness grep rather than delete the harness
+
+**Because:** It returned filenames only, forcing a read per match against a truncating budget, which would measure the harness rather than the two approaches if it were ever used for a comparison
+
+**Rejected:**
+
+- Leaving it — a latent harness that silently favours Sonde is worse than one that is simply unused
+- Concluding the published benchmark was rigged — that claim was made here from reading this file, and it was wrong -- the published numbers came from claudeCodeBaseline.ts driving real Claude Code with real tools
+
+**Files:** bench/harness/runLiveBaseline.ts
+
+<!-- whyline-event: 68269a1de5ac4069834cea814b3d6823 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-05T21:14:48.391Z"} -->
