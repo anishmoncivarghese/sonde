@@ -1,5 +1,25 @@
 # Brainstorm: https://github.com/tt-a1i/archify, check this repo, I want kind of similar feature for sonde so that user agent skill and visualization tool that converts codebases, system architectures, workflows, or everyday plans into interactive, self-contained HTML diagrams.
 
+## Final Synthesis
+
+Both independent passes (Codex, Claude) converge on the same shape and the same caveat, so this is a case of agreement rather than a tiebreak.
+
+**Gate before design.** Sonde's own PRD already decided this question once: "prioritize retrieval correctness and freshness over visualizations" (`prd.md:24`), "the product must remain useful without a graph visualization UI" (`prd.md:1000`), interactive diagrams explicitly out of scope (`prd.md:164`, `prd.md:1297`). Nothing here forbids revisiting that, but the first deliverable is not a plan to build — it's a **timeboxed Phase 0 spike** that answers one falsifiable question: does an HTML module map, generated from Sonde's existing `buildModuleGraph` output on Sonde's own repository, let a developer answer a real architecture question faster or more clearly than `sonde doc`'s Markdown already does? Write 3–5 concrete questions and a comparison protocol *before* looking at the rendered result. If the honest answer is "the Markdown already told me what I needed," stop there — that's a legitimate outcome, not a failed spike.
+
+**If the gate passes, build native, not forked.** Borrow Archify's strongest pattern — a typed, versioned diagram IR compiled into a validated, self-contained HTML file — but make Sonde's own tiered graph (`COMPILER`/`LEXICAL`/`HEURISTIC`/`EXTERNAL`/`UNRESOLVED`), stable symbol keys, and drift/freshness state the source of truth instead of agent-reconstructed topology. Concretely:
+
+1. A native `sonde map` compiler: SQLite → pure projection (reusing `buildModuleGraph`, not parsing Sonde's own Mermaid back into a graph) → versioned IR → deterministic layered layout → pure HTML/SVG renderer → atomic write + digest receipt.
+2. A `sonde-visualize` agent skill, written from Sonde's own invariants rather than paraphrased from Archify's `SKILL.md`, that invokes the compiler for repositories and authors the same IR directly for systems, workflows, sequences, and plans the graph can't verify.
+3. A mandatory provenance tag on every diagram: `sonde-indexed` (from Sonde's graph, carries tier/freshness), `repository-cited` (human/agent claim with pinned source), `user-authored` (described, not code-verified). The viewer must badge these differently and never let a described plan look like a verified fact.
+
+**Close the MCP-only gap without adding an HTML-writing tool.** A CLI-only `sonde map` is invisible to agents that only have MCP access (Sonde ships exactly three tools — `find_symbols`, `query_graph`, `get_impact_radius`, per `src/mcp/server.ts:85-185`). Keep HTML generation off the MCP surface, but expose the same bounded, deterministic IR (nodes, tiered edges, omission counts, provenance block — no HTML) as a read-only extension of `query_graph` rather than a fourth tool. That lets an MCP-only client get and describe verified structure instead of falling back to grep for lack of a shell.
+
+**Non-negotiable correctness carry-over.** Sonde's TypeScript/Swift adapters once manufactured 62 fake references between unrelated modules that merely shared filenames (`parser.ts`, `references.ts`). `resolvedOf` — ranking and default visibility by `COMPILER + LEXICAL` only, excluding `HEURISTIC` — is what keeps that out of a human's view today, and any diagram layout or "thicker edge = more important" heuristic downstream must preserve that exclusion explicitly, not just inherit it by accident. Heuristic-only pairs stay visible behind an explicit filter, never folded into an unlabeled edge count.
+
+**Scope discipline.** Ship one architecture renderer and one small viewer (pan/zoom/search/focus/path-trace/tier-filter, dependency-free, no network calls) before touching export formats, presentation modes, or the other four diagram types. Archify's own template is ~13,000 lines — that is a second mature product, not an MVP feature, and copying its breadth up front would repeat the predecessor tool's decay pattern this project already learned to avoid.
+
+**Recommended sequence:** Phase 0 (falsifiable spike, stop/go) → Phase 1 (native architecture map: IR, projection, layout, viewer MVP, atomic delivery, `sonde map --check`) → Phase 2 (symbol-level exploration, impact views, the installable skill, MCP IR surface) → Phase 3 (generic `user-authored` modes — workflow/sequence first — only once the code-verified path is stable). Build vs. fork: learn from Archify during prototyping, do not depend on or fork it (MIT vs. Sonde's Apache-2.0 makes a fork legal but creates an ongoing sync burden Sonde doesn't need); write Sonde's own skill prose from its own invariants rather than with Archify's text open as a template.
+
 ## Codex
 
 # Independent research: an Archify-like visualization capability for Sonde
