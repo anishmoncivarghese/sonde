@@ -37,9 +37,27 @@ beforeEach(() => {
 afterEach(() => rmSync(base, { recursive: true, force: true }));
 
 describe("live baseline tool handlers", () => {
-  it("grep finds a literal pattern and reports matching files", async () => {
+  it("grep returns file:line:content, as a real grep does", async () => {
+    // The baseline previously returned bare filenames, so the agent had to
+    // read every matching file to learn anything. That inflated its tool-call
+    // count against Sonde's pre-packed answer and made the comparison
+    // measure the harness rather than the approaches.
     const result = await grepTool(boundary, { pattern: "nextDelay" });
-    expect(result).toBe("src/a.ts");
+    expect(result).toBe("src/a.ts:1:export function nextDelay() {}");
+  });
+
+  it("grep reports every matching line, not just the file", async () => {
+    writeFileSync(
+      join(root, "src", "c.ts"),
+      "const a = 1;\nexport function nextDelay() {}\n// nextDelay again\n",
+    );
+    const lines = (await grepTool(boundary, { pattern: "nextDelay" }))
+      .split("\n")
+      .filter((line) => line.startsWith("src/c.ts"));
+    expect(lines).toEqual([
+      "src/c.ts:2:export function nextDelay() {}",
+      "src/c.ts:3:// nextDelay again",
+    ]);
   });
 
   it("grep reports no matches without throwing", async () => {

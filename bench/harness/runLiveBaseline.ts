@@ -67,14 +67,29 @@ function typescriptFiles(boundary: RepoBoundary): string[] {
   return matches;
 }
 
+/**
+ * Search like a real `grep -n`: report `path:line:content` for every match.
+ *
+ * This previously returned bare filenames, which forced the baseline agent to
+ * `read_file` every match before it could learn anything — inflating its
+ * tool-call count against Sonde's pre-packed answer. The published 8-calls-to-1
+ * figure was therefore measuring the harness, not the two approaches. A real
+ * agent sees the matching lines and usually opens only the file that matters.
+ */
 export async function grepTool(
   boundary: RepoBoundary,
   input: { pattern: string },
 ): Promise<string> {
-  const matches = typescriptFiles(boundary).filter((path) =>
-    boundary.readFile(path).toString("utf8").includes(input.pattern),
-  );
-  return matches.length > 0 ? matches.join("\n") : "no matches";
+  const hits: string[] = [];
+  for (const path of typescriptFiles(boundary)) {
+    const lines = boundary.readFile(path).toString("utf8").split("\n");
+    for (const [index, line] of lines.entries()) {
+      if (line.includes(input.pattern)) {
+        hits.push(`${path}:${index + 1}:${line}`);
+      }
+    }
+  }
+  return hits.length > 0 ? hits.join("\n") : "no matches";
 }
 
 export async function globTool(
@@ -121,7 +136,9 @@ function buildTools(
   return [
     betaZodTool({
       name: "grep",
-      description: "Search all .ts files in the repository for a literal substring.",
+      description:
+        "Search all .ts files for a literal substring. Returns path:line:content " +
+        "for every matching line, like `grep -n`.",
       inputSchema: z.object({ pattern: z.string() }),
       run: (input) => record("grep", input, () => grepTool(boundary, input)),
     }),
