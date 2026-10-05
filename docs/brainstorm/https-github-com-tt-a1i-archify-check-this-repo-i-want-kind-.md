@@ -10,7 +10,9 @@ Date: 2026-10-06
 
 Sonde should not clone Archify wholesale. It should borrow Archify's strongest product pattern — an agent skill producing a typed diagram IR that is compiled into checked, self-contained HTML — while making Sonde's structural graph, evidence tiers, drift state, and stable symbol identities the authority for repository-backed diagrams.
 
-The clean product shape is:
+This is a conditional recommendation, not yet a roadmap commitment. Sonde's PRD explicitly prioritized retrieval correctness over visualization, required the product to remain useful without a graph UI, and placed interactive visualization in later goals. The first action should therefore be a short, falsifiable dogfood spike: can an interactive module map answer a real architecture question materially faster or more clearly than the existing `sonde doc` Markdown? If it cannot, stop after the spike.
+
+If that gate passes, the clean product shape is:
 
 1. A native `sonde map` compiler for codebases. It deterministically projects Sonde's index into diagram IR and then into one offline HTML file.
 2. A `sonde-visualize` agent skill. For repositories it invokes the native compiler and uses Sonde queries to choose scope; for systems, workflows, and everyday plans it authors the same IR from the user's description.
@@ -19,9 +21,9 @@ The clean product shape is:
    - `repository-cited`: a human/agent-authored claim with pinned source references.
    - `user-authored`: a plan or described system, not code-verified.
 
-Do not add another MCP tool initially. Sonde deliberately has a three-tool MCP surface, and an agent skill can use the existing tools plus a CLI renderer without spending MCP discovery tokens.
+Do not add an MCP tool that writes HTML. The renderer is a file-producing workflow and belongs in a CLI/library used by a shell-capable skill. However, Claude's review identifies a real access gap: an MCP-only agent cannot invoke `sonde map`. The spike should test that user segment explicitly. If MCP-only use matters, expose the same bounded, deterministic IR through a read-only surface—preferably as a new `query_graph` pattern before adding a fourth advertised tool. It must remain budgeted and paginated; returning an entire repository graph would contradict Sonde's cost-and-determinism thesis.
 
-The first release should cover repository architecture only. Generic workflow, sequence, data-flow, lifecycle, and everyday-plan modes should reuse the IR/viewer later, but they should not delay or dilute the differentiated feature: a trustworthy interactive code map.
+The first release should cover repository architecture only. Generic workflow, sequence, data-flow, lifecycle, and everyday-plan modes should reuse the IR/viewer later, but they should not delay or dilute the differentiated feature: a trustworthy interactive code map. Generic modes belong primarily to the skill and shared renderer, not to Sonde's repository-analysis core.
 
 ## What Archify actually is
 
@@ -75,9 +77,10 @@ Clicking a node should open a compact evidence panel with stable identity, file/
 - Do not ask an agent to rediscover code topology through file reads when Sonde already has a measured graph. The agent should choose scope and narrative; it must not manufacture repo-backed edges or silently upgrade a heuristic edge.
 - Do not reuse manual coordinates for automatically generated repository maps. A deterministic graph layout is necessary when nodes and edges come from an index and change across commits.
 - Do not put diagram generation into `LanguageAdapter.extract`. Projection and rendering belong downstream of the store/query layer, preserving extraction purity.
-- Do not add an MCP `visualize` tool merely for discoverability. The output is a file-producing workflow, while the current MCP contract is read-only and intentionally small.
+- Do not add an MCP `visualize` tool merely for discoverability. Keep HTML generation outside MCP; if MCP-only clients prove important, return bounded IR through a read-only graph-query surface instead.
 - Do not call a standalone HTML snapshot "current." Once detached from the repository it cannot detect later drift. It can truthfully say what revision/index state it describes and support `sonde map --check` when run back in the repo.
 - Do not embed source bodies by default. A portable HTML file is easy to share accidentally; structural metadata and copyable `path:line` evidence are enough for the first version.
+- Do not visually rank dependencies by total edge volume. `HEURISTIC` volume once created dozens of fabricated-looking module relationships from common filenames and symbol names; layout prominence and default visibility must be driven by resolved (`COMPILER + LEXICAL`) evidence.
 
 ## Why Sonde has a stronger foundation for codebase diagrams
 
@@ -94,11 +97,13 @@ Sonde already owns the hard truth plane:
 
 The current `sonde doc` path is the right starting model, not a source to scrape. `buildModuleGraph` should feed a shared architecture projection object from which Markdown and visual IR are independently rendered. Parsing Sonde's Mermaid output back into a graph would throw away tier counts, omissions, unresolved references, stable IDs, and exact provenance.
 
+One implementation detail is non-negotiable: reuse `resolvedOf` semantics from `src/doc/modules.ts` for default edge selection, ranking, and thickness. Heuristic-only pairs may be available behind an explicit filter, but they must not make a relationship look important merely because ambiguous name matching produced many candidates.
+
 ## Proposed product surface
 
 ### Native CLI
 
-Suggested initial commands:
+Suggested commands after the spike passes its gate:
 
 ```text
 sonde map [path] --output <file.html>
@@ -113,6 +118,18 @@ The default is a module-level architecture map. `--focus` can produce a bounded 
 
 Keep `sonde doc` unchanged. Its committed Markdown, coarse/fine split, and CI contract solve a different job. `sonde map` is an explorable snapshot and can be generated on demand.
 
+### Access profiles
+
+Treat transport as a capability matrix rather than assuming every agent has a shell:
+
+| Client profile | Repository-backed diagram path | Expected limitation |
+|---|---|---|
+| Shell + filesystem | Skill invokes `sonde map`; returns the HTML path and receipt | Full experience |
+| MCP + artifact/filesystem support | Read-only bounded IR, then a client-side/shared renderer writes HTML | Requires a renderer available outside Sonde MCP |
+| MCP-only, no artifact write | Read-only bounded IR for explanation or handoff | Cannot honestly promise an HTML artifact |
+
+The skill must detect the available profile and state the limitation rather than silently falling back to agent-invented topology. A fourth MCP tool is justified only if extending `query_graph` would make its contract incoherent and measured users need the new surface.
+
 ### Agent skill
 
 Ship a standards-shaped `skills/sonde-visualize/SKILL.md` in the repository/package and make it installable through normal agent-skill tooling. Its routing logic should be:
@@ -125,7 +142,7 @@ Ship a standards-shaped `skills/sonde-visualize/SKILL.md` in the repository/pack
 6. Status/state transitions: author `lifecycle` IR.
 7. Validate, render, verify the artifact, then return the absolute HTML path plus a truthful validation/provenance summary.
 
-For generic modes, the skill should ask only for missing facts that would materially change the result (dates, amounts, required steps, decision rules) and must never label the diagram `sonde-indexed`.
+For generic modes, the skill should ask only for missing facts that would materially change the result (dates, amounts, required steps, decision rules) and must never label the diagram `sonde-indexed`. Its wording and workflow should be written from Sonde's own contracts rather than closely paraphrasing Archify's skill text; Archify is inspiration and a comparison target, not a template to copy.
 
 ## IR recommendation
 
@@ -173,7 +190,7 @@ Use a common envelope with mode-specific payloads. A repo-backed architecture sp
 Important rules:
 
 - IDs derive from module paths or Sonde stable keys, never source lines.
-- Mixed-tier aggregate edges retain all tier counts. Render solid when at least one resolved edge exists; render dashed only when the relationship is heuristic-only. Filters must not silently reinterpret a mixed edge.
+- Mixed-tier aggregate edges retain all tier counts. Render solid when at least one resolved edge exists; render dashed only when the relationship is heuristic-only. Edge ranking and thickness use resolved counts first; heuristic counts may be disclosed but never inflate visual authority. Filters must not silently reinterpret a mixed edge.
 - `EXTERNAL` and `UNRESOLVED` are counts/facts, not fabricated target nodes. A future explicit package node is allowed only when the external target is actually known.
 - `TESTS` is always heuristic and every surface exposing it must display the existing caveat that structural relatedness does not prove coverage.
 - Every label, URL, path, and user-authored string is untrusted and escaped.
@@ -183,8 +200,8 @@ Important rules:
 
 Archify can rely on an agent choosing coordinates; Sonde's generated map cannot. For the first architecture renderer, use a bounded deterministic layered layout:
 
-1. Start from the same test/nested-project filtering and resolved-reference ranking as `sonde doc`.
-2. Keep all selected modules as nodes, but initially draw only the strongest bounded set of evidenced dependencies; show the omitted count and let the user reveal more.
+1. Start from the same test/nested-project filtering and `resolvedOf` ranking as `sonde doc`.
+2. Keep all selected modules as nodes, but initially draw only a bounded set of dependencies with resolved evidence; show omitted and heuristic-only pair counts separately and let the user reveal the latter explicitly.
 3. Collapse strongly connected components for rank assignment.
 4. Assign layers from the condensed DAG.
 5. Use stable-ID tie-breaking and a fixed number of barycentric ordering sweeps.
@@ -269,6 +286,8 @@ Tests should prove byte-identical output under shuffled input, correct tier prec
 | Risk | Mitigation |
 |---|---|
 | Feature breadth repeats the predecessor's decay | Ship one architecture renderer and one viewer story first; retain Sonde's small MCP surface. |
+| Visualization does not beat the existing document | Make Phase 0 a stop/go experiment with timed architecture questions; do not promote the spike on aesthetic appeal alone. |
+| CLI-only rendering excludes MCP-only agents | Detect client capability, provide bounded read-only IR where justified, and disclose when HTML delivery is unavailable. |
 | Users confuse authored plans with verified code facts | Required provenance mode, distinct viewer badge, and vocabulary restrictions. |
 | Dense graphs become interactive spaghetti | Summary projection by default, exact omission counts, focus/reach/path views, resolved-only filter. |
 | A shared HTML leaks private code | No source bodies by default; redact credentials; safe public links only; structural metadata warning before sharing. |
@@ -282,7 +301,11 @@ Tests should prove byte-identical output under shuffled input, correct tier prec
 
 ### Phase 0: one dogfood spike
 
-Export Sonde's current module graph to a small JSON prototype and render a single Sonde repository map. It may use Archify only as a temporary comparison target, not as a product dependency. Measure comprehension, artifact size, generation time, layout stability, and whether tier/drift controls answer real questions.
+Export Sonde's current module graph to a small JSON prototype and render a single Sonde repository map. It may use Archify only as a temporary comparison target, not as a product dependency.
+
+Before looking at the result, write 3–5 concrete architecture questions and a simple protocol. Compare `sonde doc` with the HTML map on answer correctness, time-to-answer, confidence calibration, artifact size, generation time, and layout stability. Include at least one dense graph, one degraded/freshness case, one misleading heuristic-heavy pair, and one MCP-only access walkthrough.
+
+**Go/no-go rule:** proceed only if the map makes at least one recurring, important task materially easier without obscuring provenance or creating a new maintenance burden disproportionate to the gain. "It looks better" is insufficient. If the Markdown and existing graph queries are as effective, retain the spike as research and stop.
 
 ### Phase 1: native repository map
 
