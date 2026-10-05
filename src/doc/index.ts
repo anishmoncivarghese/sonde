@@ -44,7 +44,7 @@ const PROJECT_MANIFESTS = [
   "Package.swift",
 ];
 
-function findNestedProjectRoots(
+export function findNestedProjectRoots(
   boundary: RepoBoundary,
   modulePaths: readonly string[],
 ): string[] {
