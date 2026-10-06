@@ -192,6 +192,28 @@ describe("the diagram is a summary, not the whole graph", () => {
     expect(out).toMatch(/omitted|not shown/i);
   });
 
+  it("never claims the table is complete while truncating it", () => {
+    // The document said "the table below is complete" a few lines above a
+    // table truncated to TABLE_LIMIT. A reader asking which modules depend on
+    // src/store saw 5 of 16 and had been told that was all of them.
+    const out = renderDoc(denseGraph(), {
+      revision: "abc1234",
+      dirty: false,
+      driftedFiles: 0,
+      parseFailures: 0,
+      missingTsConfig: false,
+    });
+    // Dependency rows carry two code cells; the Modules table below also
+    // starts with `| \`src/`, which a looser pattern picks up.
+    const rows = out
+      .split("\n")
+      .filter((line) => /^\| `src\/[^`]+` \| `src\//.test(line));
+
+    expect(rows.length).toBe(30);
+    expect(out).not.toMatch(/table below is complete/i);
+    expect(out).toMatch(/30 strongest of 60 evidenced pair\(s\)/);
+  });
+
   it("keeps every dependency in the table when the diagram omits some", () => {
     const out = renderDoc(denseGraph(), {
       revision: "abc1234",

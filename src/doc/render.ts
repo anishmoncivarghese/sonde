@@ -301,9 +301,19 @@ export function renderDoc(graph: ModuleGraph, stamp: DocStamp): string {
       dependencies.length - DIAGRAM_LIMIT,
     );
     if (omittedDependencies > 0) {
+      // Never claim the table is complete. It is truncated to TABLE_LIMIT, so
+      // the two statements contradicted each other a few lines apart: a reader
+      // answering "what depends on src/store" saw 5 of 16 and had been told
+      // they were looking at all of them. Invariant 8 -- a wrong answer with no
+      // warning is the one failure mode this document exists to avoid.
+      const tabled = Math.min(verified.length, TABLE_LIMIT);
       lines.push(
         `${omittedDependencies} lower-weight dependency pair(s) are not shown ` +
-          "in the diagram; the table below is complete.",
+          `in the diagram. The table below lists the ${tabled} strongest of ` +
+          `${verified.length} evidenced pair(s)` +
+          (verified.length > TABLE_LIMIT
+            ? "; run `sonde doc --module <path>` for a module's complete set."
+            : "."),
         "",
       );
     }
