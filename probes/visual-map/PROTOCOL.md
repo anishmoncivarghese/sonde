@@ -49,7 +49,25 @@ structure. Each must be answerable from both artifacts in principle.
 | **Q2** | Which module is the riskiest to change — the one the most other modules depend on? | Requires aggregating inbound edges, which a flat table does not show directly. |
 | **Q3** | Is there a dependency **cycle** between any two modules, and if so which? | Cycles are structurally invisible in a sorted table. If the map cannot win here it cannot win anywhere. |
 | **Q4** | Which modules does `src/cli` depend on that `src/mcp` does not? | A set difference across two rows. Natural in a graph, fiddly in a table. |
+| **Q5** | Work enters at `src/cli`. Trace the path by which it reaches `src/store` — which modules does it pass through? | Forward path tracing. A table makes you reconstruct a chain by hand, one row lookup at a time. |
+| **Q6** | Which modules are *foundational* — they depend on nothing else in the product? | "Where is the bottom of the stack" is a real orientation task, and a table makes you prove a negative across every row. |
 | **C1** | *(control)* How many files and symbols are in `src/resolve`? | A direct table lookup. **The Markdown is expected to win.** If the map "wins" here too, the measurement is biased and the whole run is void. |
+
+### 2.1 Amendment — 2026-10-06, before any question was answered
+
+Q5 and Q6 were added after the simple map was built and **before any result was
+seen**, which §3 permits and will not permit an hour from now.
+
+The reason is a defect in the original five. Q1–Q4 are all *detail* questions —
+blast radius, cycles, set difference — and the simple map discards detail
+deliberately: nested modules roll up, scaffolding is dropped, and only
+resolved-majority edges are drawn. It would therefore have failed every one of
+them by construction, and that FAIL would have measured it against a job it is
+not for. The protocol had no question for the claim the simple map actually
+makes, which is that a human can see how the repository works.
+
+Q1–Q4 and C1 are therefore answered from the **complete** map. Q5 and Q6 are
+answered from the **simple** map. Both are compared against the same Markdown.
 
 **C1 is not filler.** It is the calibration check. A protocol in which the new
 thing wins every question is measuring enthusiasm, not utility.
@@ -63,7 +81,15 @@ Written now so they can be scored against, not rationalised after:
 - **Q1 is the Markdown's quiet strength.** The dependency table already lists
   every pair with tier counts; a reader can scan it.
 - **C1 goes to the Markdown**, decisively.
-- **Overall prediction: MARGINAL or FAIL.** Stated in advance so a PASS is
+- **Q5 goes to the simple map.** A four-module chain is a traversal; the table
+  makes you rebuild it by hand.
+- **Q6 goes to the simple map, but counts for less.** Disclosed confound: the
+  layered layout places modules with no outgoing edges in the rightmost column
+  by construction, so the map part-answers Q6 through a layout choice rather
+  than through the reader's own work. A Q6 win is therefore weaker evidence
+  than a Q5 win, and a PASS resting on Q6 alone should be read as MARGINAL.
+- **Overall prediction: MARGINAL or FAIL** for the complete map on Q1–Q4;
+  **PASS** for the simple map on Q5–Q6. Stated in advance so a PASS is
   informative rather than assumed.
 
 ## 4. Protocol
@@ -101,6 +127,12 @@ With one participant and five questions, statistical precision is unavailable
 and pretending otherwise would be dishonest. The gate is therefore **on
 correctness and a stated judgment**, not on a fabricated time threshold.
 
+The two maps are gated **separately**. Neither carries the other: a simple map
+that orients a newcomer does not license a complete map nobody can read, and
+the reverse.
+
+**Complete map, on Q1–Q4:**
+
 - **PASS** — at least **2 of Q1–Q4** answered correctly from the map that were
   answered **incorrectly, incompletely, or not at all** from the Markdown,
   **and** C1 shows no degradation.
@@ -108,8 +140,20 @@ correctness and a stated judgment**, not on a fabricated time threshold.
   human. Do not proceed to Phase 1 on a MARGINAL without an explicit decision.
 - **FAIL** — **0** such questions. The PRD's deferral stands. Keep the spike as
   research and stop.
+**Simple map, on Q5–Q6:**
+
+- **PASS** — **both** answered correctly from the simple map and incorrectly,
+  incompletely or not at all from the Markdown.
+- **MARGINAL** — exactly one, or both but with Q6 carrying the win (see the
+  disclosed layout confound in §3).
+- **FAIL** — neither.
+
+**Either gate:**
+
 - **VOID** — the map "wins" C1, or the builder also answered the questions. Re-run
   or abandon; do not report a result from a broken protocol.
+
+Phase 1 is authorised for whichever map passes its own gate, and only that one.
 
 **"It looks better" is not a passing condition.** Neither is "it would be nice
 once the viewer is polished" — the spike measures what was built, not what is
