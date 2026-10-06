@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 
 import { assertSupportedNode } from "./nodeVersion.js";
+import {
+  generateMap,
+  MAP_PATH,
+  NoMappableModulesError,
+  structuralModel,
+  writeMap,
+} from "../map/index.js";
 import { createHash } from "node:crypto";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { existsSync, rmSync } from "node:fs";
@@ -30,7 +37,7 @@ import {
 } from "../resolve/compilerPass.js";
 import { EMBEDDING_MODEL, hashInput, loadEmbedder } from "../enrich/embedder.js";
 import { buildSymbolDocument, packVector } from "../enrich/vectors.js";
-import { RepoBoundary } from "../repo/boundary.js";
+import { PathEscapeError, RepoBoundary } from "../repo/boundary.js";
 import { gitState } from "../repo/git.js";
 import {
   migrate,
@@ -427,6 +434,119 @@ program
         return;
       }
       console.log(`${DOC_PATH} ${outcome.action}`);
+    } finally {
+      db.close();
+    }
+  });
+
+program
+  .command("map")
+  .argument("[path]", "repository root", ".")
+  .description("generate an interactive architecture map as a single HTML file")
+  .option("--complete", "draw every module and every evidenced pair")
+  .option("--stdout", "print the map instead of writing it")
+  .option("--check", "fail if the committed map is out of date")
+  .option("--out <file>", "write to this path instead of ARCHITECTURE.html")
+  .option("--include-tests", "include modules containing only test symbols")
+  .action((
+    path: string,
+    options: {
+      complete?: boolean;
+      stdout?: boolean;
+      check?: boolean;
+      out?: string;
+      includeTests?: boolean;
+    },
+  ) => {
+    if (options.stdout === true && options.check === true) {
+      console.error("choose only one of --stdout or --check");
+      process.exitCode = 1;
+      return;
+    }
+
+    const dbPath = indexPathFor(path);
+    if (!existsSync(dbPath)) {
+      console.error("no index; run `sonde index`");
+      process.exitCode = 1;
+      return;
+    }
+
+    const db = openDb(dbPath);
+    try {
+      try {
+        migrate(db);
+      } catch (error) {
+        if (!(error instanceof SchemaVersionError)) throw error;
+        console.error(error.message);
+        process.exitCode = 1;
+        return;
+      }
+
+      const boundary = new RepoBoundary(path);
+      const store = new Store(db);
+      const mapPath = options.out ?? MAP_PATH;
+
+      let content: string;
+      try {
+        content = generateMap(boundary, store, {
+          mode: options.complete === true ? "complete" : "simple",
+          includeTests: options.includeTests,
+        });
+      } catch (error) {
+        if (!(error instanceof NoMappableModulesError)) throw error;
+        console.error(error.message);
+        process.exitCode = 1;
+        return;
+      }
+
+      if (options.stdout === true) {
+        process.stdout.write(content);
+        return;
+      }
+
+      if (options.check === true) {
+        let current: string | null = null;
+        try {
+          current = boundary.readFile(mapPath).toString("utf8");
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        }
+        if (
+          current !== null &&
+          structuralModel(current) !== null &&
+          structuralModel(current) === structuralModel(content)
+        ) {
+          console.log(`${mapPath} is up to date`);
+          return;
+        }
+        console.error(`${mapPath} is out of date; run \`sonde map\``);
+        process.exitCode = 1;
+        return;
+      }
+
+      let outcome;
+      try {
+        outcome = writeMap(boundary, content, mapPath);
+      } catch (error) {
+        // --out takes a path from the user, and the boundary refuses anything
+        // outside the repository (invariant 6). That refusal is correct; an
+        // uncaught stack trace for it is not (invariant 8).
+        if (!(error instanceof PathEscapeError)) throw error;
+        console.error(
+          `${mapPath} is outside the repository; --out must name a path inside it`,
+        );
+        process.exitCode = 1;
+        return;
+      }
+      if (outcome.action === "refused") {
+        console.error(
+          `${mapPath} was not written by sonde; refusing to overwrite it. ` +
+            "Use `sonde map --stdout` to see the generated map.",
+        );
+        process.exitCode = 1;
+        return;
+      }
+      console.log(`${mapPath} ${outcome.action}`);
     } finally {
       db.close();
     }

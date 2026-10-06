@@ -82,6 +82,20 @@ npm run typecheck          # tsc --noEmit
 npm run bench:oracle       # regenerate ORACLE.md accuracy report
 ```
 
+### Generated artifacts
+
+Two are generated from the same graph and must agree. `sonde doc` writes
+`ARCHITECTURE.md` for diffing and review; `sonde map` writes
+`ARCHITECTURE.html` for reading and exploring. Both derive their module
+projection from `findNestedProjectRoots` and `buildModuleGraph`, deliberately
+through the same helpers rather than copies: a map whose provenance stamp
+contradicts the document beside it is worse than no map.
+
+`sonde map` has two modes. The simple one is an orientation artifact and shows
+only resolved-majority dependencies, with **no toggle** to reveal the rest.
+Adding one would be a bug, not a feature: unlike the complete map there is no
+way to take back a guess the reader has already believed.
+
 ### Invariants
 
 These are product contracts, not preferences. Violating one is a bug even if

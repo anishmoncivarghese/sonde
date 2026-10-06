@@ -5,6 +5,35 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- `sonde map` — an interactive architecture map as a single self-contained
+  HTML file, in two modes. The default simple map rolls nested modules up one
+  level, drops scaffolding that ships nothing, and draws only
+  resolved-majority dependencies with no toggle to reveal the rest; it answers
+  "how does this work". `--complete` draws every module and every evidenced
+  pair, with unverified ones behind a checkbox; it answers "what exactly
+  depends on what". They are separate projections rather than one view with a
+  filter, because each reduction that makes the simple map readable is also
+  what makes it unfit for auditing. `--check` works as it does for `sonde doc`,
+  comparing the embedded model so the provenance stamp cannot make the file
+  stale against itself.
+- Selecting a module reports its **transitive** reach, not its immediate
+  neighbours, in either direction. This is the gap a measured trial found:
+  asked which modules must be checked when `src/store` changes, neither the
+  committed document nor a first draft of the map could answer, and the real
+  answer here is 21 modules — 16 direct and 5 further out. Search was the other
+  blocker and is now in the header.
+
+### Fixed
+
+- `sonde doc` claimed "the table below is complete" four lines above a table
+  truncated to the 30 strongest of 98 evidenced pairs. A reader asking what
+  depends on `src/store` saw 5 rows and a completeness guarantee, with no way
+  to learn the answer was 16 — a wrong answer delivered as a certainty, which
+  is the failure invariant 8 exists to prevent. The claim was untested, so the
+  regression test matters as much as the wording.
+
 ## [0.4.4] — 2026-08-31
 
 ### Added
