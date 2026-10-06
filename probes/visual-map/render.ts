@@ -32,13 +32,26 @@ import { indexPathFor } from "../../src/index/cache.js";
 import { findNestedProjectRoots } from "../../src/doc/index.js";
 import {
   buildModuleGraph,
+  compareDependencies,
   resolvedOf,
   type ModuleDependency,
   type ModuleGraph,
+  type ModuleSummary,
 } from "../../src/doc/modules.js";
 
 const repoPath = process.argv[2] ?? process.cwd();
 const outPath = process.argv[3] ?? "probes/visual-map/map.html";
+/**
+ * Two audiences, two maps.
+ *
+ * `simple` is orientation: what is this repository and how does work flow
+ * through it. `complete` is the whole graph for someone already inside it.
+ * They are different products of the same data, not one product with a filter,
+ * because the reductions that make the simple map readable (rolling nested
+ * modules up, dropping scaffolding, dropping unresolved evidence entirely) are
+ * exactly the ones that make it wrong to audit with.
+ */
+const mode = (process.argv[4] ?? "complete") as "simple" | "complete";
 
 const db = openDb(indexPathFor(repoPath));
 migrate(db);
@@ -51,12 +64,86 @@ const symbolCounts = store.docSymbolCounts();
 // repository's architecture, and the map's tier totals then disagreed with
 // `sonde doc`'s stamp (1044/1861 against 1008/1821) -- a provenance claim that
 // contradicts the tool it claims to visualise.
-const graph = buildModuleGraph(store.docEdgeRows(), symbolCounts, {
+const rawGraph = buildModuleGraph(store.docEdgeRows(), symbolCounts, {
   nestedProjectRoots: findNestedProjectRoots(
     boundary,
     symbolCounts.map((row) => row.filePath.split("/").slice(0, -1).join("/")),
   ),
 });
+/**
+ * Roll a module up to its top-level unit: `src/adapters/python` becomes
+ * `src/adapters`, `bench/harness` becomes `bench`. One level under `src/`,
+ * because that is where this repository draws its own responsibility
+ * boundaries -- the three language adapters are one concept to a reader
+ * orienting themselves and three concepts to someone editing them.
+ */
+function rollUp(modulePath: string): string {
+  const parts = modulePath.split("/");
+  return parts[0] === "src" ? parts.slice(0, 2).join("/") : parts[0];
+}
+
+/**
+ * The simple map shows the product and not its scaffolding. `bench/`,
+ * `probes/` and `tests/` are real code that ships nothing: including them in
+ * an orientation map answers "what is in this directory" when the question is
+ * "what does this program do".
+ */
+function isProduct(modulePath: string): boolean {
+  return modulePath.startsWith("src/");
+}
+
+function simplify(input: ModuleGraph): ModuleGraph {
+  const summaries = new Map<string, ModuleSummary>();
+  for (const summary of input.modules) {
+    const path = rollUp(summary.path);
+    if (!isProduct(path)) continue;
+    const existing = summaries.get(path);
+    if (existing) {
+      existing.files += summary.files;
+      existing.symbols += summary.symbols;
+      existing.surface = [...new Set([...existing.surface, ...summary.surface])];
+    } else {
+      summaries.set(path, { ...summary, path, surface: [...summary.surface] });
+    }
+  }
+
+  const merged = new Map<string, ModuleDependency>();
+  for (const dependency of input.dependencies) {
+    // Resolved evidence only. An orientation map that shows a guess alongside
+    // a fact teaches the reader a wrong shape, and unlike the complete map
+    // there is no toggle here to take it back.
+    if (resolvedOf(dependency) <= dependency.byTier.HEURISTIC) continue;
+    const from = rollUp(dependency.from);
+    const to = rollUp(dependency.to);
+    if (from === to || !isProduct(from) || !isProduct(to)) continue;
+    const key = `${from}\u0000${to}`;
+    const existing = merged.get(key);
+    if (existing) {
+      existing.total += dependency.total;
+      for (const tier of ["COMPILER", "LEXICAL", "HEURISTIC"] as const) {
+        existing.byTier[tier] += dependency.byTier[tier];
+      }
+    } else {
+      merged.set(key, {
+        from,
+        to,
+        total: dependency.total,
+        byTier: { ...dependency.byTier },
+      });
+    }
+  }
+
+  return {
+    ...input,
+    modules: [...summaries.values()].sort((a, b) =>
+      a.path < b.path ? -1 : a.path > b.path ? 1 : 0
+    ),
+    dependencies: [...merged.values()].sort(compareDependencies),
+  };
+}
+
+const graph = mode === "simple" ? simplify(rawGraph) : rawGraph;
+
 const git = gitState(boundary);
 const drift = checkDrift(boundary, store);
 
@@ -198,7 +285,7 @@ const payload = {
 
 const html = `<!doctype html>
 <meta charset="utf-8">
-<title>Module map — spike</title>
+<title>${mode === "simple" ? "How this repo works" : "Module map"} — spike</title>
 <style>
   :root { color-scheme: light dark; --bg:#fbfbfa; --fg:#1b1b19; --line:#8a8a85;
           --panel:#ffffff; --border:#d8d8d4; --accent:#2f6f4f; --warn:#8a5a1a; }
@@ -251,12 +338,17 @@ const html = `<!doctype html>
   }
 </style>
 <header>
-  <h1>Module map <span class="meta">(Phase 0 spike)</span></h1>
+  <h1>${mode === "simple" ? "How this repo works" : "Module map"}
+    <span class="meta">(Phase 0 spike${mode === "simple" ? " · simple" : " · complete"})</span></h1>
   <span class="meta" id="stamp"></span>
-  <label><input type="checkbox" id="showUnverified"> show unverified pairs
+${mode === "simple"
+  ? `<span class="meta">Only dependencies backed by resolved references are
+      drawn, and nested modules are rolled up. For the full graph including
+      weak and unverified pairs, open the complete map.</span>`
+  : `<label><input type="checkbox" id="showUnverified"> show unverified pairs
     (<span id="unverifiedCount"></span>)</label>
   <span class="meta">solid = resolved majority &middot; long dash = weak
-    (heuristic majority) &middot; short dash = unverified (0 resolved)</span>
+    (heuristic majority) &middot; short dash = unverified (0 resolved)</span>`}
 </header>
 <main>
   <div id="canvas"></div>
@@ -268,8 +360,10 @@ const data = JSON.parse(document.getElementById("data").textContent);
 const NS = "http://www.w3.org/2000/svg";
 const pos = new Map(data.nodes.map(n => [n.path, n]));
 const s = data.stamp;
-document.getElementById("unverifiedCount").textContent =
-  data.edges.filter(e => e.evidence === "unverified").length;
+const unverifiedCount = document.getElementById("unverifiedCount");
+if (unverifiedCount) {
+  unverifiedCount.textContent = data.edges.filter(e => e.evidence === "unverified").length;
+}
 document.getElementById("stamp").textContent =
   (s.revision ? s.revision.slice(0,7) : "no revision") +
   (s.dirty ? " (dirty worktree)" : "") +
@@ -421,7 +515,8 @@ for (const [label, run] of [
 }
 canvas.appendChild(zoomBar);
 
-const showUnverified = document.getElementById("showUnverified");
+const showUnverified = document.getElementById("showUnverified")
+  ?? { checked: false, addEventListener() {} };
 function applyVisibility() {
   const on = showUnverified.checked;
   for (const { e, path } of edgeEls) {
