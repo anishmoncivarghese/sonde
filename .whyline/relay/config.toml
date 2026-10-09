@@ -6,6 +6,7 @@ review = "grok"
 implementer = "grok"
 tester      = "antigravity"
 reviewer    = "codex"
+release = "human"
 
 [pipeline]
 default_profile = "full"
