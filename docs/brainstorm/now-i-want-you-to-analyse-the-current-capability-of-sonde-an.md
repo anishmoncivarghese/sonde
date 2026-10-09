@@ -2,299 +2,295 @@
 
 ## Codex
 
-# Independent research: an Archify-like explanation layer for Sonde
+# Revised view: make Sonde answer “how does this work?”, not merely draw more graphs
 
-## Recommendation in one sentence
+## Recommendation
 
-Do not turn Sonde into a general-purpose AI drawing program. Turn it into the trustworthy evidence engine behind a paired, on-demand project guide: deterministic Markdown for agents and review, interactive self-contained HTML for humans, and a `sonde-visualize` agent skill that can add a clearly separated, source-cited narrative without ever changing or laundering Sonde's graph evidence.
+Sonde should not try to become Archify. It should become the evidence-backed explanation engine that Archify cannot be: one user question produces the smallest trustworthy explanation of the relevant code, with compact Markdown or JSON for an AI agent and self-contained HTML for a human.
 
-The surprising part of this review is that the first half is already built. At commit `3f9cd28`, Sonde has both `sonde doc` and `sonde map`; the latter already creates the self-contained interactive HTML that the original request describes. The next plan should therefore focus on explanation, provenance-preserving projections, and agent workflow rather than building a second graph renderer from scratch.
+There is an important correction to my independent pass. Sonde already ships `sonde doc` and an unreleased `sonde map`, but the pre-committed Phase 0 usefulness protocol for the map has not been adjudicated. The renderer was promoted into `src/map` before a separate reviewer answered the fixed questions. Therefore “the map exists” is a capability statement, not evidence that more map investment is justified.
 
-## What Sonde can do today
+The next move is not a larger visualization IR, a general diagram suite, or an MCP tool. It is to close the existing gate, expose the capabilities that have earned their place, and test a narrower hypothesis the module map cannot answer:
 
-Sonde is already a strong substrate for this feature:
+> Can Sonde help an unfamiliar person or agent understand one concrete feature, execution path, or change more correctly and with fewer exploratory reads than the current file tree, Markdown document, and graph tools?
 
-- It indexes TypeScript, Python, and Swift into a local SQLite symbol graph.
-- Its three MCP tools cover seed lookup (`find_symbols`), tiered structural traversal (`query_graph`), and budgeted change impact (`get_impact_radius`).
-- Every relationship has an evidence tier. `COMPILER` and `LEXICAL` are resolved evidence; `HEURISTIC` is suggestive; external and unresolved references remain explicit rather than becoming invented edges.
-- It checks structural drift, re-verifies returned source bytes, reports degraded states, and keeps repository reads inside the boundary abstraction.
-- `sonde doc` writes a deterministic, guarded `ARCHITECTURE.md` containing module summaries, dependency evidence, freshness warnings, and a Mermaid overview. It refuses to overwrite a human-owned file and supports `--check` and `--module`.
-- `sonde map` now writes a deterministic, self-contained `ARCHITECTURE.html`. It supports a simple orientation projection and a complete audit projection, search, pan/zoom, light/dark themes, keyboard selection, source/target direction switching, and transitive upstream/downstream reach.
-- The simple map deliberately shows only resolved-majority dependencies. The complete map distinguishes resolved, weak, and unverified pairs. Edge weight is based on `COMPILER + LEXICAL`, never raw heuristic volume.
-- Both Markdown and HTML use the same `findNestedProjectRoots` and `buildModuleGraph` helpers, so they cannot quietly tell different architectural stories.
+That is the product opportunity in the user's request.
 
-This is more than a prototype. The current map has CLI tests for self-containment, determinism, stale checks, safe overwrite behavior, path containment, and the difference between simple and complete projections. Model tests protect evidence classification, roll-up behavior, transitive reach, and the invariant that resolved evidence—not noisy name matches—controls visual prominence.
+## What Sonde can actually do now
 
-The current limitations are equally important:
+| Surface | Current strength | Current limit |
+|---|---|---|
+| Index | TypeScript, resolved Python, and Swift symbols and relationships in SQLite; stable keys; explicit unresolved/external references | Static structure, not runtime behaviour |
+| Evidence | `COMPILER > LEXICAL > HEURISTIC`; source sites; drift and degraded-state warnings | Natural-language purpose is not derivable from edges alone |
+| MCP | `find_symbols`, `query_graph`, and `get_impact_radius` answer targeted structural questions within a budget | No orientation workflow; four recorded trials show agents ignored the tools and grepped |
+| Markdown | `sonde doc` creates guarded, deterministic `ARCHITECTURE.md` with modules, evidence counts, provenance, and `--check` | Whole-repository and directory-shaped; weak at “how does feature X work?” |
+| HTML | `sonde map` creates self-contained simple and complete module views with search and reachability | Human-only, module-level, and not yet proven more useful than Markdown under its own protocol |
+| Impact | Git-diff and symbol-seeded reverse traversal already supports “what may be affected?” | It is an agent context pack, not a newcomer explanation |
 
-- The map is module-level only. It does not explain a request path, state transition, data lifecycle, or one feature's implementation.
-- A module card shows counts, public surface names, and reachability, but no plain-language purpose, source locations, selected entry points, or “start reading here” path.
-- The HTML has no public, versioned source IR. Its JSON model is an internal renderer shape embedded in the file.
-- There is no Sonde agent skill that decides what to inspect, gathers evidence, chooses a diagram projection, or pairs the HTML with a task-focused Markdown explanation.
-- MCP-only agents cannot consume the HTML usefully. It is a human artifact, not context. Agents still need compact structured evidence.
-- The current CLI documentation does not yet list `sonde map`, even though the unreleased implementation exists.
-- Sonde cannot honestly generate behavioural prose from the graph alone. Its own benchmark says natural-language queries without identifier overlap remain an unsolved weakness.
-- A static declaration graph is not a runtime trace. A call path may be source-backed without proving that it executes in production.
+Two measurements should control the roadmap:
 
-## What Archify actually contributes
+- One external repository's `ARCHITECTURE.md` stayed structurally unchanged across 278 commits. A module map is likely a one-time orientation aid, not a frequently consulted operational artifact.
+- Agents answered four structural questions by grep even when Sonde's three MCP tools were available. Adding a fourth tool or a prettier file does not solve tool adoption by itself.
 
-Archify is best understood as an agent-authored communication system rather than a code indexer. Its current skill routes a request into one of five typed diagram modes—architecture, workflow, sequence, data flow, and lifecycle—then has the agent author JSON, validate it, render it, run browser checks, and atomically deliver standalone HTML. Its repository workflow asks the agent to freeze a revision, trace a small connected slice, attach exact source ranges, preserve unknowns, and avoid turning labels into unobserved behavior.
+This means the core graph is strong, while the missing layer is request routing and comprehension at the right grain.
 
-Its strongest reusable ideas are:
+## What Archify teaches—and what it does not
 
-1. A typed, editable JSON IR is the durable source; HTML is a compiled artifact.
-2. Different questions get different projections. Architecture, sequence, workflow, data flow, and lifecycle are not forced into one universal graph view.
-3. Validation occurs before delivery, and the previous good artifact survives a failed candidate.
-4. The viewer progressively discloses detail: focus, route, reach, search, presentation, theme, and export do not clutter the initial story.
-5. Repository claims can carry revision-pinned source references.
-6. The skill is the natural-language control plane; the renderer stays deterministic.
+Archify's most useful contribution is its interaction model:
 
-The crucial difference is authority. Archify's topology is authored by an agent or a user, even when it is carefully cited. Sonde's topology comes from an indexed graph with explicit uncertainty and measured accuracy. Sonde should borrow Archify's compilation and delivery architecture, not replace its evidence model with agent-authored arrows.
+1. Start from a plain-language request.
+2. Choose a projection appropriate to that request.
+3. Compile typed source data into a self-contained artifact.
+4. Validate before replacing the last good output.
+5. Let the user focus, route, inspect, and iterate.
 
-Archify's breadth is also a warning. Its current CLI is thousands of lines and covers five schemas, multiple renderers, exports, browser validation, preview, comparisons, styles, sharing cards, and many delivery receipts. Importing or forking the whole project would give Sonde a large maintenance surface before proving that users need more than its existing map. The MIT license permits reuse, but licensing is not the deciding cost; product scope and evidence semantics are.
+Its important engineering ideas are a typed intermediate representation, projection-specific schemas, atomic delivery, receipts, source links, and progressive disclosure.
 
-Sources inspected on 2026-10-09:
+But Archify is an authored communication tool. An agent supplies topology and coordinates. Sonde is a code-evidence product. Importing Archify's authority model would erase Sonde's differentiator and violate its strongest invariant: never fabricate an edge.
 
-- [Archify repository and README](https://github.com/tt-a1i/archify)
-- [Archify skill contract](https://github.com/tt-a1i/archify/blob/main/archify/SKILL.md)
-- [Repository-backed authoring rules](https://github.com/tt-a1i/archify/blob/main/archify/references/repository-authoring.md)
-- [Architecture JSON schema](https://github.com/tt-a1i/archify/blob/main/archify/schemas/architecture.schema.json)
-- [Archify design system](https://github.com/tt-a1i/archify/blob/main/DESIGN.md)
+So the boundary should be:
 
-## The product: Sonde Guide
+- Sonde owns discovered code topology, evidence tiers, source sites, freshness, omissions, and bounded traversal.
+- A template or agent may add labels, groupings, and prose, but these are annotations with citations—not graph facts.
+- Generic workflow, vacation, business-process, and future-system diagrams belong in Archify or another authoring tool, not Sonde core.
+- Static call relationships must never be presented as runtime traces or chronological sequences.
 
-The user-facing concept should be a **Sonde Guide**, not merely a prettier graph.
+Do not fork or vendor Archify. Learn from its compilation and delivery loop.
 
-A guide is a paired artifact compiled from one evidence model:
+## The product shape: an on-demand Sonde Explanation
 
-- `ARCHITECTURE.md`: stable, diffable, compact, useful to developers and agents.
-- `ARCHITECTURE.html`: interactive, visual, self-contained, useful to newcomers and non-experts.
-- An optional versioned JSON source/receipt for focused views and safe iteration.
+The unit of value should be an **explanation**, not a map.
 
-The default repository guide remains deterministic and may be committed. Focused, on-demand guides—for example “how authentication works” or “what changes if I alter the store schema?”—should live under a generated directory such as `.sonde/views/<slug>/` unless the user chooses another path. They should not overwrite the stable repository overview.
+Illustrative requests:
 
-The experience for a newcomer should answer four questions immediately:
+- “Give me an overview of this repository.”
+- “How does `get_impact_radius` work?”
+- “What could be affected by this diff?”
+- “Why does the CLI depend on the store?”
+- “Where should I start reading to understand Python resolution?”
 
-1. What is this project and where does work enter?
-2. What are the major parts, in plain language?
-3. What happens along one important path?
-4. Where should I read first, and what evidence is uncertain?
+The request router chooses one existing or new projection:
 
-The current module map answers part of questions 2 and 4. The proposed guide adds the narrative and task-specific path without pretending that narrative is compiler output.
+| Intent | Evidence source | Human output | Agent output |
+|---|---|---|---|
+| Repository orientation | Module graph | Existing Markdown and, only if validated, HTML map | Compact orientation summary |
+| Change impact | Existing impact traversal | Focused Markdown/HTML impact view | Existing budgeted impact pack |
+| Feature explanation | Bounded `CALLS`/`REFERENCES` paths plus exact sources | Focused “static flow” Markdown/HTML | Compact evidence packet |
+| Direct structural question | Existing MCP query | Usually no file | Current structured response |
+| Authored/non-code diagram | None | Redirect to Archify | Refusal or explicit user-authored mode outside Sonde |
 
-## Authority must be explicit
+The default response should be small. A user asking how one function works should not receive a 24-module poster.
 
-Every node, relationship, note, and diagram should carry one of these authority classes:
+### One evidence model, separate readers
 
-- `sonde-indexed`: derived from Sonde symbols or edges, including stable key, relationship kind, tier, confidence, and source site when available.
-- `repository-cited`: prose or grouping authored by an agent but backed by one or more verified file/range/hash references.
-- `user-authored`: a plan, desired architecture, everyday workflow, or fact supplied by the user.
-- `agent-inferred`: an interpretation that is useful but not established by the graph or a direct citation. Hidden by default in codebase diagrams or displayed with an unmistakable caveat.
+Humans and agents should not consume the same bytes:
 
-Only `sonde-indexed` relationships may be presented as discovered code topology. A high-quality explanation may combine all four classes, but the viewer and Markdown must make the boundary visible. This prevents an agent-written “API calls database” arrow from acquiring the same visual authority as a compiler-resolved edge.
+- Markdown is diffable, searchable, and suitable for review or a short agent handoff.
+- JSON is the compact structured form when an agent needs to continue querying.
+- HTML is a self-contained human viewer. It should never be pasted into model context.
+- All three, when generated for the same request, must share revision, freshness, scope, omissions, and evidence classification.
 
-For code maps, Sonde's existing evidence rule remains non-negotiable:
+The output should state:
+
+- what question it answers;
+- which revision and worktree state it represents;
+- which nodes and relationships were included;
+- which facts are compiler/lexical versus heuristic;
+- what was omitted by depth or budget;
+- that static reachability is not runtime proof;
+- exact source locations for the next reading step.
+
+## Authority and honesty
+
+Use explicit authority classes only when an annotation layer is introduced:
+
+- `sonde-indexed`: symbol, relationship, tier, confidence, and source site from the graph;
+- `repository-cited`: explanatory text backed by verified file/range/hash references;
+- `user-authored`: desired behaviour or context supplied by the user;
+- `agent-inferred`: interpretation, visibly caveated and off by default in code maps.
+
+Only `sonde-indexed` edges may appear as discovered topology. An agent can select or hide edges; it cannot promote, retarget, or manufacture one. A heuristic-only relationship remains heuristic everywhere. `TESTS` remains structural relatedness, never coverage.
+
+Plain language should begin with deterministic templates. Optional model-written prose comes later, is labelled, and can be dropped without changing the underlying artifact.
+
+## Minimal technical seam
+
+My earlier proposal promoted a large public `VisualizationIR` too early. The other pass and the Phase 0 record show that this would be speculative: agents do not need HTML geometry, and a single module renderer does not justify a public schema.
+
+Extract a versioned semantic model only when a second validated projection or sink needs it. Keep it small:
 
 ```text
-resolved = COMPILER + LEXICAL
-HEURISTIC never increases default prominence
+ExplanationEnvelope
+  schemaVersion
+  question + projection + scope
+  repository revision / dirty / drift / warnings
+  nodes: stable key, label, kind, source sites, authority
+  edges: endpoints, relation, tier counts, authority
+  omissions: depth, budget, unsupported/degraded evidence
+  annotations: separate from topology
 ```
 
-An agent may hide detail or choose a clearer projection; it may not promote, retarget, or silently drop uncertainty from the underlying relationship.
+Layout coordinates are renderer output, never semantic identity. The envelope should expose projections, not raw database rows. Existing `buildModuleGraph`, traversal, and impact helpers remain the authoritative producers.
 
-## A small visualization IR
+A focused static-flow projection should default to `COMPILER` and `LEXICAL` edges. Heuristic hops require an explicit option and unmistakable styling. Fan-out through implementations must say that it is an inference from static structure.
 
-Promote the useful part of `MapModel` into a public, versioned `VisualizationIR`. Keep it smaller than Archify's general schema at first.
+## Gated plan
 
-Suggested shape:
+### Phase 0 — reconcile the current map with its own gate
 
-```json
-{
-  "schema_version": 1,
-  "kind": "module-map",
-  "repository": {
-    "root_hash": "...",
-    "revision": "...",
-    "dirty": false
-  },
-  "freshness": {
-    "state": "fresh",
-    "drift_count": 0,
-    "warnings": []
-  },
-  "nodes": [
-    {
-      "id": "module:src/store",
-      "label": "Storage",
-      "kind": "module",
-      "metrics": { "files": 5, "symbols": 48 },
-      "sources": [{ "path": "src/store/repos.ts", "line": 1 }],
-      "authority": "sonde-indexed"
-    }
-  ],
-  "edges": [
-    {
-      "id": "...",
-      "from": "module:src/index",
-      "to": "module:src/store",
-      "relation": "depends-on",
-      "evidence": {
-        "compiler": 12,
-        "lexical": 5,
-        "heuristic": 9,
-        "classification": "resolved"
-      },
-      "authority": "sonde-indexed"
-    }
-  ],
-  "annotations": []
-}
-```
+1. Complete the reviewer and tester roles in `probes/visual-map/PROTOCOL.md`; the builder must not answer.
+2. Score the complete and simple maps independently against the frozen thresholds.
+3. Record the result and close the stale handoff.
+4. If a view fails, keep the research but stop investing in that view. Existing shipped code can be retained only with an explicit product decision; it must not be treated as proof of value.
+5. If a view passes, document exactly which questions it improves. That bounded claim controls future work.
 
-Layout coordinates should be a renderer result, not semantic identity. A stable semantic IR makes Markdown, HTML, tests, future renderers, and an agent skill agree while allowing layout improvements without changing the evidence receipt.
+Exit: a recorded PASS/MARGINAL/FAIL, not “the graph looks useful.”
 
-Do not create one giant schema for every possible diagram. Use a small shared envelope and separate projection payloads:
+### Phase 1 — fix discoverability without expanding scope
 
-- `module-map`: existing repository orientation.
-- `impact-map`: direct and transitive dependants plus structurally related tests.
-- `static-flow`: a bounded path through `CALLS`/`REFERENCES`, explicitly named static rather than runtime.
-- `change-map`: changed symbols, affected modules, test relationships, and uncertainty.
-- Later, agent-authored `workflow`, `sequence`, `dataflow`, and `lifecycle` payloads that use the same viewer shell but not the Sonde graph authority class.
+For only the surfaces retained after Phase 0:
 
-## The agent skill
+1. Add `doc` and, if retained, `map` to the README CLI inventory.
+2. Make `sonde init` point to the appropriate next command without silently writing artifacts.
+3. Explain the difference between committed `ARCHITECTURE.md`, optional human HTML, and targeted MCP queries.
+4. Run the required clean-install release test on throwaway TypeScript and resolved-Python projects, reading both correct and degraded output.
 
-Package a `sonde-visualize` skill after the IR and validator are stable. The skill should be thin and opinionated:
+Exit: a cold user can discover the current capability without reading the changelog.
 
-1. Check `sonde status`; stop or visibly degrade when no usable index exists.
-2. Classify the request as repository overview, focused static flow, impact/change explanation, or non-code authored diagram.
-3. For a code request, gather compact evidence through the CLI or existing MCP tools. Prefer stable keys and exact relationships over broad repository reading.
-4. Ask only when the requested focus is materially ambiguous. Otherwise choose the smallest useful projection.
-5. Add plain-language labels and notes as a separate annotation layer with citations and authority tags.
-6. Validate that every indexed node and edge still exists, every cited source range hashes correctly, no heuristic-only pair is shown as verified, and no source path escapes the root.
-7. Render Markdown and HTML from the same IR, write through a temporary candidate, run structural and browser checks, then atomically replace the generated artifact.
-8. Report exact output paths, freshness, validation result, and any unresolved claims.
+### Phase 2 — prove the missing focused-explanation hypothesis
 
-The skill should not paste HTML into model context. For agents, the useful artifact is the compact IR or Markdown. HTML is the delivery surface for humans.
+Do not begin with a permanent skill or public IR. Build a timeboxed probe over existing query and impact APIs for two views:
 
-When asked for an everyday plan or a future system design, the skill may use the generic authored projections, but it must not invoke or imply Sonde indexing. Those outputs should say “user-authored plan” rather than “source-backed architecture.” This makes the broader Archify-like use case possible without diluting Sonde's brand as a code-context engine.
+1. **Change explanation**: changed symbols → direct/transitive dependants → structurally related tests, with every caveat preserved.
+2. **Static flow**: one resolved entry symbol → bounded call/reference paths → numbered Markdown hops with exact sources and tiers.
 
-## Plan
+Pre-commit questions on unfamiliar repositories, for example:
 
-### Phase 0 — close and release what already exists
+- Where does this request enter?
+- Which two files should I read next?
+- How does symbol A reach subsystem B?
+- What may be affected by this diff?
+- Which step is uncertain, and why?
 
-1. Treat the current `sonde map` implementation as the baseline, not a spike to rebuild.
-2. Complete its current review/test handoff and record the actual gate result.
-3. Add `sonde map` to README CLI documentation and setup discoverability.
-4. Run full tests and typecheck, then perform the required clean-install release verification on an external throwaway project. Verify both presence and absence of warnings.
-5. Dogfood the simple and complete map on one TypeScript, one resolved Python, and one Swift repository. Record HTML size, node/edge count, render readability, drift disclosure, and whether evidence classification remains honest.
+Compare file-tree/grep, current Sonde tools, and the focused explanation. Measure correctness, time, exploratory reads/tool calls, context tokens, and confidence. Include identifier-poor requests because Sonde's benchmark identifies them as a weakness.
 
-Exit: the existing paired `ARCHITECTURE.md`/`.html` experience is released and documented before further scope is added.
+Exit: proceed only if the focused view improves at least two comprehension tasks without degrading the direct-lookup control.
 
-### Phase 1 — extract a versioned IR and validator
+### Phase 3 — productize the winning projection
 
-1. Add `src/visualize/ir.ts` with the shared envelope, authority classes, nodes, source references, and tiered edges.
-2. Refactor the current module map builder to emit semantic IR before layout. Preserve current HTML bytes or update golden tests deliberately.
-3. Add a JSON output mode such as `sonde map --format json` or a narrowly named `sonde project module-map --json`. Do not expose arbitrary database rows.
-4. Build validation for referential integrity, tier totals, authority/provenance, source containment, freshness, unique IDs, and unsupported fields.
-5. Add deterministic hashing/receipt support so `--check` compares semantic structure while ignoring volatile provenance fields, as current `doc` and `map` already do.
-6. Keep writes guarded and atomic; a failed candidate must not replace the last good file.
+For each projection that passes:
 
-Exit: Markdown and HTML can be proven to derive from the same validated semantic model.
+1. Introduce the minimal `ExplanationEnvelope` shared by Markdown and HTML/JSON.
+2. Add a CLI surface such as `sonde explain --symbol <key>` or `--from-git-diff`; settle naming during design, not in this brainstorm.
+3. Generate a concise Markdown sibling and optional self-contained HTML from the same semantic model.
+4. Add guarded, atomic writes and last-good preservation.
+5. Add deep links, “start reading here,” source locations, direction labels, and omission/freshness panels.
+6. Test referential integrity, tier preservation, path containment, determinism, degraded states, and heuristic-heavy fixtures.
 
-### Phase 2 — make the repository guide useful to non-experts
+Exit: the artifact answers one scoped question and round-trips every discovered relationship to graph evidence.
 
-1. Add plain-language direction labels consistently: “uses,” “used by,” “what may be affected,” and “depends on.” Keep technical relation/tier details one click away.
-2. Add a selected-node “start here” panel with key files, top resolved surface symbols, direct dependencies, direct dependants, and exact copyable source locations.
-3. Add deep links for focus and reach, for example `#focus=module:src/store&reach=upstream`, without storing viewer state in canonical output.
-4. Add route finding between two visible nodes over resolved edges, returning the exact path and evidence. Do not call it a runtime trace.
-5. Add a short guided overview assembled from deterministic facts: entry candidates when mechanically evidenced, foundational modules, highly depended-on modules, and freshness/coverage caveats.
-6. Improve accessibility: full keyboard navigation, non-color evidence cues, reduced-motion support if motion is later added, and responsive containment.
+### Phase 4 — test a thin agent skill
 
-Exit: a developer unfamiliar with the repository can identify where to start, follow one dependency path, and reach exact source without reading raw graph terminology.
+Only after the CLI workflow proves useful:
 
-### Phase 3 — add focused code projections
+1. Prototype a `sonde-orient` or `sonde-explain` skill that routes intent to existing commands.
+2. It should use `find_symbols` for seeding, `query_graph` for direct questions, impact for edit safety, and explanation artifacts only for orientation/communication.
+3. It returns compact Markdown or JSON to the agent and the HTML path to the human.
+4. If focus is ambiguous, it asks for a symbol; it never fills the gap with invented topology.
+5. Evaluate whether the skill reduces grep/tool-selection failures in fresh sessions.
 
-Implement one at a time, behind evidence-based tests:
+Exit: install/distribute the skill only if agents actually choose the right Sonde path more often and use fewer exploratory reads.
 
-1. `impact-map` from the existing impact traversal. Show direct vs transitive results and keep `TESTS` labelled as relatedness, never coverage.
-2. `change-map` from git diff mapping plus impact. Highlight changed symbols and affected modules without inferring risk or breakage beyond the evidence.
-3. `static-flow` from a selected symbol and bounded call/reference paths. Require compiler or lexical edges by default; allow heuristic edges only through an explicit visibility control and warning.
-4. Generate a paired focused Markdown summary from the same projection.
+### Phase 5 — add an MCP orientation pattern only if needed
 
-Do not add workflow, sequence, data flow, and lifecycle modes to core Sonde in this phase. First prove that code-specific views improve Sonde's actual users.
+Do not add an HTML-writing MCP tool. If measured MCP-only sessions cannot obtain a compact overview, add one bounded read-only pattern—preferably within `query_graph`—that returns semantic nodes, tiered edges, provenance, truncation, and omissions.
 
-### Phase 4 — ship the skill
+The existing three-tool surface is a strength. A fourth tool requires evidence that a pattern cannot express the need clearly.
 
-1. Write the skill contract and examples around the three code projections.
-2. Teach it to create a concise, cited annotation layer rather than rewriting topology.
-3. Add fixtures for a clean index, drifted index, parse failure, compiler-unavailable repository, heuristic-heavy relationship, and ambiguous user request.
-4. Add end-to-end tests showing that a fresh skill invocation can create both Markdown and HTML, repair a validation error within a bounded number of attempts, and leave the last good artifact untouched on failure.
-5. Initially require shell access. Do not expand the MCP surface merely so an agent can request an HTML blob; measure a real MCP-only need first.
+### Phase 6 — optional narrative annotations
 
-Exit: Codex/Claude-style agents can create a checked guide on demand with fewer exploratory reads than an ordinary search loop.
+Start with deterministic sentences such as entry candidates, high fan-in modules, and next source files. Model-authored prose is opt-in, source-cited, visibly separate, and never required for default operation. Sonde remains local and useful without an API key.
 
-### Phase 5 — optional generic authored diagrams
-
-Only after the code-focused skill is used successfully:
-
-1. Add separate typed schemas for workflow and sequence first; they cover most system and everyday-plan requests.
-2. Reuse the viewer shell, validation, delivery, themes, and receipt format.
-3. Require `user-authored` or `agent-inferred` authority; never attach Sonde evidence tiers to a generic arrow.
-4. Add lifecycle and data-flow modes only in response to measured demand.
-5. Keep these modes in the skill/renderer package, not in indexing, query, or MCP modules.
+Do not add generic workflow, lifecycle, data-flow, hosted sharing, WYSIWYG editing, animation, or export modes unless later demand is measured independently.
 
 ## Evaluation gates
 
-The feature should be judged as a comprehension tool, not by whether the HTML looks impressive.
+### Truth
 
-### Truth gates
+- Zero fabricated indexed nodes or edges.
+- Tier, relation kind, stable key, and available source site survive every projection.
+- Heuristic-only relationships are never default-prominent or described as proven.
+- Dirty, stale, partial, parse-failed, and missing-toolchain states remain visible.
+- `TESTS` never implies coverage.
+- Static flow never claims runtime order or execution.
 
-- Zero fabricated `sonde-indexed` nodes or edges across fixtures.
-- Every displayed indexed relationship round-trips to stable keys and preserves relation kind, tier, and available site evidence.
-- A heuristic-only relationship is never solid, default-prominent, or described as proven.
-- Dirty, partial, parser-failed, missing-toolchain, and stale states are visible in both Markdown and HTML.
-- Structural `TESTS` edges always retain the coverage caveat.
+### Comprehension
 
-### Artifact gates
+An unfamiliar developer or vibe coder can:
 
+1. state what the selected area does, with the explanation clearly separated from graph facts;
+2. find the real entry or seed;
+3. follow one bounded structural path;
+4. identify the next two source files;
+5. explain what may be affected by a change;
+6. point out uncertainty and omissions.
+
+### Agent utility
+
+A fresh agent:
+
+- invokes Sonde for relevant structural questions instead of defaulting to broad grep;
+- consumes a bounded semantic response rather than HTML;
+- reaches a correct answer with fewer tool calls/context tokens;
+- still uses impact, rather than an orientation map, for edit safety.
+
+### Artifact quality
+
+- Deterministic semantic output for identical input.
 - Self-contained HTML with no runtime network dependency.
-- Deterministic semantic IR and deterministic layout for identical input.
-- Safe refusal to overwrite non-Sonde files.
-- Atomic delivery that preserves the last good artifact.
-- Keyboard-readable and usable at common laptop widths.
-- Source paths and links cannot escape the repository boundary.
-
-### Usefulness gates
-
-Run a small controlled evaluation with developers unfamiliar with the fixture repository and with an agent:
-
-- Identify the entry area.
-- Explain the responsibility of one major module.
-- Trace how one selected component reaches another.
-- Determine what may be affected by a change.
-- Find the first two source files worth reading.
-- State what evidence is uncertain.
-
-Compare README/file tree alone, current `ARCHITECTURE.md`, current map, and the proposed guide. Track correctness, time, confidence, exploratory tool calls, and context tokens. A code-focused projection proceeds only if it improves at least two real questions without degrading the direct lookup control. Generic diagram modes need a separate demand signal; popularity of Archify is not evidence that Sonde users need all five modes.
+- Safe refusal to overwrite human-owned files.
+- Atomic replacement and last-good preservation.
+- Paths and links cannot escape the repository.
+- Keyboard and non-colour evidence cues for any retained viewer.
 
 ## Explicit non-goals
 
-- No WYSIWYG editor.
-- No hosted sharing service.
-- No arbitrary Mermaid beautifier in the core.
-- No automatic claim that a static call path is a runtime execution trace.
-- No AI-generated module description presented as source-derived fact.
-- No graph prominence based on raw heuristic count.
-- No new MCP tool until CLI/skill usage demonstrates an MCP-only gap.
-- No attempt to match Archify's export, animation, preview, comparison, and style surface in the first release.
+- Becoming a general-purpose AI diagramming product.
+- Forking or embedding Archify.
+- Letting an LLM author repository topology.
+- Treating a static call chain as a runtime trace.
+- Adding a public IR before multiple proven consumers exist.
+- Adding MCP tools merely to expose HTML.
+- Replacing `find_symbols`, `query_graph`, or `get_impact_radius` with a visualization.
+- Committing high-churn per-symbol or per-PR artifacts by default.
+- Requiring a hosted service or model API.
 
-## Build versus reuse
+## Decisions needed after the gates
 
-Keep Sonde's native renderer and evolve it. It already implements the hardest Sonde-specific contracts: shared graph provenance, deterministic projection, freshness disclosure, safe writes, and resolved-evidence weighting. Borrow Archify's architecture conceptually—typed IR, projection-specific schemas, validation receipts, last-good delivery, and skill orchestration. Reusing isolated MIT-licensed viewer techniques is reasonable if attribution is preserved, but adopting Archify wholesale would make Sonde maintain a general communication suite and still require a separate adapter for Sonde's evidence tiers.
+The following should remain open until measured usage answers them:
 
-The durable differentiator is not “Sonde can draw boxes.” It is:
+1. Whether the complete map survives if only the simple map passes, and vice versa.
+2. Whether generated HTML belongs beside `ARCHITECTURE.md`, under a gitignored `.sonde/views/`, or at a user-selected path.
+3. Whether unresolved Python projects should refuse focused flow or emit a loud degraded artifact.
+4. Whether an agent skill belongs in the npm package, a separate skills repository, or both.
+5. Whether a focused explanation is ephemeral by default or can be committed intentionally.
 
-> Sonde can turn a codebase into an explanation where every discovered relationship says how it was known, every narrative addition says who authored it, and the same evidence is useful to an agent in Markdown/JSON and to a human in an interactive HTML guide.
+## Bottom line
+
+The combined research supports a narrower and stronger direction than my first pass.
+
+Sonde already has verified structure, Markdown, and an interactive module map. It does not yet have evidence that more visualization is the highest-value investment, and it does have evidence that agents ignore capabilities that are merely available. The opportunity is an on-demand explanation loop at feature and change granularity.
+
+The sequence should therefore be:
+
+1. Finish the map's existing usefulness gate.
+2. Make only the validated current surfaces discoverable.
+3. Probe focused impact and static-flow explanations against real comprehension tasks.
+4. Productize the projections that win, using one small evidence envelope for Markdown/JSON/HTML.
+5. Add a routing skill only after the workflow is useful.
+6. Add MCP or generated prose only when a measured gap requires it.
+
+That gives developers and vibe coders a truthful route into unfamiliar code and gives agents compact structural context, without weakening the evidence model that makes Sonde worth using.
 
 ## Grok
 
