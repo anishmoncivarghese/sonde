@@ -769,3 +769,240 @@ The useful modification is not "become Archify." It is:
 5. Add English last, labelled, optional, never as topology.
 
 That sequence makes Sonde more useful to agents (they finally have an orientation adapter), developers (same honest committed doc), and vibe coders (a clickable, current picture of *their* code) without taking on Archify's generic-diagram product or its LLM-authored truth model.
+
+## Antigravity
+
+# Grounded Synthesis: On-Demand Architecture & Code Flow for Sonde
+
+**Date:** 2026-10-09
+**Role:** Reviewer / Synthesizer (Combined Review Pass 1)
+**Scope:** Reviewing Codex's revised stance and Grok's independent findings against Sonde's existing code, active handoffs, architectural invariants, and the user's core need: enabling developers, vibe coders, and AI agents to understand how a codebase works on demand via Markdown and interactive visual artifacts like Archify.
+
+---
+
+### 1. Executive Summary & Core Diagnosis
+
+Both Codex and Grok uncover a crucial truth that was missing from the user's premise:
+**Sonde already contains the foundation of what Archify does.**
+- `sonde doc` generates a deterministic, verified `ARCHITECTURE.md` with module dependencies, evidence tiers, and `--check` CI gates.
+- `sonde map` (implemented in `src/map/` in commit `3f9cd28`) generates a self-contained, interactive `ARCHITECTURE.html` with transitive reach, search, upstream/downstream toggles, and simple vs complete projections.
+- SQLite symbol graph with strict evidence tiers (`COMPILER > LEXICAL > HEURISTIC`), provenance stamps, and three MCP tools (`find_symbols`, `query_graph`, `get_impact_radius`).
+
+Yet, despite having these capabilities, **users, vibe coders, and AI agents cannot easily understand how their code works today.** Why?
+
+1. **Discoverability Failure**: Neither `sonde doc` nor `sonde map` is featured in the README CLI cheat-sheet or surfaced effectively by `sonde init`.
+2. **Grain Mismatch (Macro vs Micro)**: The existing `doc` and `map` operate strictly at the *directory module* level. They answer "how are directories coupled?", but completely fail to answer what vibe coders and newcomers ask: *"Where does execution start?"*, *"How does login work?"*, *"What happens when I call this function?"*, *"What does this PR touch?"*
+3. **The Intent & Orientation Gap (Why Agents Grep)**: Across recorded trials, AI agents with MCP tools ignored them and resorted to `grep`. Why? Because Sonde requires you to already know exact symbol keys or module paths. Agents lacking a high-level mental map don't know *what* to query.
+4. **Interaction Loop**: Archify wins on UX because it is an **on-demand conversational skill** (`npx skills add ...`). You ask a natural-language question, and it compiles a visual and text artifact. Sonde currently requires knowing specialized CLI flags or AST-level MCP queries.
+
+#### The Fundamental Tension & Synthesis between Codex and Grok:
+- **Codex** advocates extreme caution: do not build a public IR or new diagramming tools until Phase 0 is formally adjudicated and until we prove that focused explanations reduce exploratory reads. Codex wants the unit of value to be a small, text-first "Explanation".
+- **Grok** advocates moving quickly to package what exists: document `doc`/`map`, ship a `sonde-orient` agent skill, add scoped CLI flags (`--focus`, `--from-git-diff`, call-chains), and provide an MCP orientation IR.
+- **Antigravity's Stance (The Balanced Path)**:
+  Codex is right that we must never become an ungrounded diagram authoring tool like Archify (never fabricate an edge; static paths are not runtime traces). But Codex's hesitation to utilize visual artifacts ignores that `sonde map` is *already implemented and tested* in the tree (`src/map/`). Visual comprehension is precisely what visual/vibe coders need.
+  The right solution is **Dual-Grain On-Demand Projections**:
+  1. **Macro (Architecture)**: Whole-repo module map & doc (already built; needs discoverability and entry-point annotations).
+  2. **Micro (Execution & Flow)**: On-demand scoped feature and change explanations (call chains from entry points, diff impact) delivered in three synchronized formats:
+     - **Human**: Interactive self-contained HTML (using `src/map/`'s established zero-dependency SVG renderer).
+     - **Reviewer / CI**: Deterministic Markdown (`.md`).
+     - **AI Agent**: Token-budgeted structured JSON IR (never raw HTML/SVG).
+
+---
+
+### 2. Deconstructing Archify: What to Adopt vs What to Reject
+
+Archify is fundamentally an **agent-authored diagram compiler**. Sonde is a **compiler-backed code-truth graph**. Merging them carelessly would destroy Sonde's core value proposition.
+
+| Dimension | Archify Model | Sonde Current Model | The Synthesis (Sonde On-Demand) |
+|---|---|---|---|
+| **Topology Source** | LLM invents nodes, coordinates, and edges from prompt/code reading. | Extracted from tree-sitter, `tsc`, and pyright into SQLite. | **Strictly Sonde-indexed graph.** LLM never invents topology. |
+| **Evidence / Truth** | Self-asserted; optional source hyperlinks. | Strict tiers (`COMPILER`, `LEXICAL`, `HEURISTIC`, `UNRESOLVED`). | **Preserve evidence tiers everywhere.** Heuristic edges dashed; warnings visible. |
+| **Interaction UX** | Conversational skill via agent (`SKILL.md`); on-demand; progressive disclosure. | Manual CLI commands; raw MCP queries requiring exact symbol knowledge. | **Adopt Archify's Skill loop:** Agent skill routes prompt → Sonde projection → dual output. |
+| **Output Delivery** | Standalone HTML with embedded JSON; atomic delivery; receipts. | Committed `ARCHITECTURE.md` + standalone `ARCHITECTURE.html`. | **Adopt atomic delivery & receipt pattern.** Emit paired `.md` + `.html` + agent JSON. |
+| **Scope / Domains** | 5 diagram types (architecture, workflow, sequence, dataflow, lifecycle) for code & non-code. | Repo module graph only. | **Reject non-code diagrams.** Limit to 2 code projections: Module Coupling & Static Flow. |
+
+#### Invariants that must never be broken:
+1. **Never fabricate an edge (Invariant 1).** If a relationship cannot be resolved or evidenced lexically/heuristically in SQLite, it does not exist in the diagram.
+2. **Static call graphs are not runtime execution traces.** Static `CALLS` edges do not prove runtime sequence, timing, or branch condition. Any flow projection must be explicitly labeled: `Static Call Graph (Declaration Targets)`.
+3. **No HTML/SVG in model context.** Context windows are for semantic JSON or compact Markdown tables, not rendering markup.
+4. **Member access remains HEURISTIC (Invariant 2).** Type inference without compiler confirmation is heuristic. Thickness and primary visual weight follow `resolvedOf`, never raw volume.
+
+---
+
+### 3. Solving the Agent Adoption Failure ("Why Agents Grep")
+
+The Phase 0 probe documented a critical failure: agents given Sonde's three MCP tools answered 4 of 4 structural questions by using `grep` instead.
+
+Why did this happen?
+1. **The Cold-Start Seed Problem**: `query_graph` and `get_impact_radius` require a seed symbol or exact path. An agent given a natural-language prompt ("fix session expiry") has no idea what symbol exists. Grep is fuzzy and keyword-tolerant; Sonde was symbol-exact.
+2. **Missing Architectural Waypoints**: An agent needs to know: *What are the entry points? Where does IO happen? Where is state stored?* Without an orientation summary, the agent cannot formulate an initial query.
+
+#### The Fix:
+- **Automatic Entry-Point Heuristics**: Detect system entry points from manifest files (`package.json` bins/exports), framework router definitions, CLI command handlers, and exported functions with 0 inbound callers.
+- **Token-Budgeted Orientation Summary**: A read-only envelope returning top entry points, top fan-in modules, and key interfaces.
+- **Natural-Language Symbol Resolution**: When an agent asks for a concept, route through FTS (`find_symbols`) and bounded inbound/outbound walks rather than forcing the agent to guess qualified symbol strings.
+
+---
+
+### 4. The Product Shape: On-Demand Scoped Projections
+
+We define two distinct levels of understanding, sharing a single compilation pipeline:
+
+```
+                  User Intent / Prompt
+                            │
+                            ▼
+               Agent Skill (`sonde-explain`)
+                            │
+               ┌────────────┴────────────┐
+               ▼                         ▼
+      Macro: Architecture       Micro: Feature / Diff Flow
+    (Whole repo / Module)      (Symbol / Entry / PR blast radius)
+               │                         │
+               └────────────┬────────────┘
+                            │
+                   SQLite Graph Query
+              (Filter, Traverse, Evidence)
+                            │
+                            ▼
+                 `ExplanationEnvelope`
+        (Revision, Nodes, Tiered Edges, Omissions)
+                            │
+         ┌──────────────────┼──────────────────┐
+         ▼                  ▼                  ▼
+   Self-Contained        Diffable        Token-Bounded
+     HTML Map            Markdown           JSON IR
+   (for Humans)        (for Review/CI)   (for AI Agents)
+```
+
+#### Level 1: Macro Architecture (Module Level)
+- **Goal**: "What does this repo look like?"
+- **Outputs**:
+  - `ARCHITECTURE.md` (committed, checked in CI via `sonde doc --check`).
+  - `ARCHITECTURE.html` (interactive simple/complete map with reachability and search).
+- **Enrichment**: Add an **Orientation Preface** derived deterministically from the graph:
+  - Entry points (where execution starts).
+  - Foundational modules (modules with 0 outgoing dependencies).
+  - Hubs / State holders (highest inbound fan-in).
+
+#### Level 2: Micro Flow & Impact (Feature / Symbol / Diff Level)
+- **Goal**: "How does `login` work?", "What breaks if I change `repos.ts`?", "Trace `createServer`".
+- **Outputs**:
+  - Generated on-demand into `.sonde/views/<name>.html` and `.sonde/views/<name>.md` (or stdout / user-specified `--out`).
+  - **Static Flow Projection**: Walks `CALLS` up to depth $N$. Nodes represent functions/methods; edges represent call sites with evidence tier. Fan-out through interfaces/implementations is labeled `[Inferred Implementations]`.
+  - **Impact Projection**: Walks reverse callers from git diff or selected symbol (reusing `src/query/impact.ts` logic) and renders blast radius visually and tabularly.
+
+#### The Tripartite Output Contract:
+1. **Interactive HTML (Human / Vibe Coder)**:
+   - Self-contained, zero-CDN, offline-ready SVG/CSS.
+   - Interactive zoom/pan, search, transitive reach highlight (upstream vs downstream).
+   - "Click to inspect": clicking a node shows file path, line numbers, docstrings/signature, and evidence breakdown.
+2. **Markdown (Developer / Reviewer / CI)**:
+   - Deterministic, diff-friendly, commit-safe.
+   - Structured tables and clean ASCII/Mermaid with exact file paths and line ranges.
+   - Provenance stamp and omission notice.
+3. **Structured JSON (AI Agent)**:
+   - Bounded by token budget (e.g., 2k–4k tokens).
+   - Contains symbol keys, source locations, call depth, and tiered edges.
+   - Never outputs SVG or DOM.
+
+---
+
+### 5. Architectural Seams & Code Placement
+
+To maintain codebase integrity, we reuse existing modules without duplicating logic:
+
+1. **`src/doc/modules.ts` & `src/map/model.ts`**:
+   - Keep `buildModuleGraph` and `findNestedProjectRoots` as the single sources of truth for module clustering.
+   - Extract a shared `ExplanationEnvelope` representing projected subgraphs (nodes, edges, tiers, provenance, omissions).
+2. **`src/query/traverse.ts` & `src/query/impact.ts`**:
+   - Provide the traversal engine for symbol-level static flows and git-diff blast radius.
+3. **`src/map/render.ts`**:
+   - Reuse the battle-tested, zero-dependency SVG renderer (which already handles layout, bowed arcs for mutual edges, zoom/pan, dark/light themes, and reachability).
+   - Support a layout mode for directed acyclic flows (left-to-right / top-to-bottom) for static call chains.
+4. **`src/cli/main.ts`**:
+   - Expose discoverable CLI flags:
+     - `sonde doc` (already exists).
+     - `sonde map [--focus <module>] [--symbol <key>] [--from-git-diff]` (extend existing).
+     - `sonde explain <symbol-or-pattern> [--depth <N>] [--out <path>]` (new unified verb).
+5. **`skills/sonde-explain/SKILL.md`**:
+   - The agent skill that provides the natural language interface.
+   - Routes user prompts:
+     - "Show me an overview" → `sonde doc` + `sonde map`.
+     - "How does X work?" → `sonde explain X`.
+     - "What does this PR touch?" → `sonde map --from-git-diff`.
+   - Returns the file path for the human to view in a browser and reads the JSON envelope to answer directly in chat.
+
+---
+
+### 6. Phased Implementation Plan
+
+We structure implementation into gated, falsifiable phases:
+
+#### Phase 0: Discoverability & Baseline Hygiene (Immediate)
+- Update README CLI cheat-sheet to document `sonde doc` and `sonde map`.
+- Update `sonde init` to introduce both `doc` (for CI/review) and `map` (for interactive exploration).
+- Close the `visual-map-phase0` handoff in Whyline with a clear record of current status.
+- **Exit Gate**: A fresh user running `sonde init` and reading README can generate both `ARCHITECTURE.md` and `ARCHITECTURE.html` without inspecting source code.
+
+#### Phase 1: Deterministic Orientation Preface & Entry-Point Detection
+- Add entry-point heuristics in `src/doc/` and `src/map/`:
+  - Scans `package.json` entry points (`bin`, `main`, `exports`).
+  - Identifies uncalled exports and CLI/MCP dispatchers.
+- Render an "Orientation Summary" panel at the top of `ARCHITECTURE.md` and in the simple `ARCHITECTURE.html` viewer.
+- **Exit Gate**: The simple map and Markdown document prominently state "Where work enters" and "Foundational modules" without requiring model generation.
+
+#### Phase 2: Scoped Subgraph Projections (`--focus` and `--from-git-diff`)
+- Extend `src/map/model.ts` to compute focused subgraphs:
+  - `--focus <module>`: extracts upstream/downstream closure up to depth $N$.
+  - `--from-git-diff`: seeds from modified files/symbols (using `get_impact_radius` seeds) to project only affected modules/edges.
+- Ensure `resolvedOf` strictly governs visibility and thickness (Invariant 3).
+- **Exit Gate**: Generating a diff map for changes in `src/store/` produces an artifact showing only the 21 affected modules and their verified connections, matching `get_impact_radius` closure.
+
+#### Phase 3: Static Call-Flow Projection (`sonde explain`)
+- Build symbol-level path traversal:
+  - Given entry symbol $S$, trace `callees_of` to depth $N$.
+  - Handle interface fan-out via `IMPLEMENTS` with explicit inference tagging.
+  - Output paired `.md` (step-by-step hops) and `.html` (focused directed flow).
+- Hard rule: Explicitly label all outputs as `Static Call Graph (Declaration Targets)`.
+- **Exit Gate**: Tracing `createServer` accurately links to MCP request handlers with verified tiers; heuristic hops are visually distinct; no runtime execution ordering is claimed.
+
+#### Phase 4: The `sonde-explain` Agent Skill & Budgeted IR
+- Author `skills/sonde-explain/SKILL.md`:
+  - Instructs agents how to interpret user intent ("how does X work?", "overview", "what breaks").
+  - Invokes CLI commands and consumes bounded JSON envelopes.
+  - Returns human-friendly chat responses while pointing humans to the generated HTML.
+- Expose a budgeted JSON output mode in CLI/MCP (`sonde explain --json`) with strict token budget truncation.
+- **Exit Gate**: In benchmark testing, an agent using the skill answers structural questions correctly with $\ge 50\%$ fewer tool calls and zero fallback to brute-force grep.
+
+#### Phase 5: Opt-in Plain-Language Annotations (Strictly Citations-Backed)
+- Introduce optional narrative synthesis:
+  - Deterministic template engine by default (zero API key, zero cost).
+  - Optional LLM-generated summaries strictly isolated in an `<aside>` or `Narrative Interpretation` section.
+  - Never allow LLM prose to alter graph topology or edge weights.
+- **Exit Gate**: Output remains 100% deterministic and functional without an LLM or network connection.
+
+---
+
+### 7. Explicit Non-Goals & Falsification Criteria
+
+#### What Sonde Will NOT Do:
+1. **No generic diagram suite**: Sonde will not build sequence diagrams for vacation itineraries, CI runbooks, or arbitrary business workflows. That is Archify's domain.
+2. **No LLM topology authoring**: LLMs will never create nodes or edges that do not exist in the index.
+3. **No HTML/SVG in MCP responses**: MCP remains a token-efficient, structured data protocol.
+4. **No dynamic runtime tracing claims**: Sonde analyzes static AST and compiler types; it will never claim to be an eBPF or OpenTelemetry trace.
+5. **No fork or vendoring of Archify**: Archify is an authored diagramming tool; Sonde's viewer in `src/map/` already provides a faster, deterministic, code-grounded rendering engine.
+
+#### Falsification Criteria (When to Stop or Pivot):
+- If the focused call-chain projection fails to improve human code comprehension in benchmark tests compared to reading source files directly.
+- If agents still bypass the skill and resort to raw grep for symbol discovery.
+- If heuristic edges cannot be clearly distinguished from resolved edges in the flow viewer, leading users to believe speculative paths are verified.
+
+---
+
+### 8. Final Verdict
+
+Sonde does not need to become Archify. Archify is an authored illustration tool. Sonde is an evidence-backed truth engine.
+By combining Sonde's verified graph with Archify's on-demand conversational delivery loop, we give developers, vibe coders, and AI agents the exact capability they need:
+**Ask one question about a codebase, and receive a mathematically verified, beautifully rendered, and structurally honest explanation of how that code actually works.**
+
