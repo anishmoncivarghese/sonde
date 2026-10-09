@@ -1,3 +1,5 @@
+plan = "plans/now-i-want-you-to-analyse-the-current-ca.plan.md"
+
 [planner]
 draft = "codex"
 review = "grok"
