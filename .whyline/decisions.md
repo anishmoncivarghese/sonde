@@ -1915,3 +1915,236 @@ Append-only. Written by whyline; readable without it.
 
 <!-- whyline-event: 68269a1de5ac4069834cea814b3d6823 -->
 <!-- whyline-meta: {"v":1,"ts":"2026-10-05T21:14:48.391Z"} -->
+
+## 2026-10-09 — Keep Sonde as the evidence engine behind paired Markdown and HTML guides
+
+**Actor:** codex
+**Role:** researcher
+**Task:** sonde-visualization-brainstorm
+
+**Because:** Sonde already ships deterministic doc and map artifacts with evidence-tiered topology, while Archify's transferable value is its typed IR, validation, and skill-driven authoring; separating indexed topology from cited or user-authored narrative preserves Sonde's no-fabrication contract
+
+**Rejected:**
+
+- Fork Archify wholesale — its five renderers and broad delivery surface would add large maintenance scope without preserving Sonde's evidence tiers
+- Put generic diagrams in Sonde core immediately — everyday workflows have no repository evidence and would blur the product's authority model before code-focused usefulness is measured
+
+**Files:** .whyline/relay/brainstorm-tmp/codex.md
+
+<!-- whyline-event: 65b71fdc51e145caa5b1082c7509ac1a -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T05:55:56.190Z"} -->
+
+## 2026-10-09 — Gate Sonde explanation work on measured comprehension rather than expanding the existing map
+
+**Actor:** codex
+**Role:** reviewer
+**Task:** brainstorm-review-pass1
+
+**Because:** The combined review shows sonde doc and map already exist, the map's pre-committed usefulness protocol remains unadjudicated, module architecture changed rarely in observed use, and agents ignored available MCP tools; focused impact/static-flow explanations are therefore the next hypothesis to test before a public IR, skill, or MCP expansion
+
+**Rejected:**
+
+- Promote a public VisualizationIR immediately — one human renderer and no proven agent consumer do not justify a stable schema
+- Ship the agent skill before testing focused explanations — this could automate an artifact users and agents still ignore
+- Clone Archify's generic authored diagrams — agent-authored topology conflicts with Sonde's evidence authority
+
+**Files:** docs/brainstorm/now-i-want-you-to-analyse-the-current-capability-of-sonde-an.md
+
+<!-- whyline-event: 7aa0312003774cee96017df896ca0d4c -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T06:06:48.248Z"} -->
+
+## 2026-10-09 — Synthesize Sonde on-demand architecture as dual-grain projections (macro module map, micro static flow) with tripartite delivery
+
+**Actor:** antigravity
+**Role:** reviewer
+**Task:** brainstorm-review-pass1
+
+**Because:** Sonde already has verified SQLite graphs, committed doc, and interactive HTML map; the gap is discoverability, intent routing, and feature-level flow explanations rather than generic diagram authoring
+
+**Rejected:**
+
+- Halt all visual artifact work — visual comprehension directly serves vibe coders and is already implemented in src/map
+- Adopt Archify agent-authored topology model — LLMs inventing edges violates Sonde core truth invariants
+
+**Files:** docs/brainstorm/now-i-want-you-to-analyse-the-current-capability-of-sonde-an.md
+
+<!-- whyline-event: a67a5063b9714dc1b62b7953aa8d2c59 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T06:12:28.627Z"} -->
+
+## 2026-10-09 — Gate Archify-style Sonde work on the open visual-map protocol, then on a separate feature-explanation probe
+
+**Actor:** grok
+**Role:** reviewer
+**Task:** brainstorm-review-pass1
+
+**Because:** The module map is still unscored, a preface on ARCHITECTURE.md would void Q5 and Q6, and feature flow is a different question from module coupling. sonde doc can be named now because it is not the artifact under test. HTML stays a human sink only for a projection that wins its own comparison.
+
+**Rejected:**
+
+- Ship a skill and an MCP orientation IR first — that automates a whole-repo poster the protocol has not scored and skips the feature-grain question
+- Extend src/map with focus, diff, and explain before the verdict — that treats an early promotion as a PASS and changes the Markdown baseline the reviewer must score
+- Keep explanations text-only and defer HTML indefinitely — the request asks for an on-demand visual, which belongs to whichever projection beats Markdown for a human
+
+**Files:** docs/brainstorm/now-i-want-you-to-analyse-the-current-capability-of-sonde-an.md
+
+<!-- whyline-event: d13dd1ef3ac442a2983c73fbb6976367 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T06:19:59.158Z"} -->
+
+## 2026-10-09 — Gate Sonde explanation work by projection and reader
+
+**Actor:** codex
+**Role:** synthesizer
+**Task:** brainstorm-final-synthesis
+
+**Because:** The combined review agrees on dual-grain, on-demand explanations, but the existing map and any focused feature/change view make separate usefulness claims that must be measured independently before productization
+
+**Rejected:**
+
+- Ship the implemented map and orientation preface immediately — this would alter the frozen Markdown control and treat implementation as evidence of usefulness
+- Build a skill and public IR first — agent adoption and multi-sink schema needs should be tested only after the underlying explanation proves useful
+
+**Files:** docs/brainstorm/now-i-want-you-to-analyse-the-current-capability-of-sonde-an.md
+
+<!-- whyline-event: dbf90f0503544ab69a1a8a4a6b0093f2 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T06:22:52.688Z"} -->
+
+## 2026-10-09 — Specify focused Sonde explanations as gated Markdown-first flow and impact commands
+
+**Actor:** codex
+**Role:** draft
+**Task:** __spec__
+
+**Because:** Module coupling, static flow, change impact, human rendering, and agent routing make different claims; independent gates preserve the frozen map comparison and prevent a renderer or skill from becoming evidence for its own usefulness
+
+**Rejected:**
+
+- Extend sonde map with focus and diff modes — this overloads a still-unscored module viewer and conflates grains
+- Ship a public explanation IR and routing skill first — neither a second proven sink nor a useful artifact exists yet
+- Add a fourth MCP tool — the current three-tool surface is intentionally small and a bounded query_graph pattern can be tested only if a shell-less residual gap appears
+
+**Files:** .whyline/relay/draft-spec.md
+
+<!-- whyline-event: e41f1e164fe74b6ebee33a5e4796517c -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T09:48:11.823Z"} -->
+
+## 2026-10-09 — Revise the explanation spec: --to traversal and next-file selection cannot be planned as written
+
+**Actor:** grok
+**Role:** review
+**Task:** __spec__
+
+**Because:** Section 4 uses a visited set, which yields one path per node, while flow --to requires every equal shortest path; section 6 requires two next files but gives no selection rule, so traversal tests and golden Markdown cannot be locked
+
+**Rejected:**
+
+- Approve the spec as written — those two traversal sentences cannot be implemented together, and the required next-file section has no deterministic rule
+
+**Verdict:** revise
+
+**Files:** .whyline/relay/draft-spec.md
+
+<!-- whyline-event: d7723d10501248a1a8196039a73c81fa -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T09:56:07.987Z"} -->
+
+## 2026-10-09 — Make focused traversal and reading recommendations deterministic
+
+**Actor:** codex
+**Role:** draft
+**Task:** __spec__
+
+**Because:** Forest output needs one cycle-safe parent tree, targeted flow needs a predecessor DAG to retain every equal-shortest path, and exact Markdown tests require a fixed evidence order for the two next files and one shared seed-only TESTS lookup
+
+**Rejected:**
+
+- Use one global visited traversal for both flow modes — it discards alternate equal-shortest paths
+- Let renderers choose next files — identical indexed evidence could then produce different recommendations
+
+**Files:** .whyline/relay/draft-spec.md
+
+<!-- whyline-event: e10e1251b06f495e907822e0417be224 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T09:58:45.551Z"} -->
+
+## 2026-10-09 — Revise the explanation spec: path numbers, rank order, impact sections, and wall-clock identity are not locked
+
+**Actor:** grok
+**Role:** review
+**Task:** __spec__
+
+**Because:** Required sections, the separate forest and --to walks, ancestor-cycle versus diamond-shared labels, the two-file shortfall sentences, and the seed-only TESTS lookup are consistent. Four rules still do not determine the exact Markdown the testing section requires. The forest sort lists tier, semantic rank, and confidence without a direction, while next-file selection says descending semantic rank. score() is higher-is-better and also takes pathFocusMatch, which these commands never define. First-accepted-edge parent selection therefore has more than one result. State one comparator: COMPILER, then LEXICAL, then HEURISTIC; descending score() with pathFocusMatch false; descending confidence only inside HEURISTIC; then ascending source stable key, destination stable key, kind, site line, and edge id. Use that direction for the evidence table, and state that next-file order is a different sequence: depth, then tier, then descending score. Path labels cite a path number, but neither mode defines enumeration. Predecessor-list order is not path order, and a forward walk from the seed disagrees with a backward walk from the target. Number from 1 by depth-first emission from the seed, expanding outgoing tree or DAG edges in that comparator order. A forest path is the root-to-node path of each accepted tree edge. First-shown uses the lowest number of a path that contains the node. A self-loop, whose destination equals its source and so is not a proper ancestor, is a cycle. Impact reuses the all-tier reverse walk, while every artifact also has a flow-style possible-links and fan-out section, so HEURISTIC, IMPLEMENTS, and INHERITS rows can be duplicated or dropped. Keep those rows only in the depth groups, in the existing impact order, and omit that extra section for impact. Impact next files are the seed files in seed-key order, then files of affected symbols in that impact order, still excluding files present only through TESTS. The byte-identical claim contradicts the two-second wall clock, which cuts the included set on elapsed time. Depth and node caps alone select the deterministic prefix; the wall-clock stop is outside golden equality. An unreached flow --to target is not a next file unless it qualifies on its own. Implementation fan-out is one reverse IMPLEMENTS or INHERITS hop from the seed or from a resolved path node, ordered by the same comparator, and is not a BFS parent.
+
+**Rejected:**
+
+- Approve the spec as written — path numbers, score direction, impact section placement, and wall-clock truncation still do not determine one Markdown result
+
+**Verdict:** revise
+
+**Files:** .whyline/relay/draft-spec.md
+
+<!-- whyline-event: c6b99a3112464f219f1183dd88c2a1e6 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T10:07:45.498Z"} -->
+
+## 2026-10-09 — Lock explanation edge order and projection-specific Markdown
+
+**Actor:** codex
+**Role:** draft
+**Task:** __spec__
+
+**Because:** One total comparator, depth-first path numbering, one-hop auxiliary lookups, and distinct flow/impact section lists make identical indexed evidence render predictably without changing impact's all-tier semantics
+
+**Rejected:**
+
+- Keep per-section sort rules — path numbers, next-file recommendations, and golden Markdown would still drift
+- Treat implementation fan-out as traversal — inferred implementers would become false BFS parents
+
+**Files:** .whyline/relay/draft-spec.md
+
+<!-- whyline-event: cf9848b574674b2ba8b7475a3c7e422a -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T10:11:29.591Z"} -->
+
+## 2026-10-09 — Approve the explanation spec as consistent and specific enough to plan from
+
+**Actor:** grok
+**Role:** review
+**Task:** __spec__
+
+**Because:** Required sections are present with no placeholders. Forest mode is one parent tree with depth-first root-to-node path numbers, targeted flow keeps every equal-shortest path, next-file eligibility is a fixed sequence, and impact keeps all-tier depth groups under its own headings.
+
+**Rejected:**
+
+- Revise for an exact Markdown line template — labels, heading order, shortfall sentences, and evidence order already lock golden semantics
+
+**Files:** .whyline/relay/draft-spec.md
+
+<!-- whyline-event: 842742647637489c8762fd010eee4666 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T10:20:27.719Z"} -->
+
+## 2026-10-09 — Gate explanations before production and optional surfaces
+
+**Actor:** codex
+**Role:** draft
+**Task:** __plan__
+
+**Because:** The approved spec makes comprehension evidence the authorization boundary: flow and impact can pass independently, while maps, skills, MCP expansion, and a second sink each require their own measured verdict
+
+**Rejected:**
+
+- Implement both explain projections immediately — this would let unvalidated capability bypass the Phase 2 comprehension gate
+- Design one public explanation schema up front — Markdown is the only initial sink and the spec defers an internal envelope until a second sink passes
+
+**Files:** .whyline/relay/draft-plan.md
+
+<!-- whyline-event: 37bd4de0e7134cccb267e702436a223f -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T10:41:45.722Z"} -->
+
+## 2026-10-09 — 35-task plan structure approved: unique ids, real detail, no placeholders, release tasks profiled
+
+**Actor:** grok
+**Role:** review
+**Task:** __plan__
+
+**Because:** whyline_relay.plan.parse accepted all 35 checklist items with unique ids and a real detail line each; EXPLAIN-11 and SKILL-GATE-4 are the only release, publish, or tag tasks and both include relay-profile: release
+
+**Files:** .whyline/relay/draft-plan.md
+
+<!-- whyline-event: 3fbbeafd4cde4ecbaf20becee368099c -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T10:45:04.761Z"} -->
