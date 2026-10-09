@@ -1,5 +1,97 @@
 # Brainstorm: Now I want you to analyse the current capability of sonde and I want to add feature like https://github.com/tt-a1i/archify offers using which it becomes more useful something like I cna create a .md file plus ismilar to archfy on demand, reason so that sonde can be useful for the AI agents, developers and vibe coders who do not have understanding of the code so we have to make thme a way they can understand how there project or prgam works so that they can better undersatnd whats going inside . So lets do  brainstorm and create a plan for modifying sonde and making it much more useful
 
+## Final Synthesis
+
+Sonde should not become a general-purpose Archify clone. It should become an **on-demand, evidence-backed explanation system for code**: a user asks one question about an unfamiliar repository, and Sonde returns the smallest trustworthy artifact that answers it.
+
+The product direction is **dual-grain understanding**:
+
+1. **Repository orientation:** the existing module-level `sonde doc`, plus `sonde map` only if its open usefulness protocol retains it, answers “what are the major pieces and how are they coupled?”
+2. **Focused explanation:** a new, scoped workflow answers “how does this feature work?”, “where should I start reading?”, and “what may this change affect?” using bounded symbol paths and the existing impact traversal.
+
+This keeps the strongest idea from Archify—plain-language intent compiled into a focused, self-contained artifact—while rejecting its authority model. Archify can author topology; Sonde must only project topology supported by its index.
+
+### Why this is the right gap
+
+Sonde already has the hard foundation: TypeScript, resolved Python, and Swift symbols in SQLite; explicit `COMPILER > LEXICAL > HEURISTIC` evidence; unresolved and external references; freshness and degraded-state warnings; `find_symbols`, `query_graph`, and `get_impact_radius`; deterministic `ARCHITECTURE.md`; and an implemented but not yet usefulness-validated HTML module map.
+
+The missing layer is not another whole-repository graph. It is **routing and comprehension at the grain of the user's question**:
+
+- Module documents explain directory coupling, not a feature or request path.
+- Current graph tools work best after the caller already knows a symbol or path.
+- Recorded agent trials show that merely making tools available does not make agents choose them; they fell back to grep.
+- One external module document remained structurally unchanged across 278 commits, suggesting that whole-repository orientation is occasional, while feature and change questions are operational.
+
+The central hypothesis to test is therefore:
+
+> Can a focused Sonde explanation help an unfamiliar human or agent answer feature and change questions more correctly, with fewer exploratory reads and less context, than the file tree, grep, and today's graph tools?
+
+### Product contract
+
+The unit of value is an **explanation**, not a diagram. A router selects a projection appropriate to the intent:
+
+| Intent | Evidence | Human result | Agent result |
+|---|---|---|---|
+| Repository overview | Existing module graph | Deterministic Markdown; self-contained HTML only if validated | Compact orientation facts |
+| Feature/static flow | Bounded `CALLS`/`REFERENCES`; labelled implementation fan-out | Numbered Markdown path; optional validated HTML | Token-bounded semantic packet |
+| Change impact | Existing git-diff and reverse-impact traversal | Focused impact explanation; optional validated HTML | Existing budgeted impact pack |
+| Known structural lookup | Current MCP tools | Usually no generated file | Current structured response |
+| Non-code or future-system diagram | No Sonde evidence | Refer to an authoring tool such as Archify | Do not fabricate inside Sonde |
+
+Different readers should not receive the same bytes. Markdown is diffable and reviewable. JSON or compact Markdown is appropriate for an agent. HTML is an offline, self-contained human viewer and must not be placed in model context. When two formats represent one request, they must agree on revision, dirty/drift state, scope, evidence tiers, warnings, truncation, and omissions.
+
+Every explanation must say what question it answers, identify its seed and scope, link to exact source locations, recommend the next files to read, expose uncertainty and omitted depth/budget, and state that static reachability is not runtime execution.
+
+### Non-negotiable authority rules
+
+- Only indexed relationships may render as discovered topology. An agent may select, hide, group, or explain evidence; it may not invent, retarget, or promote an edge.
+- Member access remains `HEURISTIC`; tier outranks confidence; default prominence and thickness use resolved evidence, never raw heuristic volume.
+- `TESTS` means structural relatedness, never coverage.
+- A static call path is a set of declaration targets, not a runtime trace, sequence, branch history, or timing claim.
+- Entry points must be classified honestly. Manifest `bin`/exports, CLI dispatchers, and tool registrations can be repository-cited candidates; “exported with no inbound callers” is not automatically a runtime entry point.
+- Missing toolchains, parse failures, stale indexes, dirty state, and truncation remain visible.
+- Generated files use guarded atomic replacement, preserve the last good output, refuse to overwrite unmarked human files, and keep links inside the repository.
+
+If narrative annotations are added later, keep their authority separate: `sonde-indexed` topology, `repository-cited` explanation, `user-authored` intent, and removable `agent-inferred` interpretation. Default prose should be deterministic and local; model-written prose is optional, cited, visibly marked, and never changes topology.
+
+### Actionable plan
+
+**Phase 0 — finish the gate already in progress.** Transfer `visual-map-phase0` to the independent reviewer. Answer and score the frozen Q1–Q6/C1 protocol against the current artifacts, then have the tester record PASS, MARGINAL, FAIL, or VOID exactly as specified. Do not change `ARCHITECTURE.md`, add an orientation preface, advertise `sonde map`, or extend the viewer before this comparison; doing so would change the control and void the result. A PASS authorizes only the map questions it demonstrably improved. A FAIL stops investment in that view and requires a deliberate decision about the existing map code and `AGENTS.md` rule.
+
+**Phase 1 — improve discoverability without outrunning evidence.** Document the already-shipped `sonde doc` in the README and `sonde init` now. After Phase 0, document only the map views and claims the verdict retained. Explain the difference between committed `ARCHITECTURE.md`, optional human HTML, and targeted MCP queries. Before release, verify the retained surfaces from a clean install on throwaway TypeScript and resolved-Python repositories, and inspect both clean and degraded output.
+
+**Phase 2 — run a separate focused-explanation probe in parallel.** Build a throwaway Markdown packet over existing query and impact APIs for two projections:
+
+- changed symbols → direct/transitive dependants → structurally related tests;
+- one resolved seed → a bounded static call/reference path with locations and tiers.
+
+Pre-commit questions on unfamiliar repositories, including at least one identifier-poor prompt and one direct-lookup control. Compare file-tree/grep, current Sonde tools, and the packet placed directly in the participant's hands. Measure correctness, time, exploratory reads/tool calls, context size, confidence, and recognition of uncertainty. A disposable HTML rendering may be tested as a separate human reading condition. Continue only when a projection improves at least two comprehension tasks without harming the control. The module-map verdict neither passes nor blocks this independent gate.
+
+**Phase 3 — productize only winning projections.** Give focused explanation its own CLI verb—`sonde explain` is a candidate to settle during design—rather than overloading `sonde map`. Start with Markdown. Add self-contained HTML only when the human trial shows that the visual form helps; add token-bounded JSON when an agent consumer needs it. Introduce a small internal `ExplanationEnvelope` only when a second sink would otherwise drift. Reuse `buildModuleGraph`, traversal, and impact helpers as authoritative producers; layout coordinates remain renderer output, never semantic identity. Default per-symbol and per-diff artifacts to stdout or a gitignored/user-selected path rather than committed files.
+
+**Phase 4 — test routing separately from artifact quality.** Once useful commands exist, prototype a thin `sonde-explain` skill. It should route vague intent through `find_symbols`, direct questions through `query_graph`, edit safety through impact, whole-repository orientation through `sonde doc`, and focused questions through the new command. Ambiguous requests ask for a symbol or file rather than inventing a seed. Evaluate in fresh sessions whether agents choose Sonde more appropriately and require fewer exploratory reads. Do not conflate this adoption test with the Phase 2 comprehension test.
+
+**Phase 5 — add MCP or prose only for a measured residual gap.** Prefer a bounded `query_graph` pattern before adding a fourth tool. MCP responses contain semantic evidence, provenance, truncation, and omissions—never HTML or SVG—and do not write files. Add deterministic orientation sentences first; optional cited model prose comes last.
+
+### Exit criteria
+
+A successful Sonde explanation lets an unfamiliar developer, vibe coder, or agent:
+
+1. identify the real seed or a clearly labelled entry candidate;
+2. follow one bounded, evidence-tiered structural path;
+3. name the next two source files to read;
+4. explain what a change may affect without claiming certainty or coverage;
+5. point to uncertainty, degraded evidence, and omissions;
+6. reach the answer with fewer exploratory reads or less context than the appropriate baseline.
+
+Engineering acceptance requires zero fabricated indexed nodes or edges, tier and source-site preservation across every sink, deterministic semantic output, visible degraded states, repository-contained links, accessible non-colour evidence cues, and clean-install verification.
+
+### Explicit non-goals
+
+Do not fork or vendor Archify; build a generic workflow/sequence/data-flow diagram suite; let an LLM author repository topology; describe static structure as runtime behavior; ship HTML through MCP; replace the three existing graph tools with pictures; commit high-churn per-symbol artifacts by default; require a hosted service or model API; or publish a large public visualization schema before multiple proven consumers require one.
+
+The recommended sequence is therefore: **score the existing map, expose only validated current surfaces, prove focused feature and change explanations, productize the projections that win, then test a routing skill and add new MCP/prose capabilities only when measurement shows a remaining gap.** This gives humans an understandable visual or Markdown path into unfamiliar code and gives agents compact structural context without weakening the evidence model that makes Sonde distinctive.
+
 ## Codex
 
 # Revised view: make Sonde answer “how does this work?”, not merely draw more graphs
