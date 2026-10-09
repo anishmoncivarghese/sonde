@@ -6,3 +6,4 @@ readside.log
 active-handoff.json
 ownership.json
 *.lock
+attachments/
