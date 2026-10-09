@@ -2148,3 +2148,20 @@ Append-only. Written by whyline; readable without it.
 
 <!-- whyline-event: 3fbbeafd4cde4ecbaf20becee368099c -->
 <!-- whyline-meta: {"v":1,"ts":"2026-10-09T10:45:04.761Z"} -->
+
+## 2026-10-09 — Clear the orphaned plan-review relay marker before the implementation run
+
+**Actor:** codex
+**Role:** operator
+**Task:** relay-start
+
+**Because:** the Grok review log ended successfully, the 35-task plan was committed, and PID 9803 is the interactive Whyline console rather than unfinished review work
+
+**Rejected:**
+
+- start with --allow-dirty — the relay's whole-tree commit could sweep the live chat transcript into MAP-GATE-1
+
+**Files:** .whyline/relay/running.json
+
+<!-- whyline-event: 6a7b40420ca247fd921f8254c0c8a8bb -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T20:04:24.387Z"} -->

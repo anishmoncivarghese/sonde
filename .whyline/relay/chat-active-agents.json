@@ -1,0 +1,11 @@
+{
+  "claude": {
+    "agent": "codex",
+    "backup_for": "claude",
+    "reason": "rate-limit",
+    "since": "2026-10-09T20:00:52.721807+00:00",
+    "tried": [
+      "claude"
+    ]
+  }
+}
