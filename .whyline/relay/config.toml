@@ -1,3 +1,38 @@
 [planner]
 draft = "codex"
 review = "grok"
+
+[roles]
+implementer = "grok"
+tester      = "antigravity"
+reviewer    = "codex"
+
+[pipeline]
+default_profile = "full"
+
+[pipeline.profiles]
+full = ["draft", "test", "review"]
+
+[pipeline.stages.draft]
+role   = "implementer"
+prompt = "implement"
+[pipeline.stages.draft.on]
+ready = "@next"
+
+[pipeline.stages.test]
+role       = "tester"
+prompt     = "test"
+max_visits = 5
+[pipeline.stages.test.on]
+passed = "@next"
+failed = "draft"
+
+[pipeline.stages.review]
+role   = "reviewer"
+prompt = "review"
+[pipeline.stages.review.on]
+approved = "@complete"
+rejected = "draft"
+
+[backup]
+chain = ["codex"]
