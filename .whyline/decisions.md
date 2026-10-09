@@ -2214,3 +2214,21 @@ Append-only. Written by whyline; readable without it.
 
 <!-- whyline-event: 633741e381b3455baef73ca0367d6be9 -->
 <!-- whyline-meta: {"v":1,"ts":"2026-10-09T20:14:49.280Z"} -->
+
+## 2026-10-09 — Leave the current dirty tree untouched after review
+
+**Actor:** codex
+**Role:** reviewer
+**Task:** working-tree-audit
+
+**Because:** Git reports only one unstaged relay chat-history append; the large counts are ignored generated files and 22 already-committed local commits, so cleanup would discard session history without addressing source changes
+
+**Rejected:**
+
+- clean ignored files — they are expected generated or dependency artifacts and are not uncommitted Git changes
+- revert chat history — it is the live Whyline session record and no source-code delta exists
+
+**Files:** .whyline/relay/chat-history.jsonl
+
+<!-- whyline-event: 1a52756f67764ab982d00534ecf6ff57 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T21:25:44.761Z"} -->
