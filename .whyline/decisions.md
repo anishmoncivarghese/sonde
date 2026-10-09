@@ -2165,3 +2165,52 @@ Append-only. Written by whyline; readable without it.
 
 <!-- whyline-event: 6a7b40420ca247fd921f8254c0c8a8bb -->
 <!-- whyline-meta: {"v":1,"ts":"2026-10-09T20:04:24.387Z"} -->
+
+## 2026-10-09 — Temporarily mark Whyline chat history skip-worktree for the implementation relay
+
+**Actor:** codex
+**Role:** operator
+**Task:** relay-start
+
+**Because:** Whyline 0.3.37.1 appends chat-history.jsonl after committing a chat turn, which otherwise leaves a permanently dirty tree and blocks relay preflight
+
+**Rejected:**
+
+- start with --allow-dirty — the relay commit_all path could sweep live chat artifacts into MAP-GATE-1
+- stash the chat files — this active turn would recreate them before the relay starts
+
+**Files:** .whyline/relay/chat-history.jsonl
+
+<!-- whyline-event: 182655db0d1242cbaa7ae8def5e748a4 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T20:14:05.350Z"} -->
+
+## 2026-10-09 — Retracted: Temporarily mark Whyline chat history skip-worktree for the implementation relay
+
+**Actor:** codex
+**Role:** operator
+**Task:** relay-start
+
+**Because:** The workaround was unnecessary and could not be applied from the read-only Git-index sandbox; checkpointing the final appended chat-history line once from the normal terminal is sufficient
+
+**Files:** .whyline/relay/chat-history.jsonl
+
+<!-- whyline-event: 4db01172ec6b48de9dfeaf92e9de461c -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T20:14:49.166Z","retracts":"182655db0d1242cbaa7ae8def5e748a4"} -->
+
+## 2026-10-09 — Checkpoint the final Whyline chat-history append before starting the relay
+
+**Actor:** codex
+**Role:** operator
+**Task:** relay-start
+
+**Because:** Whyline 0.3.37.1 commits a chat turn before appending its history record; after the turn ends, one exact-path commit makes the tree clean and no further chat write occurs before Relay Start
+
+**Rejected:**
+
+- start with --allow-dirty — the relay commit_all path could sweep chat artifacts into MAP-GATE-1
+- mark the history skip-worktree — hidden index state is unnecessary when the relay starts immediately after the checkpoint
+
+**Files:** .whyline/relay/chat-history.jsonl
+
+<!-- whyline-event: 633741e381b3455baef73ca0367d6be9 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-09T20:14:49.280Z"} -->
