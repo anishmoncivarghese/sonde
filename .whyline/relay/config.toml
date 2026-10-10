@@ -1,4 +1,8 @@
 plan = "plans/now-i-want-you-to-analyse-the-current-ca.plan.md"
+max_rounds = 6
+
+[agents.cold-codex]
+adapter = "codex"
 
 [planner]
 draft = "codex"
@@ -8,6 +12,7 @@ review = "grok"
 implementer = "grok"
 tester      = "antigravity"
 reviewer    = "codex"
+answerer    = "cold-codex"
 release = "human"
 
 [pipeline]
@@ -15,6 +20,7 @@ default_profile = "full"
 
 [pipeline.profiles]
 full = ["draft", "test", "review"]
+map_cold = ["map_answer", "map_test", "map_review"]
 
 [pipeline.stages.draft]
 role   = "implementer"
@@ -36,6 +42,27 @@ prompt = "review"
 [pipeline.stages.review.on]
 approved = "@complete"
 rejected = "draft"
+
+[pipeline.stages.map_answer]
+role   = "answerer"
+prompt = "map-cold-answer"
+[pipeline.stages.map_answer.on]
+recorded = "@next"
+blocked = "@blocked"
+
+[pipeline.stages.map_test]
+role   = "tester"
+prompt = "test"
+[pipeline.stages.map_test.on]
+passed = "@next"
+failed = "@blocked"
+
+[pipeline.stages.map_review]
+role   = "reviewer"
+prompt = "review"
+[pipeline.stages.map_review.on]
+approved = "@complete"
+rejected = "@blocked"
 
 [backup]
 chain = ["codex"]

@@ -2366,3 +2366,22 @@ Append-only. Written by whyline; readable without it.
 
 <!-- whyline-event: f8b11a3e2c824dbf8dd968aee534b1ed -->
 <!-- whyline-meta: {"v":1,"ts":"2026-10-10T04:16:33.991Z"} -->
+
+## 2026-10-10 — Restart MAP-GATE-1 with a dedicated isolated browser answerer
+
+**Actor:** codex
+**Role:** operator
+**Task:** MAP-GATE-1
+
+**Because:** The failed run exposed all normal relay roles to prior answers, so a fresh cold-codex process now receives a prediction-free brief without the relay sync packet; validation failures pause instead of recycling that participant
+
+**Rejected:**
+
+- Resume the round-3 checkpoint — it reuses contaminated state and immediately exceeds the old cap
+- Let the answerer read PROTOCOL.md — its recorded predictions and clues would break cold exposure
+- Permit raw HTML or embedded-JSON extraction — that measures parsing rather than interaction with the rendered map
+
+**Files:** .whyline/relay/config.toml, .whyline/relay/prompts/map-cold-answer.md, plans/now-i-want-you-to-analyse-the-current-ca.plan.md, probes/visual-map/ANSWERER-BRIEF.md, probes/visual-map/RAW-RESULTS.md, probes/visual-map/audit/MAP-GATE-1-invalid-2026-10-10.md
+
+<!-- whyline-event: 766fa9747098498da14a60cb2e799c54 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-10-10T04:24:05.266Z"} -->
