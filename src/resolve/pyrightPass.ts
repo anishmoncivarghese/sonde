@@ -75,6 +75,8 @@ function packageOrLibFromUri(uri: string): string {
 }
 
 /** Promote only unresolved or heuristic Python sites answered by pyright. */
+const PYTHON_EXTENSIONS = [".py", ".pyi"] as const;
+
 export async function runPyrightPass(
   root: string,
   store: Store,
@@ -90,14 +92,14 @@ export async function runPyrightPass(
     const boundary = new RepoBoundary(root);
     const files = discover(boundary, {
       hashContent: false,
-      extensions: new Set([".py", ".pyi"]),
+      extensions: new Set(PYTHON_EXTENSIONS),
     }).map((file) => file.path);
     if (files.length === 0) return null;
 
     const unresolvedKeys = new Set<string>();
     const wanted = new Set<string>();
     let skippedNullSites = 0;
-    for (const site of store.unresolvedRefSites()) {
+    for (const site of store.unresolvedRefSites(PYTHON_EXTENSIONS)) {
       if (site.siteLine === null) {
         skippedNullSites += 1;
         continue;
@@ -106,7 +108,7 @@ export async function runPyrightPass(
       unresolvedKeys.add(key);
       wanted.add(key);
     }
-    for (const site of store.heuristicEdgeSites()) {
+    for (const site of store.heuristicEdgeSites(PYTHON_EXTENSIONS)) {
       if (site.siteLine === null) {
         skippedNullSites += 1;
         continue;

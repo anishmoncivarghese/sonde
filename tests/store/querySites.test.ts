@@ -129,6 +129,73 @@ describe("query-site read APIs", () => {
     }
   });
 
+  it("restricts both site lists to the given file extensions", () => {
+    // The pyright pass asked for every unresolved and heuristic site in the
+    // index and then reported the ones it could not match. On a repository
+    // mixing Python with TypeScript that was every TypeScript site: 4858
+    // "unmatched" sites for six Python files.
+    const { store, close } = populatedStore();
+    try {
+      // No `language` here or on a.py's twin below: the index pipeline never
+      // sets it, so a filter that trusted that column would pass against
+      // hand-built fixtures and match nothing in a real index.
+      store.upsertFile({
+        path: "b.ts",
+        contentHash: "hash",
+        mtimeMs: 1,
+        size: 100,
+      });
+      store.insertSymbols(
+        ["tsCaller", "tsTarget"].map((name, index) => ({
+          stableKey: `ts:b.ts#${name}`,
+          filePath: "b.ts",
+          qualifiedName: name,
+          shortName: name,
+          kind: "function" as const,
+          signature: "()",
+          startByte: index * 20,
+          endByte: index * 20 + 10,
+          startLine: index + 1,
+          endLine: index + 1,
+          bodyHash: null,
+          exported: true,
+          isTest: false,
+        })),
+      );
+      store.insertEdges([
+        {
+          srcKey: "ts:b.ts#tsCaller",
+          dstKey: "ts:b.ts#tsTarget",
+          kind: "CALLS",
+          tier: "HEURISTIC",
+          confidence: 0.5,
+          siteLine: 1,
+        },
+      ]);
+      store.insertUnresolved([
+        {
+          srcKey: "ts:b.ts#tsCaller",
+          name: "tsMystery",
+          kind: "CALLS",
+          siteLine: 1,
+          candidateCount: 0,
+          reason: "no_candidate",
+        },
+      ]);
+
+      expect(store.unresolvedRefSites()).toHaveLength(2);
+      expect(store.heuristicEdgeSites()).toHaveLength(2);
+      expect(store.unresolvedRefSites([".py", ".pyi"])).toEqual([
+        { srcKey: "py:a.py#caller", name: "mystery", siteLine: 3 },
+      ]);
+      expect(store.heuristicEdgeSites([".py", ".pyi"])).toEqual([
+        { srcKey: "py:a.py#caller", name: "helper", siteLine: 3 },
+      ]);
+    } finally {
+      close();
+    }
+  });
+
   it("counts external references", () => {
     const { store, close } = populatedStore();
     try {

@@ -82,6 +82,13 @@ const SYMBOL_SELECT = `
          s.exported, s.is_test AS isTest
   FROM symbol s JOIN file f ON f.id = s.file_id`;
 
+/** A WHERE fragment matching `file.path` against any of the extensions. */
+function extensionFilter(extensions: readonly string[] | undefined): string {
+  if (extensions === undefined || extensions.length === 0) return "1 = 1";
+  // One positional parameter per extension; the values are bound, not spliced.
+  return `(${extensions.map(() => "file.path LIKE '%' || ?").join(" OR ")})`;
+}
+
 export class Store {
   constructor(private readonly db: Db) {}
 
@@ -495,8 +502,19 @@ export class Store {
       .run({ srcKey, name }).changes;
   }
 
-  /** Sites the deterministic resolver could not place exactly. */
-  unresolvedRefSites(): Array<{
+  /**
+   * Sites the deterministic resolver could not place exactly.
+   *
+   * `extensions` restricts the list to sites whose source symbol lives in a
+   * file with one of those extensions. A language-specific compiler pass must
+   * pass it: the pyright pass once asked for every site and then reported the
+   * TypeScript and Swift ones as Python sites it had failed to match.
+   *
+   * The filter is on the path, not on `file.language`. That column cannot be
+   * trusted: the index pipeline never sets it, so every file in a real index
+   * is stored as "typescript", Python and Swift included.
+   */
+  unresolvedRefSites(extensions?: readonly string[]): Array<{
     srcKey: string;
     name: string;
     siteLine: number | null;
@@ -508,10 +526,12 @@ export class Store {
                 unresolved_ref.site_line AS siteLine
          FROM unresolved_ref
          JOIN symbol ON symbol.id = unresolved_ref.src_symbol_id
+         JOIN file ON file.id = symbol.file_id
+         WHERE ${extensionFilter(extensions)}
          ORDER BY symbol.stable_key, unresolved_ref.site_line,
                   unresolved_ref.name`,
       )
-      .all() as Array<{
+      .all(...(extensions ?? [])) as Array<{
         srcKey: string;
         name: string;
         siteLine: number | null;
@@ -525,7 +545,7 @@ export class Store {
    * collapses ambiguity fan-out, while the kind filter excludes structural
    * TESTS edges that are always heuristic but are never pyright queries.
    */
-  heuristicEdgeSites(): Array<{
+  heuristicEdgeSites(extensions?: readonly string[]): Array<{
     srcKey: string;
     name: string;
     siteLine: number | null;
@@ -538,11 +558,13 @@ export class Store {
          FROM edge
          JOIN symbol AS source ON source.id = edge.src_symbol_id
          JOIN symbol AS target ON target.id = edge.dst_symbol_id
+         JOIN file ON file.id = source.file_id
          WHERE edge.tier = 'HEURISTIC'
            AND edge.kind IN ('CALLS','REFERENCES','IMPLEMENTS','INHERITS')
+           AND ${extensionFilter(extensions)}
          ORDER BY source.stable_key, edge.site_line, target.short_name`,
       )
-      .all() as Array<{
+      .all(...(extensions ?? [])) as Array<{
         srcKey: string;
         name: string;
         siteLine: number | null;

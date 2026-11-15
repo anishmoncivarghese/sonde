@@ -70,7 +70,9 @@ async function populatedStore(root: string): Promise<{
   const { db, store } = emptyStore();
 
   for (const file of files) {
-    store.upsertFile({ ...file, language: "python" });
+    // As the index pipeline stores them: with no language, which the store
+    // defaults to "typescript" even for Python.
+    store.upsertFile(file);
   }
   for (const [file, result] of extracted) {
     store.insertSymbols(
@@ -138,7 +140,9 @@ describe("runPyrightPass", () => {
       const boundary = new RepoBoundary(root);
       const [file] = discover(boundary, { extensions: new Set([".py"]) });
       if (!file) throw new Error("fixture file missing");
-      store.upsertFile({ ...file, language: "python" });
+      // As the index pipeline stores them: with no language, which the store
+    // defaults to "typescript" even for Python.
+    store.upsertFile(file);
       store.insertSymbols([
         {
           stableKey: "py:main.py#",
@@ -170,6 +174,80 @@ describe("runPyrightPass", () => {
         unavailable: true,
         reason: expect.stringMatching(/NULL site_line/),
       });
+    } finally {
+      db.close();
+    }
+  }, 60_000);
+
+  it("does not count another language's sites as unmatched", async () => {
+    // Absence matters as much as presence: a warning that fires on every
+    // mixed-language repository teaches people to ignore the real one.
+    const root = pythonRepo();
+    const { db, store } = await populatedStore(root);
+    try {
+      store.upsertFile({
+        path: "other.ts",
+        contentHash: "hash",
+        mtimeMs: 1,
+        size: 10,
+      });
+      store.insertSymbols([
+        {
+          stableKey: "ts:other.ts#caller",
+          filePath: "other.ts",
+          qualifiedName: "caller",
+          shortName: "caller",
+          kind: "function",
+          signature: "()",
+          startByte: 0,
+          endByte: 10,
+          startLine: 1,
+          endLine: 1,
+          bodyHash: null,
+          exported: true,
+          isTest: false,
+        },
+      ]);
+      store.insertUnresolved([
+        {
+          srcKey: "ts:other.ts#caller",
+          name: "somethingTypeScript",
+          kind: "CALLS",
+          siteLine: 1,
+          candidateCount: 0,
+          reason: "no_candidate",
+        },
+      ]);
+
+      const result = await runPyrightPass(root, store);
+      expect(result).toMatchObject({ unmatchedSites: 0, warnings: [] });
+    } finally {
+      db.close();
+    }
+  }, 60_000);
+
+  it("still reports a Python site that genuinely fails to match", async () => {
+    const root = pythonRepo();
+    const { db, store, references } = await populatedStore(root);
+    try {
+      const anchor = references[0];
+      if (!anchor) throw new Error("fixture has no references");
+      store.insertUnresolved([
+        {
+          srcKey: anchor.fromSymbolKey,
+          name: "noSuchReferenceInSource",
+          kind: "CALLS",
+          siteLine: 9999,
+          candidateCount: 0,
+          reason: "forced_for_pyright_test",
+        },
+      ]);
+
+      const result = await runPyrightPass(root, store);
+      expect(result).toMatchObject({ unmatchedSites: 1 });
+      expect((result as { warnings: string[] }).warnings).toContain(
+        "1 stored pyright query site(s) did not match extraction",
+      );
     } finally {
       db.close();
     }
