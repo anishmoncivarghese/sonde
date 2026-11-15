@@ -7,23 +7,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- `sonde map` — an interactive architecture map as a single self-contained
-  HTML file, in two modes. The default simple map rolls nested modules up one
-  level, drops scaffolding that ships nothing, and draws only
-  resolved-majority dependencies with no toggle to reveal the rest; it answers
-  "how does this work". `--complete` draws every module and every evidenced
-  pair, with unverified ones behind a checkbox; it answers "what exactly
-  depends on what". They are separate projections rather than one view with a
-  filter, because each reduction that makes the simple map readable is also
-  what makes it unfit for auditing. `--check` works as it does for `sonde doc`,
-  comparing the embedded model so the provenance stamp cannot make the file
-  stale against itself.
-- Selecting a module reports its **transitive** reach, not its immediate
-  neighbours, in either direction. This is the gap a measured trial found:
-  asked which modules must be checked when `src/store` changes, neither the
-  committed document nor a first draft of the map could answer, and the real
-  answer here is 21 modules — 16 direct and 5 further out. Search was the other
-  blocker and is now in the header.
+- `sonde map`, **experimental and hidden from `sonde --help`**. It writes an
+  interactive module map as one self-contained HTML file, in a simple and a
+  `--complete` mode, and selecting a module lists its transitive dependants or
+  dependencies. It is not offered as a supported feature: the only usefulness
+  trials so far tested an earlier prototype, not this command's output, and
+  nobody has yet shown that it helps a reader answer a question. It ships so
+  that it can be measured. `sonde doc` remains the supported artifact.
 
 ### Fixed
 
@@ -33,6 +23,12 @@ All notable changes to this project are documented here. Format follows
   to learn the answer was 16 — a wrong answer delivered as a certainty, which
   is the failure invariant 8 exists to prevent. The claim was untested, so the
   regression test matters as much as the wording.
+- Indexing a repository that mixes Python with TypeScript or Swift under
+  `--resolve` warned that thousands of "stored pyright query site(s) did not
+  match extraction". They were the other languages' reference sites, which the
+  Python pass had counted as its own: 4858 of them on this repository, for six
+  Python files. The warning now covers Python sites only, and still fires when
+  one genuinely fails to match. Present since 0.3.0.
 
 ## [0.4.4] — 2026-08-31
 

@@ -440,9 +440,16 @@ program
   });
 
 program
-  .command("map")
+  // Hidden from `sonde --help` until a usefulness gate has measured this
+  // command's own output (plans/map-gate.plan.md). The trials so far tested an
+  // earlier spike, not this. It still runs when asked for by name.
+  .command("map", { hidden: true })
   .argument("[path]", "repository root", ".")
-  .description("generate an interactive architecture map as a single HTML file")
+  .description(
+    "experimental: generate an interactive architecture map as a single " +
+      "HTML file; not yet shown to help anyone, see `sonde doc` for the " +
+      "supported artifact",
+  )
   .option("--complete", "draw every module and every evidenced pair")
   .option("--stdout", "print the map instead of writing it")
   .option("--check", "fail if the committed map is out of date")

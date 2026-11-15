@@ -125,6 +125,15 @@ describe("sonde map", () => {
     expect(output).not.toMatch(/PathEscapeError|at RepoBoundary/);
   }, 120_000);
 
+  it("is hidden from top-level help but still runs by name", () => {
+    // No usefulness gate has measured this command's output yet, so it must
+    // not be offered. It stays reachable for the gate itself to use.
+    const help = run(["--help"]);
+    expect(help).not.toMatch(/^\s+map\b/m);
+    expect(help).toMatch(/^\s+doc\b/m);
+    expect(run(["map", "--help"])).toMatch(/experimental/);
+  }, 120_000);
+
   it("--complete draws strictly more than the simple map", () => {
     const root = project();
     run(["index", root]);

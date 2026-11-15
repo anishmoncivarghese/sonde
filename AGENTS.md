@@ -91,6 +91,10 @@ projection from `findNestedProjectRoots` and `buildModuleGraph`, deliberately
 through the same helpers rather than copies: a map whose provenance stamp
 contradicts the document beside it is worse than no map.
 
+`sonde map` is **experimental and hidden from `sonde --help`** until
+`plans/map-gate.plan.md` has measured its output; do not document or advertise
+it before then. `sonde doc` is the supported artifact.
+
 `sonde map` has two modes. The simple one is an orientation artifact and shows
 only resolved-majority dependencies, with **no toggle** to reveal the rest.
 Adding one would be a bug, not a feature: unlike the complete map there is no
