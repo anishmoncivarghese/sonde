@@ -268,3 +268,39 @@ The first release containing `sonde explain` is a minor release and contains onl
 After the skill routing experiment passes, publish the skill from a separate skills repository with a minimum compatible Sonde version. The npm package remains the local index and CLI runtime. If the MCP residual-gap condition fires, the bounded `paths_from` pattern ships as a versioned schema change in a later minor release, not as a new tool.
 
 For every release, bump all package and MCP registry version fields together, publish npm, GitHub tag/release, and MCP Registry entries with separate commands, then query each registry to verify the new version is current. Finally, install the published package into a clean directory and run the release’s headline workflow against throwaway repositories. Release notes report the evaluation protocol and outcome, supported languages and degraded modes, static-analysis limits, and which proposed projections or sinks were deliberately not shipped.
+
+## Amendments — 2026-11-15
+
+Made after a repository audit recorded in
+`docs/reviews/2026-11-15-plan-audit.md`. The text above is left as written so
+the original reasoning stays readable; where it conflicts with this section,
+this section governs.
+
+1. **§1, Phase 0 measured the wrong artifact.** "Phase 0 uses the artifacts
+   already named by its protocol" pins the gate to
+   `probes/visual-map/map.html` and `map-simple.html`, the Phase 0 spike. The
+   `sonde map` command built afterwards adds search, transitive reach and a
+   direction toggle, so its output is a different artifact that no gate has
+   measured. A verdict on the spike cannot retain or reject a view of the
+   command. The spike gate is closed on the evidence that exists, and the
+   command gets its own protocol under `probes/sonde-map/`.
+2. **The Phase 0 gate was not unadjudicated.** A cold human run took place on
+   2026-10-06 and was never written into the repository. It is now retained in
+   `probes/visual-map/audit/HUMAN-RUN-2026-10-06.md`, with its defects listed.
+3. **No answerer with repository access is cold for Q1–Q6.** The answers are
+   published in `CHANGELOG.md`, in commit `3f9cd28` and in the audit directory.
+   This, not a relay configuration fault, is why MAP-GATE-1 could not complete.
+4. **The map's reader is a human.** The owner decided this on 2026-10-06. An
+   agent driving a browser therefore measures the wrong reader, and the gate
+   for the command requires a human answerer who built nothing and drafted no
+   question.
+5. **Stimuli are committed and hashed.** The spike's stimuli were git-ignored
+   files on one machine, and the Markdown and the maps described different
+   revisions when the relay run compared them.
+6. **§8 gains an isolation rule and a locality rule.** Answerers work in an
+   exported copy with no history, decisions, probes or changelog, and a
+   projection cannot pass on this repository's tasks alone. Both were added
+   before any focused-explanation result exists.
+7. **"Releases" gains a patch that waits for no gate.** A fixed defect in
+   `sonde doc` and a false warning in the pyright pass ship as 0.4.5 with
+   `sonde map` hidden. See `plans/patch-0.4.5.plan.md`.
