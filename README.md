@@ -208,14 +208,18 @@ sonde search <query> [path]                # find_symbols
 sonde query <pattern> <symbol> [path]      # query_graph
 sonde impact [path] --symbol <name>        # get_impact_radius by symbol
 sonde impact [path] --from-git-diff        # impact from working-tree diff
+sonde doc [path]                           # write ARCHITECTURE.md from the graph
+sonde doc [path] --check                   # fail if ARCHITECTURE.md is out of date
+sonde doc [path] --module <module>         # symbol detail for one module, to stdout
 sonde doctor [path]                        # parser/database/tsc health
+sonde embed [path]                         # optional local embeddings; not used by search
 sonde clean [path]                         # remove the cached index
 sonde mcp serve [path]                     # MCP server over stdio
 ```
 
 `impact` also accepts repeatable `--symbol` options and
-`--token-budget <n>`. The `init`, `index`, `update`, `status`, `search`, `query`,
-`impact`, `doctor`, and `clean` commands accept `--json`.
+`--token-budget <n>`. `doc` also accepts `--stdout` and `--include-tests`. The `init`, `index`, `update`, `status`, `search`, `query`,
+`impact`, `doctor`, `embed`, and `clean` commands accept `--json`.
 
 ## Known limitations
 
