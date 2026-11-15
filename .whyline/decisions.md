@@ -2385,3 +2385,41 @@ Append-only. Written by whyline; readable without it.
 
 <!-- whyline-event: 766fa9747098498da14a60cb2e799c54 -->
 <!-- whyline-meta: {"v":1,"ts":"2026-10-10T04:24:05.266Z"} -->
+
+## 2026-11-15 — Split the map gate out of the explanation plan and gate the shipped command, not the spike
+
+**Actor:** claude
+**Role:** reviewer
+**Task:** PLAN-AUDIT
+
+**Because:** MAP-GATE-1 named probes/visual-map/map.html as stimulus but MAP-GATE-3 would have ruled on sonde map, a later and different artifact; Q1-Q6 answers are published in CHANGELOG.md and commit 3f9cd28, so no answerer with repository access is cold
+
+**Rejected:**
+
+- Resume MAP-GATE-1 with a stricter brief — the answers are in the repository, not in the brief
+- Treat the 2026-10-06 human run as void — it is the only cold observation of the intended reader and its defects can be listed rather than discarded
+- Hold the sonde doc fix and the pyright warning fix until the gate — neither depends on a usefulness verdict
+
+**Files:** plans/map-gate.plan.md, plans/patch-0.4.5.plan.md, docs/reviews/2026-11-15-plan-audit.md
+
+<!-- whyline-event: 39876185501746cc9d59e3d834dbfc6b -->
+<!-- whyline-meta: {"v":1,"ts":"2026-11-15T05:25:54.434Z"} -->
+
+## 2026-11-15 — Hide sonde map from help for 0.4.5 rather than ship it visibly or remove it
+
+**Actor:** claude
+**Role:** implementer
+**Task:** PATCH-2
+
+**Because:** No gate has measured the command's own output; the owner approved running the patch plan with hiding as its drafted default, and the map gate needs the command to exist
+
+**Rejected:**
+
+- Cut the patch from v0.4.4 with cherry-picks — main would diverge from what is released and the map tests would stop running in CI
+- Ship it visibly — the spec forbids advertising a map before its gate
+- Remove it — removal is the owner's call after a verdict, not before one
+
+**Files:** src/cli/main.ts, CHANGELOG.md, AGENTS.md
+
+<!-- whyline-event: 77390689c10540d8a9c9ae8c575a01f6 -->
+<!-- whyline-meta: {"v":1,"ts":"2026-11-15T05:36:16.072Z"} -->

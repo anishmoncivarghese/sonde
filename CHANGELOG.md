@@ -5,6 +5,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.5] — 2026-11-15
+
 ### Added
 
 - `sonde map`, **experimental and hidden from `sonde --help`**. It writes an
